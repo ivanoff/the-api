@@ -1,0 +1,59 @@
+{
+  "name": "main-api",
+  "version": "0.0.1",
+  "description": "Main API - just what you need",
+  "license": "MIT",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node example.js",
+    "test": "mocha test/_init.js test/*.js test/ze_last.js",
+    "coverage": "nyc mocha -- test/_init.js test/*.js test/ze_last.js",
+    "lint": "eslint src/ --cache --ignore-pattern .gitignore",
+    "fix": "eslint src/ --ignore-pattern .gitignore --fix",
+    "migrate:make": "knex migrate:make --migrations-directory=migrations"
+  },
+  "pre-commit": [
+    "lint"
+  ],
+  "dependencies": {
+    "@koa/router": "^9.3.1",
+    "amqplib": "^0.6.0",
+    "api-i": "^10.1.1",
+    "dotenv": "^8.2.0",
+    "jsonwebtoken": "^8.5.1",
+    "knex": "^0.21.4",
+    "koa": "^2.13.0",
+    "koa-bodyparser": "^4.3.0",
+    "nodemailer": "^6.4.11",
+    "pg": "^8.3.0",
+    "uuid": "^8.3.0"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "chai-http": "^4.3.0",
+    "coveralls": "^3.1.0",
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-plugin-import": "^2.22.0",
+    "mocha": "^6.2.3",
+    "nyc": "^14.1.1",
+    "pre-commit": "^1.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ivanoff/main-api.git"
+  },
+  "keywords": [
+    "API",
+    "API SERVER",
+    "REST",
+    "REST API",
+    "REST API SERVER",
+    "RESTful",
+    "RESTful API",
+    "RESTful API SERVER",
+    "HATEOAS",
+    "Main API"
+  ],
+  "author": "Dimitry Ivanov <2@ivanoff.org.ua> # curl -A cv ivanoff.org.ua"
+}
