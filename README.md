@@ -23,7 +23,7 @@ JWT_SIGN=eb003088-e82e-48d7-9a46-8324d55f1e7a:539c36ca-f771-4505-9ee0-be2b2b64da
 
 ### index.js
 ```
-const TheAPI = require('./src');
+const TheAPI = require('the-api');
 const api = new TheAPI();
 
 const { logs, errors, info, token, access, cache } = api.extensions;
