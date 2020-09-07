@@ -41,9 +41,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ivanoff/main-api.git"
+    "url": "https://github.com/ivanoff/the-api.git"
   },
   "keywords": [
+    "The API",
     "API",
     "API SERVER",
     "REST",
@@ -52,8 +53,7 @@
     "RESTful",
     "RESTful API",
     "RESTful API SERVER",
-    "HATEOAS",
-    "Main API"
+    "HATEOAS"
   ],
   "author": "Dimitry Ivanov <2@ivanoff.org.ua> # curl -A cv ivanoff.org.ua"
 }

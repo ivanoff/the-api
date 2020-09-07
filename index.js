@@ -1,12 +1,12 @@
-const MainAPI = require('./src');
-const mainAPI = new MainAPI();
+const TheAPI = require('./src');
+const api = new TheAPI();
 
-const { logs, errors, info, token, access, cache } = mainAPI.extensions;
-const { login, test, notes } = mainAPI.routes;
+const { logs, errors, info, token, access, cache } = api.extensions;
+const { login, test, notes } = api.routes;
 
 info.endpointsToShow(login, test, notes);
 
-mainAPI.up([
+api.up([
   logs,
   errors,
   info,

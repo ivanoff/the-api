@@ -23,7 +23,7 @@ module.exports.endpointsToShow = (...routes) => {
 };
 
 module.exports.examples = {
-  'curl localhost:8878/info': {
-    currentTime: '2020-08-07T19:48:57.660Z', name: 'main-api', version: '0.1.0', uptime: 1, requests: { total: 1 }, endpoints: { '/test': ['HEAD', 'GET'] },
+  'curl localhost:8877/info': {
+    currentTime: '2020-08-07T19:48:57.660Z', name: 'the-api', version: '0.1.0', uptime: 1, requests: { total: 1 }, endpoints: { '/test': ['HEAD', 'GET'] },
   },
 };

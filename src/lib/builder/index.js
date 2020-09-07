@@ -38,7 +38,7 @@ WHERE tc.constraint_type = 'FOREIGN KEY'
   }
 
   examples() {
-    return { 'curl localhost:8878/test': { ok: 1 } };
+    return { 'curl localhost:8877/test': { ok: 1 } };
   }
 }
 

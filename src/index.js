@@ -12,7 +12,7 @@ require('dotenv').config();
 const { log } = console;
 let intervalDbCheck;
 
-class MainAPI {
+class TheAPI {
   constructor({ port } = {}) {
     this.port = port || process.env.PORT;
     this.app = new Koa();
@@ -86,4 +86,4 @@ class MainAPI {
   }
 }
 
-module.exports = MainAPI;
+module.exports = TheAPI;
