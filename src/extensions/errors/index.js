@@ -12,9 +12,9 @@ module.exports = async (ctx, next) => {
     await next();
     if (ctx.status === 404 && !ctx.body) throw new Error('API_METHOD_NOT_FOUND');
   } catch (errorObj) {
-console.log(isWarning, errorObj)
+    console.log(isWarning, errorObj);
     const { message: codeName, stack } = errorObj;
-console.log(isWarning, errorObj.message)
+    console.log(isWarning, errorObj.message);
     const { name, version, routeErrors } = ctx.state;
 
     const errorListed = routeErrors[codeName] || errors[codeName];

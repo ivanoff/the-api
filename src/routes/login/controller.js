@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
-const getCode = require('../../utils');
+const getCode = require('../../lib');
 
 async function loginTool({
   ctx, login, password, refresh, id: byId,

@@ -3,8 +3,9 @@ const Router = require('@koa/router');
 const bodyParser = require('koa-bodyparser');
 const knex = require('knex');
 const { FsMigrations } = require('knex/lib/migrate/sources/fs-migrations');
-const extensions = require('./lib/extensions');
-const routes = require('./lib/routes');
+const extensions = require('./extensions');
+const routes = require('./routes');
+const Builder = require('./lib/builder');
 
 require('dotenv').config();
 
@@ -37,15 +38,13 @@ class MainAPI {
         host, user, password, database,
       },
     });
-
-
   }
 
   up(flow = []) {
     const startTime = new Date();
     const requests = { total: 0 };
 
-    const initServer = () => {
+    const initServer = async () => {
       const routeErrors = flow.reduce((acc, item) => ({ ...acc, ...item.errors }), {});
 
       const examples = flow.reduce((acc, item) => acc.concat(item.examples), []).filter(Boolean);
@@ -59,7 +58,11 @@ class MainAPI {
 
       const migrationDirs = flow.map((item) => item.migration).filter(Boolean);
       if (migrationDirs.length) {
-        this.db.migrate.latest({ migrationSource: new FsMigrations(migrationDirs, false) });
+        try {
+          await this.db.migrate.latest({ migrationSource: new FsMigrations(migrationDirs, false) });
+        } catch (err) {
+          this.log(err);
+        }
       }
 
       flow.map((item) => this.app.use(typeof item.routes === 'function' ? item.routes() : item));
