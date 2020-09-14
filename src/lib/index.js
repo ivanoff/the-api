@@ -1,6 +1,6 @@
 const getCode = require('./code');
-const sleep = require('./sleep');
+const Mail = require('./mail');
 
 module.exports = {
-  getCode, sleep,
+  getCode, Mail,
 };

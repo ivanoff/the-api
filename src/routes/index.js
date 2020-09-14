@@ -1,7 +1,7 @@
-const test = require('./test');
+const check = require('./check');
 const login = require('./login');
 const notes = require('./notes');
 
 module.exports = {
-  test, login, notes,
+  check, login, notes,
 };

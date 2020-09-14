@@ -2,7 +2,7 @@ exports.up = (knex) => knex.schema
   .createTable('users', (table) => {
     table.increments('id');
     table.string('login').notNullable();
-    table.string('password', 36).notNullable();
+    table.string('password', 64).notNullable();
     table.string('salt', 36).notNullable();
     table.string('refresh', 36).notNullable();
     table.string('status');

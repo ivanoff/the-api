@@ -1,5 +1,5 @@
 async function getCategory(ctx) {
-  const { db, user_id } = ctx.state;
+  const { db, user_id = 0 } = ctx.state;
   const { id } = ctx.params;
 
   const result = await db('notes_categories').select('*').where({ id, user_id, deleted: false }).first();
@@ -10,12 +10,12 @@ async function getCategory(ctx) {
 }
 
 async function getAllCategories(ctx) {
-  const { db, user_id } = ctx.state;
+  const { db, user_id = 0 } = ctx.state;
   ctx.body = await db('notes_categories').where({ user_id, deleted: false });
 }
 
 async function createCategory(ctx) {
-  const { db, user_id } = ctx.state;
+  const { db, user_id = 0 } = ctx.state;
   const { title } = ctx.request.body;
   ctx.body = await db('notes_categories').insert({ title, user_id }).returning('*');
 }
