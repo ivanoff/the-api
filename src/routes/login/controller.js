@@ -1,10 +1,12 @@
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
-const { sha256 } = require('js-sha256');
+const crypto = require('crypto');
 const { getCode } = require('../../lib');
 const Mail = require('./mail');
 
 const mail = new Mail();
+
+const sha256 = (data) => crypto.createHash('sha256').update(data, 'utf8').digest('hex');
 
 async function loginTool({
   ctx, login, password, refresh, id: byId,
@@ -24,7 +26,7 @@ async function loginTool({
   } = user;
   if (login && passDb !== sha256(password + salt)) return {};
 
-  if (status === 'unconfirmed') return { status };
+  if (status === 'unconfirmed') return { id, status };
 
   const token = jwt.sign({
     id, login, status, name,
@@ -80,9 +82,11 @@ async function register(ctx) {
 
   if (checkEmail) {
     const recover = uuidv4();
+
     await db('code').insert({
-      user_id: ctx.body.id, code, recover, time: new Date(),
+      user_id: ctx.body.id, code, recover, time: (new Date()).getTime(),
     });
+
     mail.check({ email, code });
   }
 }
@@ -92,19 +96,20 @@ async function check(ctx) {
   const { db } = ctx.state;
 
   const expireIn = +process.env.LOGIN_CHECK_EMAIL_DELAY || 60;
-  await db('code').del().where('time', '>', new Date((new Date()).getTime() - 1000 * 60 * expireIn));
+  await db('code').del().where('time', '>', (new Date((new Date()).getTime() + 1000 * 60 * expireIn)).getTime());
 
   if (id) await db.raw('update code set attempts = attempts+1 where user_id=?', [id]);
 
-  const query = recover ? { recover } : { user_id: id, code };
+  //  const query = recover ? { recover } : { user_id: id, code };
+  const query = recover ? { recover } : { code };
   const data = await db('code').where(query).where('attempts', '<', 3).first();
 
   if (!data) return ctx.warning('WRONG_CODE');
 
   const { id: restoredId } = data;
-  await db('code').update({ status: 'registered' }).where({ id: restoredId });
+  await db('users').update({ status: 'registered' }).where({ id: restoredId });
 
-  ctx.body = await loginTool({ id: restoredId });
+  ctx.body = await loginTool({ ctx, id: restoredId });
 }
 
 async function restore(ctx) {
