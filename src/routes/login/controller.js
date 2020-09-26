@@ -59,7 +59,7 @@ async function register(ctx) {
     login, password, email, firstName, secondName,
   } = ctx.request.body;
 
-  if(!login) return ctx.warning('LOGIN_REQUIRED');
+  if (!login) return ctx.warning('LOGIN_REQUIRED');
 
   const { db } = ctx.state;
   const salt = uuidv4();
@@ -84,14 +84,16 @@ async function register(ctx) {
   if (checkEmail) {
     const recover = uuidv4();
 
-    await db('code').insert({ login, code, recover, time: (new Date()).getTime() });
+    await db('code').insert({
+      login, code, recover, time: (new Date()).getTime(),
+    });
 
     mail.check({ email, code });
   }
 }
 
 async function check(ctx) {
-  const { login, code, recover } = ctx.request.body;
+  const { login, code } = ctx.request.body;
   const { db } = ctx.state;
 
   if (!code || !login) return ctx.warning('WRONG_CODE');
@@ -118,7 +120,7 @@ async function restore(ctx) {
 
   ctx.body = { ok: 1 };
 
-  if(!login && !email) return;
+  if (!login && !email) return;
 
   const where = login ? { login } : { email };
   const { email: to, login: l } = await db('users').where({ ...where, deleted: false }).first() || {};
@@ -138,7 +140,7 @@ async function setPassword(ctx) {
   const { db } = ctx.state;
 
   const expireIn = +process.env.LOGIN_CHECK_EMAIL_DELAY || 60;
-  const expireTime = new Date((new Date()).getTime() - 1000 * 60 * expireIn)
+  const expireTime = new Date((new Date()).getTime() - 1000 * 60 * expireIn);
   const { login } = await db('code').where({ recover: code }).where('time', '>', expireTime).first() || {};
 
   if (!login) return ctx.warning('WRONG_CODE');

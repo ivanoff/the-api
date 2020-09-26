@@ -9,7 +9,7 @@
     "test": "mocha test/_init.js test/*.js src/routes/**/test/*.js",
     "coverage": "nyc mocha -- test/_init.js test/*.js src/routes/**/test/*.js",
     "lint": "eslint src/ --cache --ignore-pattern .gitignore",
-    "fix": "eslint src/ --ignore-pattern .gitignore --ignore-pattern **/test --fix",
+    "fix": "eslint src/ --ignore-pattern .gitignore --fix",
     "migrate:make": "knex migrate:make --migrations-directory=migrations"
   },
   "pre-commit": [

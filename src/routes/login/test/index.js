@@ -54,7 +54,7 @@ describe('Login', () => {
 
     it('email `text` contains code', async () => {
       const match = global.message.text.match(/(\d{5})/);
-      code = match[1];
+      [, code] = match;
       expect(!!code).to.eql(true);
     });
 
@@ -72,7 +72,6 @@ describe('Login', () => {
       res = await global.post('/register/check', { login, code });
       expect(res.status).to.eql(404);
     });
-
   });
 
   describe('Login', () => {
@@ -199,7 +198,7 @@ describe('Login', () => {
 
     it('email `text` contains code', async () => {
       const match = global.message.text.match(/([\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12})/);
-      code = match[1];
+      [, code] = match;
       expect(!!code).to.eql(true);
     });
 
@@ -234,7 +233,7 @@ describe('Login', () => {
 
     it('email `text` contains code', async () => {
       const match = global.message.text.match(/([\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12})/);
-      code = match[1];
+      [, code] = match;
       expect(!!code).to.eql(true);
     });
 
@@ -244,7 +243,6 @@ describe('Login', () => {
       const rawRes2 = await global.post('/login/restore', { code, password: newPassword });
       expect(rawRes2.status).to.eql(404);
     });
-
   });
 
   describe('Mistakes', () => {
@@ -265,9 +263,8 @@ describe('Login', () => {
     });
 
     it('status 404', async () => {
-      res = await global.post('/register', {login: ''});
+      res = await global.post('/register', { login: '' });
       expect(res.status).to.eql(404);
     });
-
   });
 });
