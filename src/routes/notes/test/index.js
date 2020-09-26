@@ -61,6 +61,15 @@ describe('Notes', () => {
     });
   });
 
+  describe('Get Data by unknown Id return 404', () => {
+    let res;
+
+    it('status 200', async () => {
+      res = await global.get('/notes/1/data/100');
+      expect(res.status).to.eql(404);
+    });
+  });
+
   describe('Get Data by Id', () => {
     let res;
 

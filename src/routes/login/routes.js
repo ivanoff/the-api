@@ -7,7 +7,7 @@ module.exports = router
   .post('/register', c.register)
   .post('/register/check', c.check)
   .post('/login', c.loginHandler)
-  .get('/login/restore', c.restore)
+  .post('/login/forgot', c.restore)
   .post('/login/restore', c.setPassword);
 
 const routerRest = new Router();

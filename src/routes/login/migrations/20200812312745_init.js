@@ -15,6 +15,7 @@ exports.up = (knex) => knex.schema
   .createTable('code', (table) => {
     table.increments('id');
     table.integer('user_id');
+    table.string('login');
     table.string('code', 6);
     table.string('recover', 36);
     table.timestamp('time').defaultTo(knex.fn.now());

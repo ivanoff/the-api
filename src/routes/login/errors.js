@@ -35,4 +35,11 @@ module.exports = {
     description: 'Code you provide was wrong. Please try with another one or reset you password',
   },
 
+  LOGIN_REQUIRED: {
+    code: 1035,
+    status: 409,
+    name: 'Login required',
+    description: 'Login required. Please enter login',
+  },
+
 };

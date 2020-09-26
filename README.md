@@ -25,6 +25,7 @@ const { login, check, notes } = api.routes;
 info.endpointsToShow(login, check, notes);
 
 api.up([
+          // select any extension you want to use
   logs,   // log all actions to console with time, unique id, request path and time elapsed since the beginning of the request
   errors, // error handler with app name, version, error codeName, stack, error name and description for developers
   info,   // GET /info endpoint: server currentTime, app name, version, uptime, requests count, endpoints

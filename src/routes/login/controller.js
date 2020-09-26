@@ -41,7 +41,7 @@ async function loginTool({
 }
 
 async function loginHandler(ctx) {
-  const { login, password, refresh } = ctx.request.body || {};
+  const { login, password, refresh } = ctx.request.body;
 
   const loginResult = await loginTool({
     ctx, login, password, refresh,
@@ -58,16 +58,17 @@ async function register(ctx) {
   const {
     login, password, email, firstName, secondName,
   } = ctx.request.body;
+
+  if(!login) return ctx.warning('LOGIN_REQUIRED');
+
   const { db } = ctx.state;
   const salt = uuidv4();
 
   const userLogin = (await db('users').where({ login }).first());
   if (userLogin) return ctx.warning('LOGIN_EXISTS');
 
-  if (email) {
-    const userEmail = (await db('users').where({ email }).first());
-    if (userEmail) return ctx.warning('EMAIL_EXISTS');
-  }
+  const userEmail = email && (await db('users').where({ email }).first());
+  if (userEmail) return ctx.warning('EMAIL_EXISTS');
 
   const code = getCode();
   const options = JSON.stringify({ email: { on: true } });
@@ -83,31 +84,30 @@ async function register(ctx) {
   if (checkEmail) {
     const recover = uuidv4();
 
-    await db('code').insert({
-      user_id: ctx.body.id, code, recover, time: (new Date()).getTime(),
-    });
+    await db('code').insert({ login, code, recover, time: (new Date()).getTime() });
 
     mail.check({ email, code });
   }
 }
 
 async function check(ctx) {
-  const { id, code, recover } = ctx.request.body;
+  const { login, code, recover } = ctx.request.body;
   const { db } = ctx.state;
+
+  if (!code || !login) return ctx.warning('WRONG_CODE');
 
   const expireIn = +process.env.LOGIN_CHECK_EMAIL_DELAY || 60;
   await db('code').del().where('time', '>', (new Date((new Date()).getTime() + 1000 * 60 * expireIn)).getTime());
 
-  if (id) await db.raw('update code set attempts = attempts+1 where user_id=?', [id]);
+  await db.raw('update code set attempts = attempts+1 where login=?', [login]);
 
-  //  const query = recover ? { recover } : { user_id: id, code };
-  const query = recover ? { recover } : { code };
-  const data = await db('code').where(query).where('attempts', '<', 3).first();
+  const data = await db('code').where({ login, code }).where('attempts', '<', 3).first();
 
   if (!data) return ctx.warning('WRONG_CODE');
 
   const { id: restoredId } = data;
   await db('users').update({ status: 'registered' }).where({ id: restoredId });
+  await db('code').del().where({ login, code });
 
   ctx.body = await loginTool({ ctx, id: restoredId });
 }
@@ -116,18 +116,21 @@ async function restore(ctx) {
   const { login, email } = ctx.request.body;
   const { db } = ctx.state;
 
-  const { id: user_id, email: to } = await db('users').where(() => this.where({ login }).orWhere({ email })).where({ deleted: false }).first();
-
-  if (user_id) {
-    const recover = uuidv4();
-
-    await db('code').del().where({ user_id });
-    await db('code').insert({ user_id, recover });
-
-    mail.recover({ email: to, recover });
-  }
-
   ctx.body = { ok: 1 };
+
+  if(!login && !email) return;
+
+  const where = login ? { login } : { email };
+  const { email: to, login: l } = await db('users').where({ ...where, deleted: false }).first() || {};
+
+  if (!to) return;
+
+  const recover = uuidv4();
+
+  await db('code').del().where({ login: l });
+  await db('code').insert({ login, recover });
+
+  mail.recover({ email: to, recover });
 }
 
 async function setPassword(ctx) {
@@ -135,15 +138,16 @@ async function setPassword(ctx) {
   const { db } = ctx.state;
 
   const expireIn = +process.env.LOGIN_CHECK_EMAIL_DELAY || 60;
-  const { user_id } = await db('code').where({ recover: code }).where('time', '>', new Date((new Date()).getTime() - 1000 * 60 * expireIn)).first();
+  const expireTime = new Date((new Date()).getTime() - 1000 * 60 * expireIn)
+  const { login } = await db('code').where({ recover: code }).where('time', '>', expireTime).first() || {};
 
-  if (!user_id) return ctx.warning('WRONG_CODE');
+  if (!login) return ctx.warning('WRONG_CODE');
 
   await db('code').del().where({ recover: code });
 
   const salt = uuidv4();
 
-  await db('users').update({ password: sha256(password + salt), salt }).where({ id: user_id });
+  await db('users').update({ password: sha256(password + salt), salt }).where({ login });
 
   ctx.body = { ok: 1 };
 }
