@@ -1,3 +1,10 @@
+[![NPM version][npm-version-image]][npm-url]
+[![NPM downloads][npm-downloads-image]][npm-url]
+[![MIT License][license-image]][license-url]
+[![Build Status: Linux][travis-image]][travis-url]
+[![Build Status: Windows][appveyor-image]][appveyor-url]
+[![Coverage Status][coveralls-image]][coveralls-url]
+
 # the-api
 
 The API
@@ -88,3 +95,24 @@ EMAIL_HOST | email server | smtp.server |
 EMAIL_PORT | email port | 587 |
 EMAIL_SECURE | nodemailer secure option | true, false |
 EMAIL_TLS_REJECTUNAUTH | nodemailer rejectUnauthorized option | true, false |
+
+## Created by
+
+  Dimitry Ivanov <2@ivanoff.org.ua> # curl -A cv ivanoff.org.ua
+
+[license-image]: http://img.shields.io/badge/license-MIT-blue.svg?style=flat
+[license-url]: LICENSE
+
+[npm-url]: https://npmjs.org/package/the-api
+[npm-version-image]: http://img.shields.io/npm/v/the-api.svg?style=flat
+[npm-downloads-image]: http://img.shields.io/npm/dm/the-api.svg?style=flat
+
+[travis-url]: https://travis-ci.org/ivanoff/the-api
+[travis-image]: https://travis-ci.org/ivanoff/the-api.svg?branch=master
+
+[appveyor-url]: https://ci.appveyor.com/project/ivanoff/the-api/branch/master
+[appveyor-image]: https://ci.appveyor.com/api/projects/status/lp3nhnam1eyyqh33/branch/master?svg=true
+
+[coveralls-url]: https://coveralls.io/github/ivanoff/the-api?branch=master
+[coveralls-image]: https://coveralls.io/repos/github/ivanoff/the-api/badge.svg?branch=master
+
