@@ -1,13 +1,17 @@
 const { expect } = require('chai');
+const { sleep } = require('../src/lib');
 
 describe('Token', () => {
   const api = new global.TheAPI();
+  const env = { ...process.env };
 
   before(async () => {
-    const { errors, token } = api.extensions;
+    process.env = { NODE_ENV: 'test_log', JWT_EXPIRES_IN: '1100ms' };
+    const { logs, errors, token } = api.extensions;
     const { login, check } = api.routes;
 
     await api.up([
+      logs,
       errors,
       login,
       token,
@@ -15,7 +19,10 @@ describe('Token', () => {
     ]);
   });
 
-  after(() => api.down());
+  after(() => {
+    api.down();
+    process.env = env;
+  });
 
   describe('GET /check with token', () => {
     let res;
@@ -36,6 +43,12 @@ describe('Token', () => {
     it('GET /check', async () => {
       res = await global.get('/check', {Authorization: `Bearer ${token}`});
       expect(res.status).to.eql(200);
+    });
+
+    it('expires GET /check', async () => {
+      await sleep(1300);
+      res = await global.get('/check', {Authorization: `Bearer ${token}`});
+      expect(res.status).to.eql(403);
     });
   });
 

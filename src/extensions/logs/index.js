@@ -3,10 +3,9 @@ const { name, version } = require('../../../package.json');
 
 module.exports = async (ctx, next) => {
   const id = Math.random().toString(36).substring(2, 10);
-  const timeBegin = new Date();
 
   ctx.state = {
-    ...ctx.state, id, timeBegin, name, version,
+    ...ctx.state, id, name, version,
   };
 
   ctx.state.log = simpleLog(ctx);

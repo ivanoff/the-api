@@ -5,8 +5,9 @@ module.exports = (ctx, next) => {
   if (ctx.url !== '/info') return next();
 
   const {
-    startTime, timeBegin: currentTime, name, version, requests,
+    startTime, requestTime: currentTime, name, version, requests,
   } = ctx.state;
+
   const uptime = Math.floor((currentTime.getTime() - startTime.getTime()) / 1000);
 
   ctx.body = {

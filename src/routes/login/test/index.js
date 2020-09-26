@@ -7,7 +7,7 @@ describe('Login', () => {
 
   before(async () => {
     process.env = { NODE_ENV: 'test', LOGIN_CHECK_EMAIL: 'true' };
-    await api.up([api.routes.login]);
+    await api.up([api.extensions.errors, api.routes.login]);
   });
 
   after(async () => {
@@ -25,19 +25,19 @@ describe('Login', () => {
       expect(res.status).to.eql(200);
     });
 
-    it('status 404 for same login', async () => {
+    it('status 409 for same login', async () => {
       res = await global.post('/register', { ...userData, email: 'wrong' });
-      expect(res.status).to.eql(404);
+      expect(res.status).to.eql(409);
     });
 
-    it('status 404 for same email', async () => {
+    it('status 409 for same email', async () => {
       res = await global.post('/register', { ...userData, login: 'wrong' });
-      expect(res.status).to.eql(404);
+      expect(res.status).to.eql(409);
     });
 
-    it('status 200', async () => {
+    it('status 401', async () => {
       res = await global.post('/login', { login, password });
-      expect(res.status).to.eql(404);
+      expect(res.status).to.eql(401);
     });
 
     it('email has `to` property', async () => {
@@ -58,9 +58,9 @@ describe('Login', () => {
       expect(!!code).to.eql(true);
     });
 
-    it('check code with no login returns status 404', async () => {
+    it('check code with no login returns status 409', async () => {
       res = await global.post('/register/check', { code });
-      expect(res.status).to.eql(404);
+      expect(res.status).to.eql(409);
     });
 
     it('check code returns status 200', async () => {
@@ -68,9 +68,9 @@ describe('Login', () => {
       expect(res.status).to.eql(200);
     });
 
-    it('check code again returns status 404', async () => {
+    it('check code again returns status 409', async () => {
       res = await global.post('/register/check', { login, code });
-      expect(res.status).to.eql(404);
+      expect(res.status).to.eql(409);
     });
   });
 
@@ -204,7 +204,7 @@ describe('Login', () => {
 
     it('set new password with wrong code', async () => {
       const rawRes = await global.post('/login/restore', { code: 'wrong', password: newPassword });
-      expect(rawRes.status).to.eql(404);
+      expect(rawRes.status).to.eql(409);
     });
 
     it('set new password', async () => {
@@ -241,7 +241,7 @@ describe('Login', () => {
       const rawRes = await global.post('/login/forgot', { email });
       res = await rawRes.json();
       const rawRes2 = await global.post('/login/restore', { code, password: newPassword });
-      expect(rawRes2.status).to.eql(404);
+      expect(rawRes2.status).to.eql(409);
     });
   });
 
@@ -262,9 +262,9 @@ describe('Login', () => {
       expect(res.status).to.eql(404);
     });
 
-    it('status 404', async () => {
+    it('status 409', async () => {
       res = await global.post('/register', { login: '' });
-      expect(res.status).to.eql(404);
+      expect(res.status).to.eql(409);
     });
   });
 });

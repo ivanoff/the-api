@@ -1,28 +1,22 @@
 const redis = {
   stat: {},
   deny: {},
-  access: {
-    token123: true,
-  },
+  access: {},
 };
 
-const limits = {
-  token123: {
-    total: 10,
-    '/channels/:channel': 5,
-  },
-};
+const limits = {};
 
 module.exports = async (ctx, next) => {
   ctx.state.log('Check access');
 
-  const { TOKEN_IN_HEADER } = ctx.query;
+  const { authorization = '' } = ctx.headers;
+  const token = authorization.replace(/^bearer\s+/i, '');
 
-  if (!redis.stat[TOKEN_IN_HEADER]) redis.stat[TOKEN_IN_HEADER] = { total: 0 };
+  if (!redis.stat[token]) redis.stat[token] = { total: 0 };
 
-  const stat = redis.stat[TOKEN_IN_HEADER];
-  const tokenLimits = limits[TOKEN_IN_HEADER] || {};
-  const whiteListed = redis.access[TOKEN_IN_HEADER];
+  const stat = redis.stat[token];
+  const tokenLimits = limits[token] || {};
+  const whiteListed = redis.access[token];
 
   if (ctx.path === '/stats') {
     ctx.body = { whiteListed, stat, tokenLimits };
@@ -33,20 +27,20 @@ module.exports = async (ctx, next) => {
 
   await next();
 
+  const { _matchedRoute: route } = ctx;
   // eslint-disable-next-line no-underscore-dangle
-  const route = ctx._matchedRoute;
 
   if (!stat[route]) stat[route] = 0;
 
   // total expired
   if (stat.total >= tokenLimits.total) {
-    redis.access[TOKEN_IN_HEADER] = false;
-    //    throw new Error('LIMIT_EXCEEDED');
+    throw new Error('LIMIT_EXCEEDED');
   }
+
   // route expired
   if (tokenLimits[route] && stat[route] >= tokenLimits[route]) {
-    const denyObj = redis.deny[TOKEN_IN_HEADER];
-    redis.deny[TOKEN_IN_HEADER] = { [route]: true, ...denyObj };
+    const denyObj = redis.deny[token];
+    redis.deny[token] = { [route]: true, ...denyObj };
     throw new Error('LIMIT_EXCEEDED');
   }
 
@@ -54,4 +48,9 @@ module.exports = async (ctx, next) => {
   stat[route]++;
 
   ctx.state.log(`Access was garanted for ${route}`);
+};
+
+module.exports.endpointsToLimit = (token, route, limit) => {
+  if (!limits[token]) limits[token] = {};
+  limits[token][route] = limit;
 };

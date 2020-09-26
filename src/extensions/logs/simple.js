@@ -1,9 +1,9 @@
 module.exports = (ctx) => (...toLog) => {
   if (process.env.NODE_ENV === 'test') return;
 
-  const { method, url, state: { id, timeBegin } } = ctx;
+  const { method, url, state: { id, requestTime } } = ctx;
   const date = new Date();
-  const ms = date - timeBegin;
+  const ms = date - requestTime;
   for (const l of toLog) {
     const logData = typeof l === 'object' ? JSON.stringify(l) : l;
     const u = url.replace(/\?.*$/, '');

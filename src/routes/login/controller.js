@@ -28,9 +28,10 @@ async function loginTool({
 
   if (status === 'unconfirmed') return { id, status };
 
+  const { JWT_EXPIRES_IN: expiresIn } = process.env;
   const token = jwt.sign({
     id, login, status, name,
-  }, jwtToken, { expiresIn: '1h' });
+  }, jwtToken, { expiresIn: expiresIn || '1h' });
   const refreshNew = uuidv4();
 
   await db('users').update({ refresh: refreshNew }).where({ id });

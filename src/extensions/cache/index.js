@@ -2,6 +2,8 @@ const crypto = require('crypto');
 
 const redis = {};
 
+let timeout = 5000;
+
 module.exports = async (ctx, next) => {
   ctx.state.log('Check cache');
 
@@ -19,6 +21,8 @@ module.exports = async (ctx, next) => {
     await next();
     ctx.state.log('Store data in cache for 5 second');
     redis[key] = ctx.body;
-    ((eraseKey) => setTimeout(() => delete redis[eraseKey], 5000))(key);
+    ((eraseKey) => setTimeout(() => delete redis[eraseKey], timeout))(key);
   }
 };
+
+module.exports.cacheTimeout = (ms) => { timeout = ms; };

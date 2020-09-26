@@ -64,8 +64,10 @@ class TheAPI {
       this.app.use(async (ctx, next) => {
         const { db } = this;
         const { log } = this;
+        const requestTime = new Date();
+
         ctx.state = {
-          ...ctx.state, startTime, requests, examples, db, routeErrors, jwtToken, log,
+          ...ctx.state, startTime, requestTime, requests, examples, db, routeErrors, jwtToken, log,
         };
         ctx.warning = this.log;
         await next();
