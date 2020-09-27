@@ -1,15 +1,21 @@
 module.exports = {
-    "extends": "airbnb-base",
-    "env": {
-      "mocha": true
-    },
-    "rules": {
-        "no-plusplus": "off",
-        "no-restricted-syntax": "off",
-        "no-continue": "off",
-        "no-throw-literal": "off",
-        "consistent-return": "off",
-        "no-nested-ternary": "off",
-        "camelcase": "off",
-    },
+  "plugins": [
+    "security"
+  ],
+  "extends": [
+    "airbnb-base",
+    "plugin:security/recommended",
+  ],
+  "env": {
+    "mocha": true
+  },
+  "rules": {
+    "no-plusplus": "off",
+    "no-restricted-syntax": "off",
+    "no-continue": "off",
+    "no-throw-literal": "off",
+    "consistent-return": "off",
+    "no-nested-ternary": "off",
+    "camelcase": "off",
+  },
 };

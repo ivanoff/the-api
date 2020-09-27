@@ -4,7 +4,7 @@ describe('Stats', () => {
   const api = new global.TheAPI();
 
   before(async () => {
-    const { logs, errors, access, cache } = api.extensions;
+    const { logs, errors, limits, cache } = api.extensions;
     const { check } = api.routes;
 
     cache.cacheTimeout(1000);
@@ -12,7 +12,7 @@ describe('Stats', () => {
     await api.up([
       logs,
       errors,
-      access,
+      limits,
       cache,
       check,
     ]);

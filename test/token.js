@@ -6,15 +6,15 @@ describe('Token', () => {
   const env = { ...process.env };
 
   before(async () => {
-    process.env = { NODE_ENV: 'test_log', JWT_EXPIRES_IN: '1100ms' };
-    const { logs, errors, token } = api.extensions;
+    process.env = { NODE_ENV: 'test_log', JWT_EXPIRES_IN: '1300ms' };
+    const { logs, errors, access } = api.extensions;
     const { login, check } = api.routes;
 
     await api.up([
       logs,
       errors,
       login,
-      token,
+      access,
       check,
     ]);
   });
@@ -46,7 +46,7 @@ describe('Token', () => {
     });
 
     it('expires GET /check', async () => {
-      await sleep(1300);
+      await sleep(1800);
       res = await global.get('/check', {Authorization: `Bearer ${token}`});
       expect(res.status).to.eql(403);
     });

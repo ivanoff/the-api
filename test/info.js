@@ -4,7 +4,7 @@ describe('Info', () => {
   const api = new global.TheAPI();
 
   before(async () => {
-    const { logs, errors, info, access, cache } = api.extensions;
+    const { logs, errors, info, cache } = api.extensions;
     const { check } = api.routes;
 
     info.endpointsToShow(check);

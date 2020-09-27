@@ -18,7 +18,7 @@ module.exports = (ctx, next) => {
 module.exports.endpointsToShow = (...routes) => {
   for (const { stack } of routes.filter(Boolean)) {
     for (const { methods, path } of stack) {
-      endpoints[path] = [].concat(endpoints[path] || [], methods);
+      endpoints[`${path}`] = [].concat(endpoints[`${path}`] || [], methods);
     }
   }
 };

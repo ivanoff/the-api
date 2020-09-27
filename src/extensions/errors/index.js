@@ -15,7 +15,7 @@ module.exports = async (ctx, next) => {
     const { message: codeName, stack } = errorObj;
     const { name, version, routeErrors } = ctx.state;
 
-    const errorListed = routeErrors[codeName] || errors[codeName];
+    const errorListed = routeErrors[`${codeName}`] || errors[`${codeName}`];
     const error = errorListed || errors.DEFAULT_ERROR;
     if (errorListed && !error.url) error.url = `${url}#${codeName}`;
 

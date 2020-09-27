@@ -2,10 +2,10 @@ const { expect } = require('chai');
 
 describe('Access', () => {
   const api = new global.TheAPI();
-  const { access } = api.extensions;
+  const { limits } = api.extensions;
 
   before(async () => {
-    const { errors, token, info } = api.extensions;
+    const { errors, access, info } = api.extensions;
     const { check, login } = api.routes;
 
     api.router().get('/test', (ctx) => { ctx.body = { ok: 1 }; });
@@ -13,8 +13,8 @@ describe('Access', () => {
     await api.up([
       errors,
       login,
-      token,
       access,
+      limits,
       info,
       check,
     ]);
@@ -32,8 +32,8 @@ describe('Access', () => {
       res = await raw.json();
       expect(raw.status).to.eql(200);
       token = res.token;
-      access.endpointsToLimit(token, '/check', 2);
-      access.endpointsToLimit(token, 'total', 3);
+      limits.endpointsToLimit(token, '/check', 2);
+      limits.endpointsToLimit(token, 'total', 3);
     });
 
     it('GET /check', async () => {

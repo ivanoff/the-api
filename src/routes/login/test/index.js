@@ -197,7 +197,7 @@ describe('Login', () => {
     });
 
     it('email `text` contains code', async () => {
-      const match = global.message.text.match(/([\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12})/);
+      const match = global.message.text.match(/\b([\da-f-]{36})\b/);
       [, code] = match;
       expect(!!code).to.eql(true);
     });
@@ -232,7 +232,7 @@ describe('Login', () => {
     });
 
     it('email `text` contains code', async () => {
-      const match = global.message.text.match(/([\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12})/);
+      const match = global.message.text.match(/\b([\da-f-]{36})\b/);
       [, code] = match;
       expect(!!code).to.eql(true);
     });

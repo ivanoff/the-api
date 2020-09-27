@@ -1,56 +1,21 @@
-const redis = {
-  stat: {},
-  deny: {},
-  access: {},
-};
-
-const limits = {};
+const jwt = require('jsonwebtoken');
 
 module.exports = async (ctx, next) => {
-  ctx.state.log('Check access');
+  const { log, jwtToken } = ctx.state;
+  log('Check token');
 
   const { authorization = '' } = ctx.headers;
   const token = authorization.replace(/^bearer\s+/i, '');
 
-  if (!redis.stat[token]) redis.stat[token] = { total: 0 };
+  if (!token) throw new Error('NO_TOKEN');
 
-  const stat = redis.stat[token];
-  const tokenLimits = limits[token] || {};
-  const whiteListed = redis.access[token];
-
-  if (ctx.path === '/stats') {
-    ctx.body = { whiteListed, stat, tokenLimits };
-    return;
+  try {
+    const { id } = await jwt.verify(token, jwtToken);
+    ctx.state.user_id = id;
+  } catch (err) {
+    if (err.toString().match(/jwt expired/)) throw new Error('TOKEN_EXPIRED');
+    throw new Error('TOKEN_INVALID');
   }
-
-  //  if (!whiteListed) throw new Error('NOT_IN_WHITE_LIST');
 
   await next();
-
-  const { _matchedRoute: route } = ctx;
-  // eslint-disable-next-line no-underscore-dangle
-
-  if (!stat[route]) stat[route] = 0;
-
-  // total expired
-  if (stat.total >= tokenLimits.total) {
-    throw new Error('LIMIT_EXCEEDED');
-  }
-
-  // route expired
-  if (tokenLimits[route] && stat[route] >= tokenLimits[route]) {
-    const denyObj = redis.deny[token];
-    redis.deny[token] = { [route]: true, ...denyObj };
-    throw new Error('LIMIT_EXCEEDED');
-  }
-
-  stat.total++;
-  stat[route]++;
-
-  ctx.state.log(`Access was garanted for ${route}`);
-};
-
-module.exports.endpointsToLimit = (token, route, limit) => {
-  if (!limits[token]) limits[token] = {};
-  limits[token][route] = limit;
 };

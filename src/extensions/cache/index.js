@@ -14,14 +14,14 @@ module.exports = async (ctx, next) => {
   const md5sum = crypto.createHash('md5').update(method + url + params + query);
   const key = md5sum.digest('hex');
 
-  if (redis[key]) {
+  if (redis[`${key}`]) {
     ctx.state.log(`Get data from cache by key ${key}`);
-    ctx.body = redis[key];
+    ctx.body = redis[`${key}`];
   } else {
     await next();
     ctx.state.log('Store data in cache for 5 second');
-    redis[key] = ctx.body;
-    ((eraseKey) => setTimeout(() => delete redis[eraseKey], timeout))(key);
+    redis[`${key}`] = ctx.body;
+    ((eraseKey) => setTimeout(() => delete redis[`${eraseKey}`], timeout))(key);
   }
 };
 

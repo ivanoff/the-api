@@ -1,7 +1,7 @@
 const TheAPI = require('./src');
 const api = new TheAPI();
 
-const { logs, errors, info, token, access, cache } = api.extensions;
+const { logs, errors, info, access, limits, cache } = api.extensions;
 const { login, check, notes } = api.routes;
 
 info.endpointsToShow(login, check, notes);
@@ -12,8 +12,8 @@ api.up([
   info,
   login,
   check,
-  token,
   access,
+  limits,
   cache,
   notes,
 ]);
