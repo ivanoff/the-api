@@ -1,6 +1,6 @@
 {
   "name": "the-api",
-  "version": "1.2.3",
+  "version": "2.0.1",
   "description": "The API - build your own API",
   "license": "MIT",
   "main": "src/index.js",
@@ -47,16 +47,12 @@
     "url": "https://github.com/ivanoff/the-api.git"
   },
   "keywords": [
-    "The API",
+    "THE",
     "API",
-    "API SERVER",
-    "REST",
-    "REST API",
-    "REST API SERVER",
-    "RESTful",
-    "RESTful API",
-    "RESTful API SERVER",
-    "HATEOAS"
+    "REST"
   ],
+  "engines" : {
+    "node" : ">=6.0.0"
+  },
   "author": "Dimitry Ivanov <2@ivanoff.org.ua> # curl -A cv ivanoff.org.ua"
 }

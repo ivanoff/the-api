@@ -11,7 +11,8 @@ module.exports = async (ctx, next) => {
   ctx.state.log = simpleLog(ctx);
 
   const params = await ctx.params;
-  const { query, body: bodyOrigin } = ctx.request;
+
+  const { ip, query, body: bodyOrigin } = ctx.request;
 
   const body = { ...bodyOrigin };
   if (body.password) body.password = '<hidden>';
@@ -20,7 +21,7 @@ module.exports = async (ctx, next) => {
   if (headers.authorization) headers.authorization = '<hidden>';
 
   ctx.state.log('start', {
-    params, query, body, headers,
+    ip, params, query, body, headers,
   });
 
   await next();

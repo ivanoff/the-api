@@ -1,56 +1,59 @@
 const redis = {
-  stat: {},
-  deny: {},
-  access: {},
+  total: {},
+  minute: {},
+  hour: {},
+  day: {},
 };
 
-const limits = {};
+const intervals = [
+  setInterval(() => { redis.minute = {}; }, 1000 * 60),
+  setInterval(() => { redis.hour = {}; }, 1000 * 60 * 60),
+  setInterval(() => { redis.day = {}; }, 1000 * 60 * 60 * 24),
+];
+
+let limits = {};
 
 module.exports = async (ctx, next) => {
-  ctx.state.log('Check limits');
+  const { url, method, ip } = ctx.request;
+  const { stack, token } = ctx.state;
+  const { id, user_id } = token || {};
+  const key = user_id || id || ip;
 
-  const { authorization = '' } = ctx.headers;
-  const token = authorization.replace(/^bearer\s+/i, '');
-
-  if (!redis.stat[`${token}`]) redis.stat[`${token}`] = { total: 0 };
-
-  const stat = redis.stat[`${token}`];
-  const tokenLimits = limits[`${token}`] || {};
-  const whiteListed = redis.access[`${token}`];
+  const stat = Object.keys(redis).reduce((acc, type) => ({ ...acc, [`${type}`]: redis[`${type}`][`${key}`] }), {});
+  redis.total[`${key}`] = (redis.total[`${key}`] || 0) + 1;
 
   if (ctx.path === '/stats') {
-    ctx.body = { whiteListed, stat, tokenLimits };
+    ctx.body = { stat };
     return;
   }
 
-  //  if (!whiteListed) throw new Error('NOT_IN_WHITE_LIST');
+  ctx.state.log('Check limits');
+
+  const matchRequest = ({ methods, regexp }) => url.match(regexp) && methods.includes(method);
+  const { path } = stack.filter(matchRequest).shift() || {};
+
+  const methodPath = `${method} ${path}`;
+  if (!limits[`${path}`] && !limits[`${methodPath}`]) return next();
+
+  for (const type of ['minute', 'hour', 'day']) {
+    if (!redis[`${type}`][`${key}`]) redis[`${type}`][`${key}`] = {};
+
+    for (const p of [path, methodPath]) {
+      const i = redis[`${type}`][`${key}`][`${p}`] || 0;
+      if (limits[`${p}`] && i >= limits[`${p}`][`${type}`]) throw new Error('LIMIT_EXCEEDED');
+      redis[`${type}`][`${key}`][`${p}`] = i + 1;
+    }
+  }
+
+  ctx.state.log(`Access was garanted for ${methodPath}`);
 
   await next();
-
-  const { _matchedRoute: route } = ctx;
-  // eslint-disable-next-line no-underscore-dangle
-
-  if (!stat[`${route}`]) stat[`${route}`] = 0;
-
-  // total expired
-  if (stat.total >= tokenLimits.total) {
-    throw new Error('LIMIT_EXCEEDED');
-  }
-
-  // route expired
-  if (tokenLimits[`${route}`] && stat[`${route}`] >= tokenLimits[`${route}`]) {
-    const denyObj = redis.deny[`${token}`];
-    redis.deny[`${token}`] = { [`${token}`]: true, ...denyObj };
-    throw new Error('LIMIT_EXCEEDED');
-  }
-
-  stat.total++;
-  stat[`${route}`]++;
-
-  ctx.state.log(`Access was garanted for ${route}`);
 };
 
-module.exports.endpointsToLimit = (token, route, limit) => {
-  if (!limits[`${token}`]) limits[`${token}`] = {};
-  limits[`${token}`][`${route}`] = limit;
+module.exports.setLimits = (a) => {
+  limits = { ...limits, ...a };
+};
+
+module.exports.destructor = () => {
+  intervals.map(clearInterval);
 };

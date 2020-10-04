@@ -4,12 +4,16 @@
 [![Build Status: Linux][travis-image]][travis-url]
 [![Build Status: Windows][appveyor-image]][appveyor-url]
 [![Coverage Status][coveralls-image]][coveralls-url]
+[![Requirements Status][requires.io-image]][requires.io-url]
+[![Bundle Size][bundlesize-image]]
+[![Issues][issues-image]]
+[![Stars][stars-image]]
+[![Node version][node-image]]
+[![Contributors][contributors-image]]
 
 # the-api
 
 The API
-
-wait... wait... wait...
 
 ## Install
 
@@ -47,17 +51,25 @@ api.up([
 
 ### examples
 
+- Get info
+
 ```
 curl -vvv localhost:8877/info
 ```
+
+- Create User
 
 ```
 curl -vvv -X POST -d '{"login":"aaa", "password":"bbb"}' --header "Content-Type: application/json" localhost:8877/register
 ```
 
+- Refresh Token
+
 ```
 curl -vvv -X POST -d '{"refresh":"36ae43be-ae49-46b9-ba8a-027dbcf64fa0"}' --header "Content-Type: application/json" localhost:8877/login
 ```
+
+- Get new Token
 
 ```
 curl -vvv -X POST -d '{"login":"aaa", "password":"bbb"}' --header "Content-Type: application/json" localhost:8877/login
@@ -117,3 +129,11 @@ EMAIL_TLS_REJECTUNAUTH | nodemailer rejectUnauthorized option | true, false |
 [coveralls-url]: https://coveralls.io/github/ivanoff/the-api?branch=master
 [coveralls-image]: https://coveralls.io/repos/github/ivanoff/the-api/badge.svg?branch=master
 
+[requires.io-url]: https://requires.io/github/ivanoff/the-api/requirements/?branch=master
+[requires.io-image]: https://requires.io/github/ivanoff/the-api/requirements.svg?branch=master
+
+[bundlesize-image]: https://img.shields.io/bundlephobia/min/the-api
+[issues-image]: https://img.shields.io/github/issues/ivanoff/the-api
+[stars-image]: https://img.shields.io/packagist/stars/ivanoff/the-api
+[node-image]: https://img.shields.io/node/v/the-api
+[contributors-image]: https://img.shields.io/github/contributors/ivanoff/the-api

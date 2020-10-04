@@ -7,6 +7,10 @@ describe('Stats', () => {
     const { logs, errors, limits, cache } = api.extensions;
     const { check } = api.routes;
 
+    const test1 = api.router().get('/test', (ctx) => { ctx.body = { ok: 1 }; });
+
+    limits.setLimits({ 'GET /test': { minute: 2 } });
+
     cache.cacheTimeout(1000);
 
     await api.up([
@@ -14,22 +18,22 @@ describe('Stats', () => {
       errors,
       limits,
       cache,
-      check,
+      test1,
     ]);
   });
 
   after(() => api.down());
 
-  describe('GET /check', () => {
+  describe('GET /test', () => {
     let res;
 
     it('returns 200 status code', async () => {
-      res = await global.get('/check');
+      res = await global.get('/test');
       expect(res.status).to.eql(200);
     });
 
     it('cached returns 200 status code', async () => {
-      res = await global.get('/check');
+      res = await global.get('/test');
       expect(res.status).to.eql(200);
     });
 
@@ -58,15 +62,19 @@ describe('Stats', () => {
     });
 
     it('res.stat.total is 3', async () => {
-      expect(res.stat.total).to.eql(3);
+      expect(res.stat.total).to.eql(6);
     });
 
-    it('res.stat has /check', async () => {
-      expect(res.stat).to.have.property('/check');
+    it('res.stat has minute', async () => {
+      expect(res.stat).to.have.property('minute');
     });
 
-    it('res.stat /check is 1', async () => {
-      expect(res.stat['/check']).to.eql(1);
+    it('minute has /test', async () => {
+      expect(res.stat.minute).to.have.property('/test');
+    });
+
+    it('minute /test is 2', async () => {
+      expect(res.stat.minute['/test']).to.eql(2);
     });
 
   });
