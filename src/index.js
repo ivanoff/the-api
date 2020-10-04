@@ -2,10 +2,12 @@ const Koa = require('koa');
 const Router = require('@koa/router');
 const bodyParser = require('koa-bodyparser');
 const knex = require('knex');
+const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { FsMigrations } = require('knex/lib/migrate/sources/fs-migrations');
 const extensions = require('./extensions');
 const routes = require('./routes');
+const errorsList = require('./extensions/errors/list')
 
 require('dotenv').config();
 
@@ -59,7 +61,32 @@ class TheAPI {
       const routeErrors = flow.reduce((acc, item) => ({ ...acc, ...item.errors }), {});
 
       const examples = flow.reduce((acc, item) => acc.concat(item.examples), []).filter(Boolean);
-      const jwtToken = process.env.JWT_SECRET || this.generateJwtSecret();
+
+      const limits = flow.reduce((acc, item) => ({ ...acc, ...item.limits }), {});
+      this.extensions.limits.setLimits(limits);
+
+      const stack = flow.filter(item => typeof item.routes === 'function')
+        .map(item => item.routes().router.stack).flat()
+        .map(({methods, path, regexp}) => ({methods, path, regexp}));
+
+      const jwtSecret = process.env.JWT_SECRET || this.generateJwtSecret();
+
+      this.app.use(async (ctx, next) => {
+        const { authorization } = ctx.headers;
+        if(!authorization) return next();
+
+        this.log('Check token');
+        const token = authorization.replace(/^bearer\s+/i, '');
+
+        try {
+          ctx.state.token = await jwt.verify(token, jwtSecret);
+          await next();
+        } catch (err) {
+          const isExpired = err.toString().match(/jwt expired/);
+          ctx.body = isExpired ? errorsList.TOKEN_EXPIRED : errorsList.TOKEN_INVALID;
+          ctx.status = ctx.body.status;
+        }
+      })
 
       this.app.use(async (ctx, next) => {
         const { db } = this;
@@ -67,7 +94,7 @@ class TheAPI {
         const requestTime = new Date();
 
         ctx.state = {
-          ...ctx.state, startTime, requestTime, requests, examples, db, routeErrors, jwtToken, log,
+          ...ctx.state, startTime, requestTime, requests, examples, db, routeErrors, log, stack, jwtSecret,
         };
         ctx.warning = this.log;
         await next();

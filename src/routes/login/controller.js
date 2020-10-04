@@ -13,7 +13,7 @@ async function loginTool({
 }) {
   if (!login && !refresh && !byId) return {};
 
-  const { db, jwtToken } = ctx.state;
+  const { db, jwtSecret } = ctx.state;
 
   const search = login ? { login } : refresh ? { refresh } : { id: byId };
 
@@ -31,7 +31,7 @@ async function loginTool({
   const { JWT_EXPIRES_IN: expiresIn } = process.env;
   const token = jwt.sign({
     id, login, status, name,
-  }, jwtToken, { expiresIn: expiresIn || '1h' });
+  }, jwtSecret, { expiresIn: expiresIn || '1h' });
   const refreshNew = uuidv4();
 
   await db('users').update({ refresh: refreshNew }).where({ id });
