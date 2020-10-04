@@ -7,11 +7,9 @@ describe('Stats', () => {
     const { logs, errors, limits, cache } = api.extensions;
     const { check } = api.routes;
 
-    const test1 = api.router().get('/test1', (ctx) => { ctx.body = { ok: 1 }; });
-    const test2 = api.router().get('/test2', (ctx) => { ctx.body = { ok: 1 }; });
+    const test1 = api.router().get('/test', (ctx) => { ctx.body = { ok: 1 }; });
 
-    limits.setLimits({ 'GET /test1': { minute: 2 } });
-    limits.setLimits({ '/test2': { minute: 2 } });
+    limits.setLimits({ 'GET /test': { minute: 2 } });
 
     cache.cacheTimeout(1000);
 
@@ -21,27 +19,21 @@ describe('Stats', () => {
       limits,
       cache,
       test1,
-      test2,
     ]);
   });
 
   after(() => api.down());
 
-  describe('GET /test1', () => {
+  describe('GET /test', () => {
     let res;
 
     it('returns 200 status code', async () => {
-      res = await global.get('/test1');
+      res = await global.get('/test');
       expect(res.status).to.eql(200);
     });
 
     it('cached returns 200 status code', async () => {
-      res = await global.get('/test1');
-      expect(res.status).to.eql(200);
-    });
-
-    it('/test2 returns 200 status code', async () => {
-      res = await global.get('/test2');
+      res = await global.get('/test');
       expect(res.status).to.eql(200);
     });
 
@@ -70,23 +62,19 @@ describe('Stats', () => {
     });
 
     it('res.stat.total is 3', async () => {
-      expect(res.stat.total).to.eql(3);
+      expect(res.stat.total).to.eql(6);
     });
 
     it('res.stat has minute', async () => {
       expect(res.stat).to.have.property('minute');
     });
 
-    it('minute has /test1', async () => {
-      expect(res.stat.minute).to.have.property('/test1');
+    it('minute has /test', async () => {
+      expect(res.stat.minute).to.have.property('/test');
     });
 
-    it('minute /test1 is 2', async () => {
-      expect(res.stat.minute['/test1']).to.eql(2);
-    });
-
-    it('minute has /test2', async () => {
-      expect(res.stat.minute).to.have.property('/test2');
+    it('minute /test is 2', async () => {
+      expect(res.stat.minute['/test']).to.eql(2);
     });
 
   });
