@@ -5,11 +5,11 @@
 [![Build Status: Windows][appveyor-image]][appveyor-url]
 [![Coverage Status][coveralls-image]][coveralls-url]
 [![Requirements Status][requires.io-image]][requires.io-url]
-[![Bundle Size][bundlesize-image]]
-[![Issues][issues-image]]
-[![Stars][stars-image]]
-[![Node version][node-image]]
-[![Contributors][contributors-image]]
+![Bundle Size][bundlesize-image]
+![Issues][issues-image]
+![Stars][stars-image]
+![Node version][node-image]
+![Contributors][contributors-image]
 
 # the-api
 
