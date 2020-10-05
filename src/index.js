@@ -66,7 +66,7 @@ class TheAPI {
       this.extensions.limits.setLimits(limits);
 
       const stack = flow.filter((item) => typeof item.routes === 'function')
-        .map((item) => item.routes().router.stack).flat()
+        .map((item) => item.routes().router.stack).reduce((acc, val) => acc.concat(val), [])
         .map(({ methods, path, regexp }) => ({ methods, path, regexp }));
 
       const jwtSecret = process.env.JWT_SECRET || this.generateJwtSecret();
@@ -140,7 +140,7 @@ class TheAPI {
   }
 
   async down() {
-    await this.connection.close();
+    if (this.connection) await this.connection.close();
     await this.db.destroy();
     this.extensions.limits.destructor();
     this.log('Stopped');
