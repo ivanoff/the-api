@@ -8,6 +8,7 @@ const { FsMigrations } = require('knex/lib/migrate/sources/fs-migrations');
 const extensions = require('./extensions');
 const routes = require('./routes');
 const errorsList = require('./extensions/errors/list');
+const { name, version } = require('../package.json');
 
 require('dotenv').config();
 
@@ -30,6 +31,7 @@ class TheAPI {
         console.log(`[${(new Date()).toISOString()}] ${line}`);
       }
     };
+    this.log(`${name} v${version}`);
 
     const knexDefaultParams = { client: 'sqlite3', connection: ':memory:' };
 
