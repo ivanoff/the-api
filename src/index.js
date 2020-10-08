@@ -118,6 +118,8 @@ class TheAPI {
         }
       }
 
+      if (process.env.PREFIX) flow.map((item) => item.prefix && item.prefix(process.env.PREFIX));
+
       flow.map((item) => this.app.use(typeof item.routes === 'function' ? item.routes() : item));
 
       this.connection = await this.app.listen(this.port);

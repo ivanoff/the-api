@@ -80,6 +80,7 @@ curl -vvv -X POST -d '{"login":"aaa", "password":"bbb"}' --header "Content-Type:
 name | description | example | default value
 -----|-------------|---------|--------------
 PORT | port to listen | 8878 | 8877
+PREFIX | api prefix | /v1 |
 JWT_SECRET | JWT secret phrase | nruR3@_123dri!aS | <random uuid>
 JWT_EXPIRES_IN | expressed in seconds or a string describing a time span zeit/ms | 60, 2d, 10h | 1h
 
