@@ -8,6 +8,8 @@ module.exports = async (ctx, next) => {
   ctx.state.log('Check cache');
 
   const { method, url, request } = ctx;
+  if (method !== 'GET') return next();
+
   const params = JSON.stringify(await ctx.params);
   const query = JSON.stringify(request.query);
 

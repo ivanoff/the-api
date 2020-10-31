@@ -8,6 +8,7 @@ describe('Stats', () => {
     const { check } = api.routes;
 
     const test1 = api.router().get('/test', (ctx) => { ctx.body = { ok: 1 }; });
+    const test2 = api.router().post('/test', (ctx) => { ctx.body = { ok: 1 }; });
 
     limits.setLimits({ 'GET /test': { minute: 2 } });
 
@@ -19,6 +20,7 @@ describe('Stats', () => {
       limits,
       cache,
       test1,
+      test2,
     ]);
   });
 
@@ -34,6 +36,16 @@ describe('Stats', () => {
 
     it('cached returns 200 status code', async () => {
       res = await global.get('/test');
+      expect(res.status).to.eql(200);
+    });
+
+    it('post returns 200 status code', async () => {
+      res = await global.post('/test');
+      expect(res.status).to.eql(200);
+    });
+
+    it('post not cached returns 200 status code', async () => {
+      res = await global.post('/test');
       expect(res.status).to.eql(200);
     });
 
@@ -61,8 +73,8 @@ describe('Stats', () => {
       expect(res.stat).to.have.property('total');
     });
 
-    it('res.stat.total is 3', async () => {
-      expect(res.stat.total).to.eql(6);
+    it('res.stat.total is 8', async () => {
+      expect(res.stat.total).to.eql(8);
     });
 
     it('res.stat has minute', async () => {
