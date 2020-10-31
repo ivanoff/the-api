@@ -1,5 +1,6 @@
 async function getCategory(ctx) {
-  const { db, user_id = 0 } = ctx.state;
+  const { db, token } = ctx.state;
+  const { user_id = 0 } = token || {};
   const { id } = ctx.params;
 
   const result = await db('notes_categories').select('*').where({ id, user_id, deleted: false }).first();
@@ -10,14 +11,16 @@ async function getCategory(ctx) {
 }
 
 async function getAllCategories(ctx) {
-  const { db, user_id = 0 } = ctx.state;
+  const { db, token } = ctx.state;
+  const { user_id = 0 } = token || {};
   ctx.body = await db('notes_categories').where({ user_id, deleted: false });
 }
 
 async function createCategory(ctx) {
-  const { db, user_id = 0 } = ctx.state;
-  const { title } = ctx.request.body;
-  ctx.body = await db('notes_categories').insert({ title, user_id }).returning('*');
+  const { db, token } = ctx.state;
+  const { user_id = 0 } = token || {};
+  const { uuid, title } = ctx.request.body;
+  ctx.body = await db('notes_categories').insert({ uuid, title, user_id }).returning('*');
 }
 
 async function getSingleCategory(ctx) {
@@ -47,8 +50,11 @@ async function createData(ctx) {
   await getCategory(ctx);
 
   const { id } = ctx.params;
-  const { title, body } = ctx.request.body;
-  ctx.body = await ctx.state.db('notes_data').insert({ notes_category_id: id, title, body }).returning('*');
+  const data = [].concat(ctx.request.body).map(({ uuid, title, body }) => ({
+    notes_category_id: id, uuid, title, body,
+  }));
+
+  ctx.body = await ctx.state.db('notes_data').insert(data).returning('*');
 }
 
 async function getSingleData(ctx) {
