@@ -14,6 +14,20 @@ describe('Notes', () => {
       res = await global.post('/notes', { title: 'new', uuid: 'fe2ff628-bec9-4908-82c4-8ee2bb7eaeaf' });
       expect(res.status).to.eql(200);
     });
+
+    it('with time status 200', async () => {
+      res = await global.post('/notes', { title: 'new', uuid: '023c2dfd-750f-455a-b969-6e6b6a564fa5', time: new Date().toISOString() });
+      expect(res.status).to.eql(200);
+    });
+  });
+
+  describe('Update Category', () => {
+    let res;
+
+    it('status 200', async () => {
+      res = await global.patch('/notes/2', { title: 'new2' });
+      expect(res.status).to.eql(200);
+    });
   });
 
   describe('Get Categories', () => {
@@ -29,8 +43,13 @@ describe('Notes', () => {
     let res;
 
     it('status 200', async () => {
-      res = await global.get('/notes/1');
+      res = await global.get('/notes/2');
       expect(res.status).to.eql(200);
+    });
+
+    it('second category has new2 name', async () => {
+      const data = await res.json();
+      expect(data.title).to.eql('new2');
     });
   });
 

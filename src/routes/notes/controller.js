@@ -19,8 +19,21 @@ async function getAllCategories(ctx) {
 async function createCategory(ctx) {
   const { db, token } = ctx.state;
   const { user_id = 0 } = token || {};
-  const { uuid, title } = ctx.request.body;
-  ctx.body = await db('notes_categories').insert({ uuid, title, user_id }).returning('*');
+  const { uuid, title, time = db.fn.now() } = ctx.request.body;
+  ctx.body = await db('notes_categories').insert({
+    uuid, title, time, user_id,
+  }).returning('*');
+}
+
+async function updateCategory(ctx) {
+  const { db, token } = ctx.state;
+  const { user_id = 0 } = token || {};
+  const { id } = ctx.params;
+  const { uuid, title, time = db.fn.now() } = ctx.request.body;
+
+  ctx.body = await db('notes_categories').update({
+    uuid, title, time, user_id,
+  }).where({ id, user_id, deleted: false });
 }
 
 async function getSingleCategory(ctx) {
@@ -75,6 +88,7 @@ async function deleteSingleData(ctx) {
 module.exports = {
   getAllCategories,
   createCategory,
+  updateCategory,
   getSingleCategory,
   deleteSingleCategory,
   getAllData,

@@ -7,6 +7,7 @@ module.exports = router
   .get('/notes', c.getAllCategories)
   .post('/notes', c.createCategory)
   .get('/notes/:id', c.getSingleCategory)
+  .patch('/notes/:id', c.updateCategory)
   .delete('/notes/:id', c.deleteSingleCategory)
   .get('/notes/:id/data', c.getAllData)
   .post('/notes/:id/data', c.createData)

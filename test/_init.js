@@ -23,5 +23,7 @@ describe('Init', () => {
 
   global.post = async (url, data) => fetch(site + url, { method: 'POST', headers, body: data && JSON.stringify(data) });
 
+  global.patch = async (url, data) => fetch(site + url, { method: 'PATCH', headers, body: data && JSON.stringify(data) });
+
   global.delete = async (url) => fetch(site + url, { method: 'DELETE' });
 })
