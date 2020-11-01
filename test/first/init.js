@@ -9,7 +9,7 @@ const sendMail = (message, cb) => {
 
 sinon.stub(nodemailer, 'createTransport').returns({sendMail});
 
-const TheAPI = require('../src');
+const TheAPI = require('../../src');
 
 process.env.NODE_ENV = 'test';
 

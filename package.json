@@ -1,13 +1,13 @@
 {
   "name": "the-api",
-  "version": "3.4.1",
+  "version": "3.4.2",
   "description": "The API - build your own API",
   "license": "MIT",
   "main": "src/index.js",
   "scripts": {
     "start": "node example.js",
-    "test": "mocha test/_init.js test/*.js src/routes/**/test/*.js",
-    "coverage": "nyc mocha -- test/_init.js test/*.js src/routes/**/test/*.js",
+    "test": "mocha test/first/*.js test/*.js src/routes/**/test/*.js test/last/*.js",
+    "coverage": "nyc mocha -- test/first/*.js test/*.js src/routes/**/test/*.js test/last/*.js",
     "lint": "eslint src/ --cache --ignore-pattern .gitignore",
     "fix": "eslint src/ --ignore-pattern .gitignore --fix",
     "migrate:make": "knex migrate:make --migrations-directory=migrations"
