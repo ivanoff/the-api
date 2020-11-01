@@ -1,6 +1,6 @@
 {
   "name": "the-api",
-  "version": "3.5.2",
+  "version": "3.6.1",
   "description": "The API - build your own API",
   "license": "MIT",
   "main": "src/index.js",
@@ -55,7 +55,7 @@
     "REST"
   ],
   "engines": {
-    "node": ">=8.17.0"
+    "node": ">=10"
   },
   "author": "Dimitry Ivanov <2@ivanoff.org.ua> # curl -A cv ivanoff.org.ua"
 }
