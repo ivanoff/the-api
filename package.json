@@ -1,6 +1,6 @@
 {
   "name": "the-api",
-  "version": "3.4.2",
+  "version": "3.5.1",
   "description": "The API - build your own API",
   "license": "MIT",
   "main": "src/index.js",
@@ -16,31 +16,31 @@
     "lint"
   ],
   "dependencies": {
-    "@koa/router": "^9.3.1",
+    "@koa/router": "^9.4.0",
     "amqplib": "^0.6.0",
     "api-i": "^10.1.1",
     "chai": "^4.2.0",
     "dotenv": "^8.2.0",
     "jsonwebtoken": "^8.5.1",
-    "knex": "^0.21.4",
+    "knex": "^0.21.11",
     "koa": "^2.13.0",
     "koa-bodyparser": "^4.3.0",
-    "mocha": "^6.2.3",
-    "nodemailer": "^6.4.11",
-    "pg": "^8.3.0",
+    "mocha": "^8.2.0",
+    "nodemailer": "^6.4.14",
+    "pg": "^8.4.2",
     "sqlite3": "^5.0.0",
-    "uuid": "^8.3.0"
+    "uuid": "^8.3.1"
   },
   "devDependencies": {
     "coveralls": "^3.1.0",
-    "eslint": "^6.8.0",
+    "eslint": "^7.12.1",
     "eslint-config-airbnb-base": "^14.2.0",
-    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-security": "^1.4.0",
     "node-fetch": "^2.6.1",
-    "nyc": "^14.1.1",
+    "nyc": "^15.1.0",
     "pre-commit": "^1.2.2",
-    "sinon": "^9.0.3"
+    "sinon": "^9.2.1"
   },
   "repository": {
     "type": "git",
@@ -51,8 +51,8 @@
     "API",
     "REST"
   ],
-  "engines" : {
-    "node" : ">=8.17.0"
+  "engines": {
+    "node": ">=8.17.0"
   },
   "author": "Dimitry Ivanov <2@ivanoff.org.ua> # curl -A cv ivanoff.org.ua"
 }
