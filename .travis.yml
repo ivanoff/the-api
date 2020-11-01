@@ -5,5 +5,4 @@ node_js:
   - "12"
   - "13"
   - "14"
-  - "15"
 after_script: npm run coverage && nyc report --reporter=text-lcov | coveralls
