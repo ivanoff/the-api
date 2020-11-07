@@ -2,8 +2,9 @@ const { expect } = require('chai');
 
 describe('Notes', () => {
   const api = new global.TheAPI();
+  const { login, notes } = api.routes;
 
-  before(() => api.up([api.extensions.errors, api.routes.login, api.routes.notes]));
+  before(() => api.up([api.extensions.errors, login, notes.public, notes]));
 
   after(() => api.down());
 
@@ -25,8 +26,43 @@ describe('Notes', () => {
     let res;
 
     it('status 200', async () => {
-      res = await global.patch('/notes/2', { title: 'new2' });
+      res = await global.patch('/notes/2', { title: 'new2', public: true });
       expect(res.status).to.eql(200);
+    });
+  });
+
+  describe('Get Public Categories', () => {
+    let res;
+
+    it('status 200', async () => {
+      const data = await global.get('/notes/public');
+      expect(data.status).to.eql(200);
+      res = await data.json();
+    });
+
+    it('only one public record', async () => {
+      expect(res).to.be.an('Array').lengthOf(1);
+    });
+  });
+
+  describe('Get Public Categories By id', () => {
+    it('status 200', async () => {
+      const data = await global.get('/notes/public/2');
+      expect(data.status).to.eql(200);
+    });
+  });
+
+  describe('Get Public Categories Data', () => {
+    it('status 200', async () => {
+      const data = await global.get('/notes/public/2/data');
+      expect(data.status).to.eql(200);
+    });
+  });
+
+  describe('Get Non-Public Categories By id', () => {
+    it('status 404', async () => {
+      const data = await global.get('/notes/public/1');
+      expect(data.status).to.eql(404);
     });
   });
 
@@ -120,6 +156,15 @@ describe('Notes', () => {
 
     it('status 200', async () => {
       res = await global.delete('/notes/1/data/1');
+      expect(res.status).to.eql(200);
+    });
+  });
+
+  describe('Delete all Data', () => {
+    let res;
+
+    it('status 200', async () => {
+      res = await global.delete('/notes/1/data');
       expect(res.status).to.eql(200);
     });
   });

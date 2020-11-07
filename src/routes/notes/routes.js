@@ -11,5 +11,6 @@ module.exports = router
   .delete('/notes/:id', c.deleteSingleCategory)
   .get('/notes/:id/data', c.getAllData)
   .post('/notes/:id/data', c.createData)
+  .delete('/notes/:id/data', c.deleteAllData)
   .get('/notes/:id/data/:dataId', c.getSingleData)
   .delete('/notes/:id/data/:dataId', c.deleteSingleData);

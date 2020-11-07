@@ -16,12 +16,19 @@ async function getAllCategories(ctx) {
   ctx.body = await db('notes_categories').where({ user_id, deleted: false });
 }
 
+async function getPublicCategories(ctx) {
+  const { db } = ctx.state;
+  ctx.body = await db('notes_categories').where({ public: true, deleted: false });
+}
+
 async function createCategory(ctx) {
   const { db, token } = ctx.state;
   const { user_id = 0 } = token || {};
-  const { uuid, title, time = db.fn.now() } = ctx.request.body;
+  const {
+    uuid, title, public: p, time = db.fn.now(),
+  } = ctx.request.body;
   ctx.body = await db('notes_categories').insert({
-    uuid, title, time, user_id,
+    uuid, title, time, user_id, public: p,
   }).returning('*');
 }
 
@@ -29,10 +36,12 @@ async function updateCategory(ctx) {
   const { db, token } = ctx.state;
   const { user_id = 0 } = token || {};
   const { id } = ctx.params;
-  const { uuid, title, time = db.fn.now() } = ctx.request.body;
+  const {
+    uuid, title, public: p, time = db.fn.now(),
+  } = ctx.request.body;
 
   ctx.body = await db('notes_categories').update({
-    uuid, title, time, user_id,
+    uuid, title, time, user_id, public: p,
   }).where({ id, user_id, deleted: false });
 }
 
@@ -44,12 +53,23 @@ async function getSingleCategory(ctx) {
   ctx.body = { ...category, data };
 }
 
+async function getSinglePublicCategory(ctx) {
+  const { db } = ctx.state;
+  const { id } = ctx.params;
+
+  const category = await db('notes_categories').select('*').where({ id, public: true, deleted: false }).first();
+  if (!category) throw new Error('NOTE_NOT_FOUND');
+
+  const data = await ctx.state.db('notes_data').where({ notes_category_id: id, deleted: false });
+  ctx.body = { ...category, data };
+}
+
 async function deleteSingleCategory(ctx) {
   await getCategory(ctx);
 
   const { id } = ctx.params;
-  ctx.body = await ctx.state.db('notes_categories').update({ deleted: true }).where({ id, deleted: false });
-  await ctx.state.db('notes_data').update({ deleted: true }).where({ notes_category_id: id });
+  await ctx.state.db('notes_data').delete().where({ notes_category_id: id });
+  ctx.body = await ctx.state.db('notes_categories').delete().where({ id });
 }
 
 async function getAllData(ctx) {
@@ -59,12 +79,24 @@ async function getAllData(ctx) {
   ctx.body = await ctx.state.db('notes_data').where({ notes_category_id: id, deleted: false });
 }
 
+async function getPublicData(ctx) {
+  const { db } = ctx.state;
+  const { id } = ctx.params;
+
+  const category = await db('notes_categories').select('*').where({ id, public: true, deleted: false }).first();
+  if (!category) throw new Error('NOTE_NOT_FOUND');
+
+  ctx.body = await ctx.state.db('notes_data').where({ notes_category_id: id, deleted: false });
+}
+
 async function createData(ctx) {
   await getCategory(ctx);
 
   const { id } = ctx.params;
-  const data = [].concat(ctx.request.body).map(({ uuid, title, body }) => ({
-    notes_category_id: id, uuid, title, body,
+  const data = [].concat(ctx.request.body).map(({
+    uuid, title, body, favorite,
+  }) => ({
+    notes_category_id: id, uuid, title, body, favorite,
   }));
 
   ctx.body = await ctx.state.db('notes_data').insert(data).returning('*');
@@ -78,21 +110,32 @@ async function getSingleData(ctx) {
   if (!ctx.body) ctx.warning('NOTE_RECORD_NOT_FOUND');
 }
 
+async function deleteAllData(ctx) {
+  await getCategory(ctx);
+
+  const { id: notes_category_id } = ctx.params;
+  ctx.body = await ctx.state.db('notes_data').delete().where({ notes_category_id });
+}
+
 async function deleteSingleData(ctx) {
   await getCategory(ctx);
 
   const { id: notes_category_id, dataId: id } = ctx.params;
-  ctx.body = await ctx.state.db('notes_data').update({ deleted: true }).where({ id, notes_category_id });
+  ctx.body = await ctx.state.db('notes_data').delete().where({ id, notes_category_id });
 }
 
 module.exports = {
   getAllCategories,
+  getPublicCategories,
   createCategory,
   updateCategory,
   getSingleCategory,
+  getSinglePublicCategory,
   deleteSingleCategory,
   getAllData,
+  getPublicData,
   createData,
   getSingleData,
+  deleteAllData,
   deleteSingleData,
 };
