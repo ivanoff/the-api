@@ -245,6 +245,40 @@ describe('Login', () => {
     });
   });
 
+  describe('Update user data', () => {
+    const userData2 = { login: 'aaa8', password: 'bbb' };
+    const { login, password } = userData2;
+    let res;
+    let token;
+    it('status 200', async () => {
+      res = await global.post('/register', userData2);
+      expect(res.status).to.eql(200);
+    });
+
+    it('has refresh', async () => {
+      const rawRes = await global.post('/login', { login, password });
+      res = await rawRes.json();
+      token = res.token;
+    });
+
+    it('change first name', async () => {
+      res = await global.patch({ url: '/login', headers: { Authorization: `Bearer ${token}` }, data: { firstName: 'aaa' } });
+      expect(res).to.have.property('ok');
+    });
+
+    it('change email', async () => {
+      res = await global.patch({ url: '/login', headers: { Authorization: `Bearer ${token}` }, data: { email: 'bbb' } });
+      expect(res).to.have.property('ok');
+    });
+
+    it('has refresh', async () => {
+      const rawRes = await global.post('/login', { login, password });
+      res = await rawRes.json();
+      expect(res.first_name).to.eql('aaa');
+      expect(res.email).to.eql('bbb');
+    });
+  });
+
   describe('Mistakes', () => {
     let res;
     it('status 404', async () => {

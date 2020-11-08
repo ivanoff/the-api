@@ -1,4 +1,4 @@
-const loginLimits = { minute: 3, hour: 6, day: 24 };
+const loginLimits = { minute: 30, hour: 60, day: 240 };
 
 module.exports = {
   'POST /login': loginLimits,

@@ -22,7 +22,7 @@ async function loginTool({
   if (!user) return {};
 
   const {
-    id, password: passDb, salt, status, name, second_name, email, options,
+    id, password: passDb, salt, status, first_name, second_name, email, options,
   } = user;
   if (login && passDb !== sha256(password + salt)) return {};
 
@@ -30,14 +30,14 @@ async function loginTool({
 
   const { JWT_EXPIRES_IN: expiresIn } = process.env;
   const token = jwt.sign({
-    id, login, status, name,
+    id, login, status, first_name,
   }, jwtSecret, { expiresIn: expiresIn || '1h' });
   const refreshNew = uuidv4();
 
   await db('users').update({ refresh: refreshNew }).where({ id });
 
   return {
-    id, status, token, name, second_name, email, options, refresh: refreshNew,
+    id, status, token, first_name, second_name, email, options, refresh: refreshNew,
   };
 }
 
@@ -74,7 +74,7 @@ async function register(ctx) {
   const code = getCode();
   const options = JSON.stringify({ email: { on: true } });
   const checkEmail = process.env.LOGIN_CHECK_EMAIL === 'true';
-  const status = checkEmail ? 'unconfirmed' : 'registered';
+  const status = email && checkEmail ? 'unconfirmed' : 'registered';
 
   await db('users').insert({
     login, password: sha256(password + salt), salt, email, first_name: firstName, second_name: secondName, refresh: '', status, options,
@@ -155,10 +155,21 @@ async function setPassword(ctx) {
   ctx.body = { ok: 1 };
 }
 
+async function updateUser(ctx) {
+  const { token, db } = ctx.state;
+  const { email, firstName } = ctx.request.body;
+
+  if (!token) return ctx.warning('NO_TOKEN');
+  if (!token.id) return ctx.warning('TOKEN_INVALID');
+
+  ctx.body = await db('users').update({ email, first_name: firstName }).where({ id: token.id });
+}
+
 module.exports = {
   loginHandler,
   register,
   check,
   restore,
   setPassword,
+  updateUser,
 };

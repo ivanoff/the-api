@@ -8,7 +8,8 @@ module.exports = router
   .post('/register/check', c.check)
   .post('/login', c.loginHandler)
   .post('/login/forgot', c.restore)
-  .post('/login/restore', c.setPassword);
+  .post('/login/restore', c.setPassword)
+  .patch('/login', c.updateUser);
 
 const routerRest = new Router();
 
