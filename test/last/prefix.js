@@ -5,7 +5,7 @@ describe('Prefix', () => {
   const api = new global.TheAPI();
 
   before(async () => {
-    process.env = { PREFIX: '/v1', NODE_ENV: 'test' };
+    process.env = { API_PREFIX: '/v1', NODE_ENV: 'test' };
     const { logs, errors, cache } = api.extensions;
     const { check } = api.routes;
 

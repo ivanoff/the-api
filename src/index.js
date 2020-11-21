@@ -120,7 +120,9 @@ class TheAPI {
         }
       }
 
-      if (process.env.PREFIX) flow.map((item) => item.prefix && item.prefix(process.env.PREFIX));
+      if (process.env.API_PREFIX) {
+        flow.map((item) => item.prefix && item.prefix(process.env.API_PREFIX));
+      }
 
       flow.map((item) => this.app.use(typeof item.routes === 'function' ? item.routes() : item));
 

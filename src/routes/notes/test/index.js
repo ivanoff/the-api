@@ -12,12 +12,17 @@ describe('Notes', () => {
     let res;
 
     it('status 200', async () => {
-      res = await global.post('/notes', { title: 'new', uuid: 'fe2ff628-bec9-4908-82c4-8ee2bb7eaeaf' });
+      res = await global.post('/notes', { title: 'new', uuid: 'fe2ff628-bec9-4908-82c4-8ee2bb7eaeaf', lang: 'aa' });
       expect(res.status).to.eql(200);
     });
 
     it('with time status 200', async () => {
-      res = await global.post('/notes', { title: 'new', uuid: '023c2dfd-750f-455a-b969-6e6b6a564fa5', time: new Date().toISOString() });
+      res = await global.post('/notes', {
+        title: 'new',
+        uuid: '023c2dfd-750f-455a-b969-6e6b6a564fa5',
+        uuid_public: '754c103c-6e57-4b4a-b383-5061b102df74',
+        time: new Date().toISOString(),
+      });
       expect(res.status).to.eql(200);
     });
   });
@@ -26,7 +31,7 @@ describe('Notes', () => {
     let res;
 
     it('status 200', async () => {
-      res = await global.patch({ url: '/notes/2', data: { title: 'new2', public: true } });
+      res = await global.patch({ url: '/notes/2', data: { title: 'new2', public: true, lang: 'zz' } });
       expect(res.status).to.eql(200);
     });
   });
@@ -36,6 +41,34 @@ describe('Notes', () => {
 
     it('status 200', async () => {
       const data = await global.get('/notes/public');
+      expect(data.status).to.eql(200);
+      res = await data.json();
+    });
+
+    it('only one public record', async () => {
+      expect(res).to.be.an('Array').lengthOf(1);
+    });
+  });
+
+  describe('Get Public Categories by not exists lang', () => {
+    let res;
+
+    it('status 200', async () => {
+      const data = await global.get('/notes/public?lang=aa');
+      expect(data.status).to.eql(200);
+      res = await data.json();
+    });
+
+    it('only one public record', async () => {
+      expect(res).to.be.an('Array').lengthOf(0);
+    });
+  });
+
+  describe('Get Public Categories by lang', () => {
+    let res;
+
+    it('status 200', async () => {
+      const data = await global.get('/notes/public?lang=zz');
       expect(data.status).to.eql(200);
       res = await data.json();
     });

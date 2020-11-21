@@ -3,7 +3,7 @@ const endpoints = {};
 module.exports = (ctx, next) => {
   ctx.state.requests.total++;
 
-  if (ctx.url !== `${process.env.PREFIX || ''}/info`) return next();
+  if (ctx.url !== `${process.env.API_PREFIX || ''}/info`) return next();
 
   const {
     startTime, requestTime: currentTime, name, version, requests,

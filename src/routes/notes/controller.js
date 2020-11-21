@@ -1,6 +1,6 @@
 async function getCategory(ctx) {
   const { db, token } = ctx.state;
-  const { user_id = 0 } = token || {};
+  const { id: user_id = 0 } = token || {};
   const { id } = ctx.params;
 
   const result = await db('notes_categories').select('*').where({ id, user_id, deleted: false }).first();
@@ -12,36 +12,39 @@ async function getCategory(ctx) {
 
 async function getAllCategories(ctx) {
   const { db, token } = ctx.state;
-  const { user_id = 0 } = token || {};
+  const { id: user_id = 0 } = token || {};
   ctx.body = await db('notes_categories').where({ user_id, deleted: false });
 }
 
 async function getPublicCategories(ctx) {
   const { db } = ctx.state;
-  ctx.body = await db('notes_categories').where({ public: true, deleted: false });
+  const { lang } = ctx.request.query;
+  const where = { public: true, deleted: false };
+  if (lang) where.lang = lang;
+  ctx.body = await db('notes_categories').where(where);
 }
 
 async function createCategory(ctx) {
   const { db, token } = ctx.state;
-  const { user_id = 0 } = token || {};
+  const { id: user_id = 0 } = token || {};
   const {
-    uuid, title, public: p, time = db.fn.now(),
+    uuid, uuid_public, title, public: p, lang, time = db.fn.now(),
   } = ctx.request.body;
   ctx.body = await db('notes_categories').insert({
-    uuid, title, time, user_id, public: p,
+    uuid, uuid_public, title, time, user_id, public: p, lang,
   }).returning('*');
 }
 
 async function updateCategory(ctx) {
   const { db, token } = ctx.state;
-  const { user_id = 0 } = token || {};
+  const { id: user_id = 0 } = token || {};
   const { id } = ctx.params;
   const {
-    uuid, title, public: p, time = db.fn.now(),
+    uuid, uuid_public, title, public: p, lang, time = db.fn.now(),
   } = ctx.request.body;
 
   ctx.body = await db('notes_categories').update({
-    uuid, title, time, user_id, public: p,
+    uuid, uuid_public, title, time, user_id, public: p, lang,
   }).where({ id, user_id, deleted: false });
 }
 

@@ -22,7 +22,7 @@ module.exports = async (ctx, next) => {
   const stat = Object.keys(redis).reduce((acc, type) => ({ ...acc, [`${type}`]: redis[`${type}`][`${key}`] }), {});
   redis.total[`${key}`] = (redis.total[`${key}`] || 0) + 1;
 
-  if (ctx.path === `${process.env.PREFIX || ''}/stats`) {
+  if (ctx.path === `${process.env.API_PREFIX || ''}/stats`) {
     ctx.body = { stat };
     return;
   }
