@@ -15,6 +15,24 @@
 
 The API
 
+Create API asap. Includes the following:
+
+- log all actions to console with time, unique id, request path and time elapsed since the beginning of the request.
+
+- error handler with app name, version, error codeName, stack, error name and description for developers.
+
+- info endpoint: server currentTime, app name, version, uptime, requests count, endpoints
+
+- login route - register, login, make and refresh app token
+
+- check token, return unauthorized if token is invalid
+
+- handle white/black lists, count of requests
+
+- cache data in memory/redis
+
+- notes route - example of category/notes api
+
 ## Install
 
 ```npm i -S the-api```
