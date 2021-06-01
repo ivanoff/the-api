@@ -12,7 +12,9 @@ module.exports = async (ctx, next) => {
 
   const params = await ctx.params;
 
-  const { ip, query, body: bodyOrigin } = ctx.request;
+  const {
+    ip, query, files, body: bodyOrigin,
+  } = ctx.request;
 
   const body = { ...bodyOrigin };
   if (body.password) body.password = '<hidden>';
@@ -21,7 +23,7 @@ module.exports = async (ctx, next) => {
   if (headers.authorization) headers.authorization = '<hidden>';
 
   ctx.state.log('start', {
-    ip, params, query, body, headers,
+    ip, params, query, headers, body, files,
   });
 
   await next();

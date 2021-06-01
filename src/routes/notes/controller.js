@@ -96,7 +96,11 @@ async function createData(ctx) {
   await getCategory(ctx);
 
   const { id } = ctx.params;
-  const data = [].concat(ctx.request.body).map(({
+
+  const bodyKeys = Object.keys(ctx.request.body).map(Number).sort();
+  const objectIsArray = bodyKeys[0] === 0 && bodyKeys[bodyKeys.length - 1] === bodyKeys.length - 1;
+
+  const data = [].concat(objectIsArray ? Object.values(ctx.request.body) : ctx.request.body).map(({
     uuid, title, body, favorite,
   }) => ({
     notes_category_id: id, uuid, title, body, favorite,

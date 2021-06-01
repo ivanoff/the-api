@@ -1,6 +1,7 @@
 const Koa = require('koa');
 const Router = require('@koa/router');
 const bodyParser = require('koa-bodyparser');
+const formidable = require('koa2-formidable');
 const knex = require('knex');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
@@ -16,6 +17,7 @@ class TheAPI {
   constructor({ port } = {}) {
     this.port = port || process.env.PORT || 8877;
     this.app = new Koa();
+    this.app.use(formidable({ multiples: true }));
     this.app.use(bodyParser());
     // eslint-disable-next-line no-console
     this.app.on('error', console.error);
