@@ -179,7 +179,8 @@ class TheAPI {
       flow.map((item) => item.prefix && item.prefix(process.env.API_PREFIX));
     }
 
-    flow.map((item) => this.app.use(typeof item.routes === 'function' ? item.routes() : item));
+    const routesList = flow.map((item) => (typeof item.routes === 'function' ? item.routes() : typeof item === 'function' && item)).filter(Boolean);
+    routesList.map((item) => this.app.use(item));
 
     this.connection = await this.app.listen(this.port);
     this.log(`Started on port ${this.port}`);
