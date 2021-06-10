@@ -113,7 +113,9 @@ class TheAPI {
         this.log('Unknown database');
     }
 
-    const tables = await this.db.raw(query, bindings);
+    const t = await this.db.raw(query, bindings);
+    const tables = t.rows || t;
+
     const result = {};
     await Promise.all(tables.map(async ({ table_name }) => {
       result[`${table_name}`] = await this.db(table_name).columnInfo();
