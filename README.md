@@ -110,6 +110,7 @@ name | description | example | default value
 -----|-------------|---------|--------------
 DB_CLIENT | client | postgres, mysql, sqlite3 | sqlite3
 DB_HOST | DB host | db.server |
+DB_PORT | DB port |
 DB_USER | DB user | login |
 DB_PASSWORD | DB password | password |
 DB_NAME | database name | the_api_db

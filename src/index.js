@@ -37,12 +37,12 @@ class TheAPI {
 
     const {
       DB_CLIENT: client,
-      DB_HOST: host, DB_USER: user, DB_PASSWORD: password, DB_NAME: database,
+      DB_HOST: host, DB_PORT: dbPort, DB_USER: user, DB_PASSWORD: password, DB_NAME: database,
       DB_FILENAME: filename,
     } = process.env;
 
     const connection = client === 'sqlite3' && filename ? { filename } : {
-      host, user, password, database,
+      host, user, password, database, port: dbPort,
     };
 
     const knexParams = client ? { client, connection } : knexDefaultParams;
