@@ -19,7 +19,7 @@ exports.up = (knex) => knex.schema
     table.string('code', 6);
     table.string('recover', 36);
     table.timestamp('time').defaultTo(knex.fn.now());
-    table.string('attempts').defaultTo(0);
+    table.integer('attempts').defaultTo(0);
   });
 
 exports.down = (knex) => knex.schema

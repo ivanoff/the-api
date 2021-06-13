@@ -86,7 +86,7 @@ async function register(ctx) {
     const recover = uuidv4();
 
     await db('code').insert({
-      login, code, recover, time: (new Date()).getTime(),
+      login, code, recover, time: new Date(),
     });
 
     mail.check({ email, code });
@@ -100,7 +100,7 @@ async function check(ctx) {
   if (!code || !login) return ctx.warning('WRONG_CODE');
 
   const expireIn = +process.env.LOGIN_CHECK_EMAIL_DELAY || 60;
-  await db('code').del().where('time', '>', (new Date((new Date()).getTime() + 1000 * 60 * expireIn)).getTime());
+  await db('code').del().where('time', '>', new Date((new Date()).getTime() + 1000 * 60 * expireIn));
 
   await db.raw('update code set attempts = attempts+1 where login=?', [login]);
 

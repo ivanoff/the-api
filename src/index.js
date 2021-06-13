@@ -118,7 +118,12 @@ class TheAPI {
 
     const result = {};
     await Promise.all(tables.map(async ({ table_name }) => {
-      result[`${table_name}`] = await this.db(table_name).columnInfo();
+      if (this.db.client.constructor.name === 'Client_PG') {
+        const columnInfo = await this.db.raw('select * from information_schema.columns where table_name = ? and table_schema = current_schema()', table_name);
+        result[`${table_name}`] = columnInfo.rows.reduce((acc, cur) => ({ ...acc, [cur.column_name]: cur }), {});
+      } else {
+        result[`${table_name}`] = await this.db(table_name).columnInfo();
+      }
     }));
     return result;
   }
