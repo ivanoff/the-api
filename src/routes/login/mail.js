@@ -17,9 +17,15 @@ class LoginMail extends Mail {
     };
   }
 
-  getPreparedData(templateName, { code }) {
-    if (!this.templates[`${templateName}`]) return {};
-    return Object.entries(this.templates[`${templateName}`]).reduce((acc, [key, val]) => ({ ...acc, [key]: val.replace(/\{\{code\}\}/g, code) }), {});
+  getPreparedData(templateName = '', params = {}) {
+    const result = this.templates[`${templateName}`] || {};
+    for (const [name, replace] of Object.entries(params)) {
+      for (const key of Object.keys(result)) {
+        const r = new RegExp(`\\{\\{${name}\\}\\}`, 'g');
+        result[`${key}`] = result[`${key}`].replace(r, replace);
+      }
+    }
+    return result;
   }
 
   async check({ email, code }) {
