@@ -19,3 +19,5 @@ module.exports.rest = routerRest
   .post('/users', c.check)
   .post('/users', c.restore)
   .post('/users', c.setPassword);
+
+module.exports.setEmailTemplates = c.setEmailTemplates;

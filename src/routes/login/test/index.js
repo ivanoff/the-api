@@ -53,7 +53,7 @@ describe('Login', () => {
     });
 
     it('email `text` contains code', async () => {
-      const match = global.message.text.match(/(\d{5})/);
+      const match = global.message.text.match(/\b([\da-f-]{36})\b/);
       [, code] = match;
       expect(!!code).to.eql(true);
     });

@@ -103,7 +103,8 @@ class TheAPI {
         bindings = undefined;
         break;
       case 'Client_PG':
-        query = 'SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema() AND table_catalog = ?';
+        query = 'SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema()';
+        bindings = undefined;
         break;
       case 'Client_SQLite3':
         query = "SELECT name AS table_name FROM sqlite_master WHERE type='table'";

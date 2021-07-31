@@ -1,7 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { getCode } = require('../../lib');
 const Mail = require('./mail');
 
 const mail = new Mail();
@@ -71,7 +70,7 @@ async function register(ctx) {
   const userEmail = email && (await db('users').where({ email }).first());
   if (userEmail) return ctx.warning('EMAIL_EXISTS');
 
-  const code = getCode();
+  const code = uuidv4();
   const options = JSON.stringify({ email: { on: true } });
   const checkEmail = process.env.LOGIN_CHECK_EMAIL === 'true';
   const status = email && checkEmail ? 'unconfirmed' : 'registered';
@@ -128,12 +127,12 @@ async function restore(ctx) {
 
   if (!to) return;
 
-  const recover = uuidv4();
+  const code = uuidv4();
 
   await db('code').del().where({ login: l });
-  await db('code').insert({ login, recover });
+  await db('code').insert({ login, recover: code });
 
-  mail.recover({ email: to, recover });
+  mail.recover({ email: to, code });
 }
 
 async function setPassword(ctx) {
@@ -165,6 +164,12 @@ async function updateUser(ctx) {
   ctx.body = await db('users').update({ email, first_name: firstName }).where({ id: token.id });
 }
 
+async function setEmailTemplates(templates = {}) {
+  for (const [key, value] of Object.entries(templates)) {
+    mail.templates[`${key}`] = value;
+  }
+}
+
 module.exports = {
   loginHandler,
   register,
@@ -172,4 +177,5 @@ module.exports = {
   restore,
   setPassword,
   updateUser,
+  setEmailTemplates,
 };
