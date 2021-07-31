@@ -25,7 +25,8 @@ async function loginTool({
   } = user;
   if (login && passDb !== sha256(password + salt)) return {};
 
-  if (status === 'unconfirmed') return { id, status };
+  const forbidUnconfirmed = process.env.LOGIN_UNCONFIRMED_FORBID === 'true';
+  if (status === 'unconfirmed' && forbidUnconfirmed) return { id, status };
 
   const { JWT_EXPIRES_IN: expiresIn } = process.env;
   const token = jwt.sign({
@@ -49,7 +50,8 @@ async function loginHandler(ctx) {
 
   const { status } = loginResult;
   if (!status) return ctx.warning('USER_NOT_FOUND');
-  if (status === 'unconfirmed') return ctx.warning('EMAIL_NOT_CONFIRMED');
+  const forbidUnconfirmed = process.env.LOGIN_UNCONFIRMED_FORBID === 'true';
+  if (status === 'unconfirmed' && forbidUnconfirmed) return ctx.warning('EMAIL_NOT_CONFIRMED');
 
   ctx.body = loginResult;
 }

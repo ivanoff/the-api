@@ -35,9 +35,9 @@ describe('Login', () => {
       expect(res.status).to.eql(409);
     });
 
-    it('status 401', async () => {
+    it('status 200', async () => {
       res = await global.post('/login', { login, password });
-      expect(res.status).to.eql(401);
+      expect(res.status).to.eql(200);
     });
 
     it('email has `to` property', async () => {

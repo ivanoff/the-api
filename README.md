@@ -140,6 +140,7 @@ name | description | example | default value
 -----|-------------|---------|--------------
 LOGIN_CHECK_EMAIL | send code to check registration | true, false | false
 LOGIN_CHECK_EMAIL_DELAY | waiting for check registration code, minutes | 30 | 60
+LOGIN_UNCONFIRMED_FORBID | Don't send token for unconfirmed e-mail | true, false | false
 EMAIL_USER | nodemailer email user | login |
 EMAIL_PASSWORD | email password | password |
 EMAIL_HOST | email server | smtp.server |
