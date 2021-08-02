@@ -74,10 +74,10 @@ api.up([
 const { login } = api.routes;
 ...
 login.setTemplates({
-  check: {
-    subject: 'Complete your registration!',
-    text: 'Hello, use your code {{code}} to POST /register/check!',
-    html: 'Hello, use your <b>code {{code}}</b> to POST <b>/register/check</b>!',
+  register: {
+    subject: 'Complete your registration',
+    text: 'Hello, use your code {{code}} to POST /register/check',
+    html: 'Hello, use your <b>code {{code}}</b> to POST <b>/register/check</b>',
   },
 })
 ...

@@ -90,7 +90,7 @@ async function register(ctx) {
       login, code, recover, time: new Date(),
     });
 
-    mail.check({ email, code });
+    mail.register({ code, ...ctx.request.body });
   }
 }
 
