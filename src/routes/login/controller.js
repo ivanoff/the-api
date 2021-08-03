@@ -77,9 +77,9 @@ async function register(ctx) {
   const checkEmail = process.env.LOGIN_CHECK_EMAIL === 'true';
   const status = email && checkEmail ? 'unconfirmed' : 'registered';
 
-  await db('users').insert({
+  const [{ id: user_id }] = await db('users').insert({
     login, password: sha256(password + salt), salt, email, first_name: firstName, second_name: secondName, refresh: '', status, options,
-  });
+  }).returning('*');
 
   ctx.body = await loginTool({ ctx, login, password });
 
@@ -87,7 +87,7 @@ async function register(ctx) {
     const recover = uuidv4();
 
     await db('code').insert({
-      login, code, recover, time: new Date(),
+      user_id, login, code, recover, time: new Date(),
     });
 
     mail.register({ code, ...ctx.request.body });
@@ -109,11 +109,11 @@ async function check(ctx) {
 
   if (!data) return ctx.warning('WRONG_CODE');
 
-  const { id: restoredId } = data;
-  await db('users').update({ status: 'registered' }).where({ id: restoredId });
+  const { user_id: id } = data;
+  await db('users').update({ status: 'registered' }).where({ id });
   await db('code').del().where({ login, code });
 
-  ctx.body = await loginTool({ ctx, id: restoredId });
+  ctx.body = await loginTool({ ctx, id });
 }
 
 async function restore(ctx) {
