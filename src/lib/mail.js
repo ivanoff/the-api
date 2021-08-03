@@ -30,7 +30,7 @@ class Mail {
     email: to, subject, text, html,
   }) {
     const message = {
-      to, subject, text, html,
+      ...this.message, to, subject, text, html,
     };
     return new Promise((resolve, reject) => {
       this.transport.sendMail(message, (err, info) => (err ? reject(err) : resolve(info)));
