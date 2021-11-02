@@ -8,22 +8,22 @@ const mail = new Mail();
 const sha256 = (data) => crypto.createHash('sha256').update(data, 'utf8').digest('hex');
 
 async function loginTool({
-  ctx, login, password, refresh, id: byId,
+  ctx, login: loginOrigin, password, refresh, id: byId,
 }) {
-  if (!login && !refresh && !byId) return {};
+  if (!loginOrigin && !refresh && !byId) return {};
 
   const { db, jwtSecret } = ctx.state;
 
-  const search = login ? { login } : refresh ? { refresh } : { id: byId };
+  const search = loginOrigin ? { login: loginOrigin } : refresh ? { refresh } : { id: byId };
 
   const user = (await db('users').where({ ...search, deleted: false }).first());
 
   if (!user) return {};
 
   const {
-    id, password: passDb, salt, status, first_name, second_name, email, options,
+    id, login, password: passDb, salt, status, first_name, second_name, email, options,
   } = user;
-  if (login && passDb !== sha256(password + salt)) return {};
+  if (loginOrigin && passDb !== sha256(password + salt)) return {};
 
   const forbidUnconfirmed = process.env.LOGIN_UNCONFIRMED_FORBID === 'true';
   if (status === 'unconfirmed' && forbidUnconfirmed) return { id, status };
