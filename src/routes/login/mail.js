@@ -30,11 +30,19 @@ class LoginMail extends Mail {
   }
 
   async register({ email, ...params }) {
-    await this.send({ email, ...this.getPreparedData('register', params) });
+    try {
+      await this.send({ email, ...this.getPreparedData('register', params) });
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   async recover({ email, ...params }) {
-    await this.send({ email, ...this.getPreparedData('recover', params) });
+    try {
+      await this.send({ email, ...this.getPreparedData('recover', params) });
+    } catch (err) {
+      console.error(err);
+    }
   }
 }
 

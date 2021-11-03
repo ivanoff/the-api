@@ -18,5 +18,6 @@ module.exports = {
     "no-nested-ternary": "off",
     "camelcase": "off",
     "security/detect-non-literal-regexp": "off",
+    "no-console": "off",
   },
 };
