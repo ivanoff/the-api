@@ -17,7 +17,9 @@ class TheAPI {
   constructor({ port } = {}) {
     this.port = port || process.env.PORT || 8877;
     this.app = new Koa();
-    this.app.use(formidable({ multiples: true }));
+    if (!process.env.UPLOAD_MULTIPLY_DISABLED) {
+      this.app.use(formidable({ multiples: true }));
+    }
     this.app.use(bodyParser());
     // eslint-disable-next-line no-console
     this.app.on('error', console.error);
