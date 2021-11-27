@@ -5,6 +5,8 @@ const Mail = require('./mail');
 
 const mail = new Mail();
 
+const tokenFields = ['id', 'login', 'status', 'first_name'];
+
 const sha256 = (data) => crypto.createHash('sha256').update(data, 'utf8').digest('hex');
 
 async function loginTool({
@@ -29,15 +31,15 @@ async function loginTool({
   if (status === 'unconfirmed' && forbidUnconfirmed) return { id, status };
 
   const { JWT_EXPIRES_IN: expiresIn } = process.env;
-  const token = jwt.sign({
-    id, login, status, first_name,
-  }, jwtSecret, { expiresIn: expiresIn || '1h' });
+
+  const dataToSign = tokenFields.reduce((acc, key) => { acc[`${key}`] = user[`${key}`]; return acc; }, {});
+  const token = jwt.sign(dataToSign, jwtSecret, { expiresIn: expiresIn || '1h' });
   const refreshNew = uuidv4();
 
   await db('users').update({ refresh: refreshNew }).where({ id });
 
   return {
-    id, status, token, first_name, second_name, email, options, refresh: refreshNew,
+    id, login, status, token, first_name, second_name, email, options, refresh: refreshNew,
   };
 }
 
@@ -172,6 +174,10 @@ async function setEmailTemplates(templates = {}) {
   }
 }
 
+async function addFieldsToToken(...fields) {
+  tokenFields.push(fields);
+}
+
 module.exports = {
   loginHandler,
   register,
@@ -180,4 +186,5 @@ module.exports = {
   setPassword,
   updateUser,
   setEmailTemplates,
+  addFieldsToToken,
 };
