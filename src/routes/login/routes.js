@@ -21,3 +21,4 @@ module.exports.rest = routerRest
   .post('/users', c.setPassword);
 
 module.exports.setEmailTemplates = c.setEmailTemplates;
+module.exports.addFieldsToToken = c.addFieldsToToken;
