@@ -1,3 +1,4 @@
+require('the-log').silent();
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const sinon = require('sinon');
 const nodemailer = require('nodemailer');
