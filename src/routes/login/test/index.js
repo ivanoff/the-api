@@ -3,7 +3,7 @@ const { expect } = require('chai');
 describe('Login', () => {
   const api = new global.TheAPI();
   const env = { ...process.env };
-  const userData = { login: 'aaa5', password: 'bbb', email: '2@ivanoff.org.ua' };
+  const userData = { login: 'aaa15', password: 'bbb', email: '3@ivanoff.org.ua' };
 
   before(async () => {
     process.env = { NODE_ENV: 'test', LOGIN_CHECK_EMAIL: 'true' };

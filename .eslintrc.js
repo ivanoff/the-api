@@ -6,6 +6,9 @@ module.exports = {
     "airbnb-base",
     "plugin:security/recommended",
   ],
+  "parserOptions": {
+    "ecmaVersion": 2020
+  },
   "env": {
     "mocha": true
   },
@@ -19,5 +22,7 @@ module.exports = {
     "camelcase": "off",
     "security/detect-non-literal-regexp": "off",
     "no-console": "off",
+    "no-return-assign": "off",
+    "func-names": "off",
   },
 };
