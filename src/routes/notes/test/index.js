@@ -237,4 +237,13 @@ describe('Notes', () => {
       expect(res.status).to.eql(404);
     });
   });
+
+  describe('Get swagger', () => {
+    let res;
+
+    it('status 200', async () => {
+      res = await global.get('/swagger.yaml');
+      expect(res.status).to.eql(200);
+    });
+  });
 });

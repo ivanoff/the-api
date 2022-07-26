@@ -1,11 +1,11 @@
 const Koa = require('koa');
-const Router = require('@koa/router');
 const bodyParser = require('koa-bodyparser');
 const formidable = require('koa2-formidable');
 const knex = require('knex');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { FsMigrations } = require('knex/lib/migrations/migrate/sources/fs-migrations');
+const Router = require('./lib/router');
 const extensions = require('./extensions');
 const routes = require('./routes');
 const errorsList = require('./extensions/errors/list');
@@ -119,11 +119,52 @@ class TheAPI {
     const t = await this.db.raw(query, bindings);
     const tables = t.rows || t;
 
+    let queryRef;
+
+    switch (this.db.client.constructor.name) {
+      case 'Client_MSSQL':
+      case 'Client_MySQL':
+      case 'Client_MySQL2':
+      case 'Client_Oracle':
+      case 'Client_Oracledb':
+      case 'Client_SQLite3':
+        queryRef = '';
+        break;
+      case 'Client_PG':
+        queryRef = `SELECT
+              tc.table_schema, 
+              tc.constraint_name, 
+              tc.table_name, 
+              kcu.column_name, 
+              ccu.table_schema AS foreign_table_schema,
+              ccu.table_name AS foreign_table_name,
+              ccu.column_name AS foreign_column_name 
+          FROM 
+              information_schema.table_constraints AS tc 
+              JOIN information_schema.key_column_usage AS kcu
+                ON tc.constraint_name = kcu.constraint_name
+                AND tc.table_schema = kcu.table_schema
+              JOIN information_schema.constraint_column_usage AS ccu
+                ON ccu.constraint_name = tc.constraint_name
+                AND ccu.table_schema = tc.table_schema
+          WHERE tc.constraint_type = 'FOREIGN KEY'`;
+        break;
+      default:
+        this.log('Unknown database');
+    }
+
+    const tRef = await this.db.raw(queryRef, bindings);
+    const references = tRef.rows || tRef;
+
     const result = {};
     await Promise.all(tables.map(async ({ table_name }) => {
       if (this.db.client.constructor.name === 'Client_PG') {
         const columnInfo = await this.db.raw('select * from information_schema.columns where table_name = ? and table_schema = current_schema()', table_name);
         result[`${table_name}`] = columnInfo.rows.reduce((acc, cur) => ({ ...acc, [cur.column_name]: cur }), {});
+
+        for (const key of Object.keys(result[`${table_name}`])) {
+          result[`${table_name}`][`${key}`].references = references.find((item) => item.table_name === table_name && item.column_name === key);
+        }
       } else {
         result[`${table_name}`] = await this.db(table_name).columnInfo();
       }
@@ -161,7 +202,61 @@ class TheAPI {
     this.checkToken(jwtSecret);
 
     await this.migrations(flow);
-    const tablesInfo = await this.tablesInfo();
+    const tablesInfo = { ...await this.tablesInfo() };
+
+    const swagger = flow.reduce((acc, item) => acc.concat(item.swagger), []).filter(Boolean);
+
+    const header = 'swagger: "2.0"\ninfo:\n  version: "0.0.1"\n  title: "Battlepro API"\nhost: "localhost:3033"';
+
+    let paths = 'paths:\n';
+    for (const s of swagger) {
+      for (const [p, r] of Object.entries(s)) {
+        paths += `  ${p}:\n`;
+        for (const [r1, r2 = {}] of Object.entries(r)) {
+          paths += `    ${r1}:\n`;
+          paths += `      summary: "${r2.summary || ''}"\n      description: ""\n`;
+          if (!r1.match(/get|delete/)) paths += '      consumes:\n      - "application/json"\n';
+          paths += '      produces:\n      - "application/json"\n';
+          if (r2.required) {
+            paths += '      parameters:\n';
+            for (const requiredField of r2.required) {
+              paths += `      - name: "${requiredField}"\n        in: "body"\n        required: true\n`;
+            }
+          }
+          if (r2.schema) {
+            const nnn = typeof r2.schema === 'string' ? r2.schema : p.replace(/\//g, '_');
+            paths += `      parameters:\n      - in: "body"\n        name: "body"\n        required: true\n        schema:\n          $ref: "#/definitions/${nnn}"\n`;
+            if (typeof r2.schema !== 'string') tablesInfo[`${nnn}`] = r2.schema;
+          }
+          paths += '      responses:\n        "200":\n          description: "Ok"\n';
+          for (const resp of (r2.responses || [])) {
+            if (!routeErrors[`${resp}`]) continue;
+            const { status, description } = routeErrors[`${resp}`];
+            paths += `        "${status}":\n          description: "${description}"\n`;
+          }
+        }
+      }
+    }
+
+    let definitions = 'definitions:\n';
+    for (const [tableName, t] of Object.entries(tablesInfo)) {
+      if (tableName.match(/^knex_/)) continue;
+
+      definitions += `  ${tableName}:\n    type: "object"\n    properties:\n`;
+      for (const [field, opt] of Object.entries(t)) {
+        definitions += `      ${field}:\n`;
+        const o = (typeof opt === 'string') ? { data_type: opt } : opt;
+        if (o.data_type?.match(/character varying|timestamp with time zone/)) o.data_type = 'string';
+        if (o.data_type?.match(/jsonb?/)) o.data_type = 'object';
+        definitions += o.references ? `        $ref: "#/definitions/${o.references.foreign_table_name}"\n` : `        type: "${o.data_type}"\n`;
+      }
+    }
+
+    this.app.use(
+      this.router().get('/swagger.yaml', (ctx) => {
+        ctx.body = `${header}\n${paths}\n${definitions}`;
+      }).routes(),
+    );
 
     this.app.use(async (ctx, next) => {
       const { db } = this;

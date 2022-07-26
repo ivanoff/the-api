@@ -24,5 +24,6 @@ module.exports = {
     "no-console": "off",
     "no-return-assign": "off",
     "func-names": "off",
+    "no-underscore-dangle": "off",
   },
 };

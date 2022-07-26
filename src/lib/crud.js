@@ -15,7 +15,7 @@
  *  DELETE /colors
  */
 
-const Router = require('@koa/router');
+const Router = require('./router');
 const KoaDbHelper = require('./koa_knex_helper');
 const checkAccess = require('./check_access');
 
