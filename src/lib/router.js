@@ -5,34 +5,51 @@ class RouterHandler extends Router {
     super();
     this._prefix = '';
     this.swagger = {};
+    this.currentTag = 'default';
   }
 
   prefix(prefix, ...p) {
     this._prefix += `/${prefix}`;
-    this._prefix = this._prefix.replace(/\/+/g, '/');
+    this._prefix = this._prefix.replace(/\/+/g, '/').replace(/\/+$/, '');
     return super.prefix(prefix, ...p);
   }
 
-  h(t) {
+  tag(tagName) {
+    this.currentTag = tagName;
+    return this;
+  }
+
+  responseSchema(schemaName) {
+    this.currentSchema = schemaName;
+    return this;
+  }
+
+  _h(t) {
     return (path, cb, middleWare, options) => {
       const hasMiddleware = typeof middleWare === 'function';
-      const o = hasMiddleware ? options : middleWare;
-      this.swagger[`${this._prefix}${path}`] = { [t]: o };
-      return hasMiddleware ? super[`${t}`](path, cb, middleWare) : super[`${t}`](path, cb);
+      let o = hasMiddleware ? options : middleWare;
+      if (!o?.tag) o = { ...o, tag: this.currentTag };
+      if (this.currentSchema) o = { ...o, currentSchema: this.currentSchema };
+      const p = path.replace(/\/+$/, '');
+      const current = this.swagger[`${this._prefix}${p}`] || {};
+      this.swagger[`${this._prefix}${p}`] = { ...current, [t]: o };
+      return hasMiddleware ? super[`${t}`](p, cb, middleWare) : super[`${t}`](p, cb);
     };
   }
 
-  get(...p) { return this.h('get')(...p); }
+  get(...p) { return this._h('get')(...p); }
 
-  post(...p) { return this.h('post')(...p); }
+  post(...p) { return this._h('post')(...p); }
 
-  put(...p) { return this.h('put')(...p); }
+  put(...p) { return this._h('put')(...p); }
 
-  del(...p) { return this.h('del')(...p); }
+  patch(...p) { return this._h('patch')(...p); }
 
-  delete(...p) { return this.h('delete')(...p); }
+  del(...p) { return this._h('del')(...p); }
 
-  all(...p) { return this.h('all')(...p); }
+  delete(...p) { return this._h('delete')(...p); }
+
+  all(...p) { return this._h('all')(...p); }
 }
 
 module.exports = RouterHandler;

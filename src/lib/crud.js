@@ -50,11 +50,13 @@ module.exports = (params) => {
   const useAccess = a || (async (_ctx, next) => { await next(); });
 
   return router
+    .tag(params.tag || params.table)
+    .responseSchema(params.responseSchema || params.table)
     .prefix(`/${params.table}`)
     .use(useAccess)
+    .post('/', add)
     .get('/', getAll)
     .get('/:id', getOne)
-    .post('/:id', add)
     .put('/:id', update)
     .delete('/:id', remove);
 };

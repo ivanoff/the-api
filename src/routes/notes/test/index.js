@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 
 describe('Notes', () => {
-  const api = new global.TheAPI();
+  const api = new global.TheAPI({ swagger: { version: '1.1.1', title: 'Test', host: '0.0.0.0' } });
   const { login, notes } = api.routes;
 
   before(() => api.up([api.extensions.errors, login, notes.public, notes]));

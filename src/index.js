@@ -14,8 +14,9 @@ const { name, version } = require('../package.json');
 require('dotenv').config();
 
 class TheAPI {
-  constructor({ port } = {}) {
+  constructor({ port, swagger } = {}) {
     this.port = port || process.env.PORT || 8877;
+    this.swaggerOptions = swagger;
     this.app = new Koa();
     if (!process.env.UPLOAD_MULTIPLY_DISABLED) {
       this.app.use(formidable({ multiples: true }));
@@ -204,16 +205,30 @@ class TheAPI {
     await this.migrations(flow);
     const tablesInfo = { ...await this.tablesInfo() };
 
-    const swagger = flow.reduce((acc, item) => acc.concat(item.swagger), []).filter(Boolean);
+    if (this.swaggerOptions) {
+      const { version: v = '0.0.1', title = 'API', host = '127.0.0.1:7788' } = this.swaggerOptions;
 
-    const header = 'swagger: "2.0"\ninfo:\n  version: "0.0.1"\n  title: "Battlepro API"\nhost: "localhost:3033"';
+      const header = `swagger: "2.0"\ninfo:\n  version: "${v}"\n  title: "${title}"\nhost: "${host}"\nschemes:\n- http\n`;
 
-    let paths = 'paths:\n';
-    for (const s of swagger) {
-      for (const [p, r] of Object.entries(s)) {
+      const swagger = flow.reduce((acc, item) => acc.concat(item.swagger), [])
+        .filter(Boolean)
+        .reduce((acc, cur) => {
+          for (const [key, val] of Object.entries(cur)) {
+            acc[`${key}`] = acc[`${key}`] ? { ...acc[`${key}`], ...val } : val;
+          }
+          return acc;
+        }, {});
+
+      let paths = 'paths:\n';
+
+      for (const [po, r] of Object.entries(swagger)) {
+        const p = po.replace(/:([^/]+)/g, '{$1}');
+        const pathParameters = [...p.matchAll(/\{(.*?)\}/g)].map((item) => item[1]).filter(Boolean);
+
         paths += `  ${p}:\n`;
         for (const [r1, r2 = {}] of Object.entries(r)) {
           paths += `    ${r1}:\n`;
+          if (r2.tag) paths += `      tags:\n      - "${r2.tag}"\n`;
           paths += `      summary: "${r2.summary || ''}"\n      description: ""\n`;
           if (!r1.match(/get|delete/)) paths += '      consumes:\n      - "application/json"\n';
           paths += '      produces:\n      - "application/json"\n';
@@ -223,12 +238,24 @@ class TheAPI {
               paths += `      - name: "${requiredField}"\n        in: "body"\n        required: true\n`;
             }
           }
+          if (pathParameters.length) {
+            paths += '      parameters:\n';
+            for (const requiredField of pathParameters) {
+              paths += `      - name: "${requiredField}"\n        in: "path"\n        required: true\n        type: "integer"\n`;
+            }
+          }
           if (r2.schema) {
             const nnn = typeof r2.schema === 'string' ? r2.schema : p.replace(/\//g, '_');
             paths += `      parameters:\n      - in: "body"\n        name: "body"\n        required: true\n        schema:\n          $ref: "#/definitions/${nnn}"\n`;
             if (typeof r2.schema !== 'string') tablesInfo[`${nnn}`] = r2.schema;
           }
           paths += '      responses:\n        "200":\n          description: "Ok"\n';
+          if (r2.currentSchema && p !== 'delete') {
+            paths += '          schema:\n';
+            if (p === 'get' && !pathParameters.length) paths += '            type: "array"\n';
+            paths += '            items:\n';
+            paths += `              $ref: "#/definitions/${r2.currentSchema}"\n`;
+          }
           for (const resp of (r2.responses || [])) {
             if (!routeErrors[`${resp}`]) continue;
             const { status, description } = routeErrors[`${resp}`];
@@ -236,27 +263,27 @@ class TheAPI {
           }
         }
       }
-    }
 
-    let definitions = 'definitions:\n';
-    for (const [tableName, t] of Object.entries(tablesInfo)) {
-      if (tableName.match(/^knex_/)) continue;
+      let definitions = 'definitions:\n';
+      for (const [tableName, t] of Object.entries(tablesInfo)) {
+        if (tableName.match(/^knex_/)) continue;
 
-      definitions += `  ${tableName}:\n    type: "object"\n    properties:\n`;
-      for (const [field, opt] of Object.entries(t)) {
-        definitions += `      ${field}:\n`;
-        const o = (typeof opt === 'string') ? { data_type: opt } : opt;
-        if (o.data_type?.match(/character varying|timestamp with time zone/)) o.data_type = 'string';
-        if (o.data_type?.match(/jsonb?/)) o.data_type = 'object';
-        definitions += o.references ? `        $ref: "#/definitions/${o.references.foreign_table_name}"\n` : `        type: "${o.data_type}"\n`;
+        definitions += `  ${tableName}:\n    type: "object"\n    properties:\n`;
+        for (const [field, opt] of Object.entries(t)) {
+          definitions += `      ${field}:\n`;
+          const o = (typeof opt === 'string') ? { data_type: opt } : opt;
+          if (o.data_type?.match(/text|character varying|timestamp with time zone/)) o.data_type = 'string';
+          if (o.data_type?.match(/jsonb?/)) o.data_type = 'object';
+          definitions += o.references ? `        $ref: "#/definitions/${o.references.foreign_table_name}"\n` : `        type: "${o.data_type}"\n`;
+        }
       }
-    }
 
-    this.app.use(
-      this.router().get('/swagger.yaml', (ctx) => {
-        ctx.body = `${header}\n${paths}\n${definitions}`;
-      }).routes(),
-    );
+      this.app.use(
+        this.router().get('/swagger.yaml', (ctx) => {
+          ctx.body = `${header}\n${paths}\n${definitions}`;
+        }).routes(),
+      );
+    }
 
     this.app.use(async (ctx, next) => {
       const { db } = this;
