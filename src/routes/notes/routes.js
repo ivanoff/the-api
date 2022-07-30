@@ -4,6 +4,7 @@ const c = require('./controller');
 const router = new Router();
 
 module.exports = router
+  .tag('notes')
   .get('/notes', c.getAllCategories)
   .post('/notes', c.createCategory)
   .get('/notes/:id', c.getSingleCategory)

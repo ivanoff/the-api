@@ -1,11 +1,13 @@
 const { expect } = require('chai');
 
 describe('Stats', () => {
-  const api = new global.TheAPI();
+  let api;
 
   before(async () => {
-    const { logs, errors, limits, cache } = api.extensions;
-    const { check } = api.routes;
+    api = new global.TheAPI();
+    const {
+      logs, errors, limits, cache,
+    } = api.extensions;
 
     const test1 = api.router().get('/test', (ctx) => { ctx.body = { ok: 1 }; });
     const test2 = api.router().post('/test', (ctx) => { ctx.body = { ok: 1 }; });
@@ -53,7 +55,6 @@ describe('Stats', () => {
       res = await global.get('/unknown');
       expect(res.status).to.eql(404);
     });
-
   });
 
   describe('GET /stats', () => {
@@ -70,6 +71,7 @@ describe('Stats', () => {
     });
 
     it('res.stat has total', async () => {
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
       expect(res.stat).to.have.property('total');
     });
 
@@ -78,6 +80,7 @@ describe('Stats', () => {
     });
 
     it('res.stat has minute', async () => {
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
       expect(res.stat).to.have.property('minute');
     });
 
@@ -88,7 +91,5 @@ describe('Stats', () => {
     it('minute /test is 2', async () => {
       expect(res.stat.minute['/test']).to.eql(2);
     });
-
   });
-
 });

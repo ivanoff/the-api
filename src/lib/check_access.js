@@ -9,15 +9,20 @@ async function ownerRequired(ctx, next) {
   await next();
 }
 
-async function rootRequired(ctx, next) {
+function checkRootToken(ctx) {
   const { login, status } = ctx.state.token || {};
   const rootMode = login === 'root' && status === 'root';
   if (!rootMode) throw new Error('TOKEN_INVALID');
+}
+
+async function rootRequired(ctx, next) {
+  checkRootToken(ctx);
   await next();
 }
 
 module.exports = {
   tokenRequired,
   ownerRequired,
+  checkRootToken,
   rootRequired,
 };

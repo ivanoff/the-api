@@ -1,17 +1,23 @@
 const Router = require('@koa/router');
 
 class RouterHandler extends Router {
-  constructor() {
-    super();
-    this._prefix = '';
+  constructor(opt) {
+    super(opt);
+    this._prefix = opt?.prefix || '';
+    this._tokenRequired = false;
     this.swagger = {};
     this.currentTag = 'default';
   }
 
   prefix(prefix, ...p) {
-    this._prefix += `/${prefix}`;
+    this._prefix = `/${prefix}${this._prefix}`;
     this._prefix = this._prefix.replace(/\/+/g, '/').replace(/\/+$/, '');
     return super.prefix(prefix, ...p);
+  }
+
+  tokenRequired() {
+    this._tokenRequired = true;
+    return this;
   }
 
   tag(tagName) {
@@ -30,10 +36,11 @@ class RouterHandler extends Router {
       let o = hasMiddleware ? options : middleWare;
       if (!o?.tag) o = { ...o, tag: this.currentTag };
       if (this.currentSchema) o = { ...o, currentSchema: this.currentSchema };
-      const p = path.replace(/\/+$/, '');
-      const current = this.swagger[`${this._prefix}${p}`] || {};
-      this.swagger[`${this._prefix}${p}`] = { ...current, [t]: o };
-      return hasMiddleware ? super[`${t}`](p, cb, middleWare) : super[`${t}`](p, cb);
+      if (this._tokenRequired) o = { ...o, tokenRequired: this._tokenRequired };
+      const p = `${this._prefix}${path}`.replace(/\/+$/, '') || '/';
+      const current = this.swagger[`${p}`] || {};
+      this.swagger[`${p}`] = { ...current, [t]: o };
+      return hasMiddleware ? super[`${t}`](path, cb, middleWare) : super[`${t}`](path, cb);
     };
   }
 

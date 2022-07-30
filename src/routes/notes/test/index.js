@@ -1,10 +1,17 @@
 const { expect } = require('chai');
 
 describe('Notes', () => {
-  const api = new global.TheAPI({ swagger: { version: '1.1.1', title: 'Test', host: '0.0.0.0' } });
-  const { login, notes } = api.routes;
+  let api;
 
-  before(() => api.up([api.extensions.errors, login, notes.public, notes]));
+  before(async () => {
+    api = new global.TheAPI();
+    await api.up([
+      api.extensions.errors,
+      api.routes.login,
+      api.routes.notes.public,
+      api.routes.notes,
+    ]);
+  });
 
   after(() => api.down());
 
@@ -244,6 +251,7 @@ describe('Notes', () => {
     it('status 200', async () => {
       res = await global.get('/swagger.yaml');
       expect(res.status).to.eql(200);
+      console.log(await res.text());
     });
   });
 });

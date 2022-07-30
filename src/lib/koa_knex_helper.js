@@ -1,6 +1,8 @@
+const { checkRootToken } = require('./check_access');
+
 class KoaKnexHelper {
   constructor({
-    table, join, hiddenFieldsByType, forbiddenFieldsToAdd, required, defaultWhere,
+    table, join, hiddenFieldsByType, forbiddenFieldsToAdd, required, defaultWhere, rootRequired,
   } = {}) {
     this.table = table;
     this.join = join || [];
@@ -9,6 +11,7 @@ class KoaKnexHelper {
     this.hiddenColumns = [];
     this.required = required || {};
     this.defaultWhere = defaultWhere || {};
+    this.rootRequired = rootRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
   }
 
   sort(_sort) {
@@ -94,7 +97,30 @@ class KoaKnexHelper {
  * - search by 'like' mask: /ships?_fields=title&title~=_e%25 d_ta
  * - search from-to: /ships?_from_year=2010&_to_year=2020
  */
+
+  optionsGet() {
+    console.log(
+      this.table,
+      this.jointable,
+      this.hiddenFieldsByTypetable,
+      this.forbiddenFieldsToAddtable,
+      this.hiddenColumnstable,
+      this.requiredtable,
+      this.defaultWheretable,
+    );
+    console.log({
+      tokenRequired: this.rootRequired.get,
+      queryParameters: ['_limit', '_page', '_order'],
+    });
+    return {
+      tokenRequired: this.rootRequired.get,
+      queryParameters: ['_limit', '_page', '_order'],
+    };
+  }
+
   async get({ ctx }) {
+    if (this.rootRequired.get) checkRootToken(ctx);
+
     const {
       db, tablesInfo, token, ownerMode,
     } = ctx.state;
@@ -125,6 +151,8 @@ class KoaKnexHelper {
   }
 
   async getById({ ctx }) {
+    if (this.rootRequired.get) checkRootToken(ctx);
+
     const { db, tablesInfo, token } = ctx.state;
     const { id } = ctx.params;
     const { _fields, _lang } = ctx.request.query;
@@ -169,6 +197,8 @@ class KoaKnexHelper {
   }
 
   async add({ ctx }) {
+    if (this.rootRequired.add) checkRootToken(ctx);
+
     const { db } = ctx.state;
 
     const looksLikeArray = Object.keys(ctx.request.body).every((j, i) => i === +j);
@@ -187,6 +217,8 @@ class KoaKnexHelper {
   }
 
   async update({ ctx }) {
+    if (this.rootRequired.update) checkRootToken(ctx);
+
     const { db, tablesInfo, token } = ctx.state;
     const { id } = ctx.params;
     const rows = tablesInfo[this.table] || {};
@@ -207,6 +239,8 @@ class KoaKnexHelper {
   }
 
   async delete({ ctx }) {
+    if (this.rootRequired.delete) checkRootToken(ctx);
+
     const { db, token } = ctx.state;
     const { id } = ctx.params;
     const where = { id, deleted: false };

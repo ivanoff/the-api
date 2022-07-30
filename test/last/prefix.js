@@ -5,7 +5,7 @@ describe('Prefix', () => {
   const api = new global.TheAPI();
 
   before(async () => {
-    process.env = { API_PREFIX: '/v1', NODE_ENV: 'test' };
+    process.env = { ...process.env, API_PREFIX: '/v1', NODE_ENV: 'test' };
     const { logs, errors, cache } = api.extensions;
     const { check } = api.routes;
 
@@ -37,7 +37,6 @@ describe('Prefix', () => {
       res = await global.get('/v1/check');
       expect(res.status).to.eql(200);
     });
-
   });
 
   describe('GET /v1/test_prefix', () => {
@@ -52,7 +51,5 @@ describe('Prefix', () => {
       res = await global.get('/v1/test_prefix');
       expect(res.status).to.eql(200);
     });
-
   });
-
 });

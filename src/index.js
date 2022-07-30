@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { FsMigrations } = require('knex/lib/migrations/migrate/sources/fs-migrations');
 const Router = require('./lib/router');
+const KoaDbHelper = require('./lib/koa_knex_helper');
 const extensions = require('./extensions');
 const routes = require('./routes');
 const errorsList = require('./extensions/errors/list');
@@ -13,12 +14,20 @@ const { name, version } = require('../package.json');
 
 require('dotenv').config();
 
+const {
+  PORT,
+  JWT_SECRET,
+  SWAGGER_VERSION,
+  SWAGGER_TITLE,
+  SWAGGER_HOST,
+  UPLOAD_MULTIPLY_DISABLED,
+} = process.env;
+
 class TheAPI {
-  constructor({ port, swagger } = {}) {
-    this.port = port || process.env.PORT || 8877;
-    this.swaggerOptions = swagger;
+  constructor({ port, migrationDirs = [] } = {}) {
+    this.port = port || PORT || 8877;
     this.app = new Koa();
-    if (!process.env.UPLOAD_MULTIPLY_DISABLED) {
+    if (!UPLOAD_MULTIPLY_DISABLED) {
       this.app.use(formidable({ multiples: true }));
     }
     this.app.use(bodyParser());
@@ -27,8 +36,12 @@ class TheAPI {
     this.router = () => new Router();
     this.routes = routes;
     this.extensions = extensions;
+    this.swaggerOptions = {
+      version: SWAGGER_VERSION,
+      title: SWAGGER_TITLE,
+      host: SWAGGER_HOST,
+    };
     this.log = (...toLog) => {
-      if (process.env.NODE_ENV === 'test') return;
       for (const line of toLog) {
         // eslint-disable-next-line no-console
         console.log(`[${(new Date()).toISOString()}] ${line}`);
@@ -37,6 +50,7 @@ class TheAPI {
     this.log(`${name} v${version}`);
 
     const knexDefaultParams = { client: 'sqlite3', connection: ':memory:' };
+    this.migrationDirs = [`${__dirname}/migrations`].concat(migrationDirs);
 
     const {
       DB_CLIENT: client,
@@ -50,6 +64,7 @@ class TheAPI {
 
     const knexParams = client ? { client, connection } : knexDefaultParams;
     this.db = knex({ ...knexParams, useNullAsDefault: true });
+    this.waitDb = this.connectDb();
   }
 
   // generate new random JWT_SECRET
@@ -81,14 +96,77 @@ class TheAPI {
     const migrationDirs = flow.map((item) => item.migration).filter(Boolean);
     if (migrationDirs.length) {
       try {
-        await this.db.migrate.latest({ migrationSource: new FsMigrations(migrationDirs, false) });
+        const migrationSource = new FsMigrations(this.migrationDirs.concat(migrationDirs), false);
+        await this.db.migrate.latest({ migrationSource });
       } catch (err) {
         this.log(err);
       }
     }
   }
 
-  async tablesInfo() {
+  /**
+   * CRUD helper
+   * Usage:
+   *  $ cat index.js
+   *   const TheAPI = require('./src');
+   *   const api = new TheAPI();
+   *   const colors = api.crud({ table: 'colors' });
+   *   api.up([colors]);
+   * Generates the following endpoints with CRUD access to `colors` table:
+   *  GET /colors
+   *  POST /colors
+   *  PATCH /colors
+   *  DELETE /colors
+   */
+  async crud(params) {
+    await this.waitDb;
+
+    const {
+      table, endpoint, tag, responseSchema,
+    } = params;
+
+    console.log('====================');
+    console.log('====================');
+    console.log('====================');
+    console.log(this.tablesInfo[`${table}`]);
+    const helper = new KoaDbHelper({ ...params, tableInfo: this.tablesInfo[`${table}`] });
+
+    const add = async (ctx) => {
+      ctx.body = await helper.add({ ctx });
+    };
+
+    const getAll = async (ctx) => {
+      ctx.body = await helper.get({ ctx });
+    };
+
+    const getOne = async (ctx) => {
+      ctx.body = await helper.getById({ ctx });
+      return ctx.body || ctx.warning('NOT_FOUND');
+    };
+
+    const update = async (ctx) => {
+      ctx.body = await helper.update({ ctx });
+    };
+
+    const remove = async (ctx) => {
+      ctx.body = await helper.delete({ ctx });
+    };
+
+    const router = this.router();
+
+    router.prefix(`/${endpoint || table}`)
+      .tag(tag || table)
+      .responseSchema(responseSchema || table)
+      .post('/', add, helper.optionsGet())
+      .get('/', getAll)
+      .get('/:id', getOne)
+      .put('/:id', update)
+      .delete('/:id', remove);
+
+    return router;
+  }
+
+  async getTablesInfo() {
     let query;
     let bindings = [this.db.client.database()];
 
@@ -154,8 +232,11 @@ class TheAPI {
         this.log('Unknown database');
     }
 
-    const tRef = await this.db.raw(queryRef, bindings);
-    const references = tRef.rows || tRef;
+    let references = {};
+    if (queryRef) {
+      const tRef = await this.db.raw(queryRef, bindings);
+      references = tRef.rows || tRef;
+    }
 
     const result = {};
     await Promise.all(tables.map(async ({ table_name }) => {
@@ -173,20 +254,11 @@ class TheAPI {
     return result;
   }
 
-  async checkDbAndRun(flow) {
-    try {
-      await this.db.raw('select 1+1 as result');
-      clearInterval(this.intervalDbCheck);
-      this.log('DB connected');
-      await this.initServer(flow);
-    } catch (err) {
-      this.log('DB connection error:', err, 'waiting for 5 seconds...');
-    }
-  }
-
-  async initServer(flow) {
+  async initServer(flowOrigin) {
     const startTime = new Date();
     const requests = { total: 0 };
+
+    const flow = flowOrigin.reduce((acc, cur) => (acc.concat(cur)), []).filter(Boolean);
 
     const routeErrors = flow.reduce((acc, item) => ({ ...acc, ...item.errors }), {});
 
@@ -199,16 +271,16 @@ class TheAPI {
       .map((item) => item.routes().router.stack).reduce((acc, val) => acc.concat(val), [])
       .map(({ methods, path, regexp }) => ({ methods, path, regexp }));
 
-    const jwtSecret = process.env.JWT_SECRET || this.generateJwtSecret();
+    const jwtSecret = JWT_SECRET || this.generateJwtSecret();
     this.checkToken(jwtSecret);
 
     await this.migrations(flow);
-    const tablesInfo = { ...await this.tablesInfo() };
+    this.tablesInfo = { ...await this.getTablesInfo() };
 
-    if (this.swaggerOptions) {
+    if (this.swaggerOptions.version) {
       const { version: v = '0.0.1', title = 'API', host = '127.0.0.1:7788' } = this.swaggerOptions;
 
-      const header = `swagger: "2.0"\ninfo:\n  version: "${v}"\n  title: "${title}"\nhost: "${host}"\nschemes:\n- http\n`;
+      const header = `swagger: "2.0"\ninfo:\n  version: "${v}"\n  title: "${title}"\nhost: "${host}"\nschemes:\n- http\n- https\nsecurityDefinitions:\n  ApiKeyAuth:\n    type: apiKey\n    in: header\n    name: Authorization\n`;
 
       const swagger = flow.reduce((acc, item) => acc.concat(item.swagger), [])
         .filter(Boolean)
@@ -230,24 +302,25 @@ class TheAPI {
           paths += `    ${r1}:\n`;
           if (r2.tag) paths += `      tags:\n      - "${r2.tag}"\n`;
           paths += `      summary: "${r2.summary || ''}"\n      description: ""\n`;
+          if (r2.tokenRequired) paths += '      security:\n        - ApiKeyAuth: []\n';
           if (!r1.match(/get|delete/)) paths += '      consumes:\n      - "application/json"\n';
           paths += '      produces:\n      - "application/json"\n';
-          if (r2.required) {
+          if (r2.required || r2.queryParameters || pathParameters.length) {
             paths += '      parameters:\n';
-            for (const requiredField of r2.required) {
-              paths += `      - name: "${requiredField}"\n        in: "body"\n        required: true\n`;
+            for (const fieldName of (r2.required || [])) {
+              paths += `      - name: "${fieldName}"\n        in: "body"\n        type: "string"\n        required: true\n`;
             }
-          }
-          if (pathParameters.length) {
-            paths += '      parameters:\n';
-            for (const requiredField of pathParameters) {
-              paths += `      - name: "${requiredField}"\n        in: "path"\n        required: true\n        type: "integer"\n`;
+            for (const fieldName of (r2.queryParameters || [])) {
+              paths += `      - name: "${fieldName}"\n        in: "query"\n        type: "string"\n`;
+            }
+            for (const fieldName of pathParameters) {
+              paths += `      - name: "${fieldName}"\n        in: "path"\n        type: "string"\n        required: true\n`;
             }
           }
           if (r2.schema) {
             const nnn = typeof r2.schema === 'string' ? r2.schema : p.replace(/\//g, '_');
             paths += `      parameters:\n      - in: "body"\n        name: "body"\n        required: true\n        schema:\n          $ref: "#/definitions/${nnn}"\n`;
-            if (typeof r2.schema !== 'string') tablesInfo[`${nnn}`] = r2.schema;
+            if (typeof r2.schema !== 'string') this.tablesInfo[`${nnn}`] = r2.schema;
           }
           paths += '      responses:\n        "200":\n          description: "Ok"\n';
           if (r2.currentSchema && p !== 'delete') {
@@ -265,7 +338,7 @@ class TheAPI {
       }
 
       let definitions = 'definitions:\n';
-      for (const [tableName, t] of Object.entries(tablesInfo)) {
+      for (const [tableName, t] of Object.entries(this.tablesInfo)) {
         if (tableName.match(/^knex_/)) continue;
 
         definitions += `  ${tableName}:\n    type: "object"\n    properties:\n`;
@@ -297,11 +370,11 @@ class TheAPI {
         requests,
         examples,
         db,
-        tablesInfo,
         routeErrors,
         log,
         stack,
         jwtSecret,
+        tablesInfo: this.tablesInfo,
       };
       ctx.warning = this.log;
       await next();
@@ -319,8 +392,32 @@ class TheAPI {
   }
 
   async up(flow = []) {
-    this.intervalDbCheck = setInterval(async () => this.checkDbAndRun(flow), 5000);
-    await this.checkDbAndRun(flow);
+    await this.waitDb;
+    await this.initServer(flow);
+  }
+
+  async connectDb() {
+    return new Promise((resolve) => {
+      this.intervalDbCheck = setInterval(async () => this.checkDb().then(resolve), 5000);
+      this.checkDb().then(resolve);
+    });
+  }
+
+  async checkDb() {
+    try {
+      await this.db.raw('select 1+1 as result');
+      clearInterval(this.intervalDbCheck);
+      this.log('DB connected');
+
+      const migrationSource = new FsMigrations(this.migrationDirs, false);
+      await this.db.migrate.latest({ migrationSource });
+      this.log('Migration done');
+
+      this.tablesInfo = { ...await this.getTablesInfo() };
+      this.log(`Tables found: ${Object.keys(this.tablesInfo)}`);
+    } catch (err) {
+      this.log('DB connection error:', err, 'waiting for 5 seconds...');
+    }
   }
 
   async down() {

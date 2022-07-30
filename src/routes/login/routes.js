@@ -1,10 +1,10 @@
 const Router = require('../../lib/router');
 const c = require('./controller');
-// const s = require('./swagger');
 
 const router = new Router();
 
 module.exports = router
+  .tag('users')
   .post('/register', c.register, {
     summary: 'Register new user',
     schema: {
@@ -29,8 +29,6 @@ module.exports = router
       password: 'string',
     },
     responses: ['USER_NOT_FOUND', 'EMAIL_NOT_CONFIRMED'],
-    // examples: `curl 127.0.0.1:8877/login -H 'Content-Type: application/json' -d \
-    // '{"login": "test", "password": "12345"}'`,
   })
   .post('/login/refresh', c.loginHandler, {
     summary: 'Refresh jwt token',
@@ -52,15 +50,14 @@ module.exports = router
       password: 'string',
     },
   })
-  .patch('/login', c.updateUser);
-
-// const routerRest = new Router();
-// module.exports.rest = routerRest
-//   .post('/tokens', c.loginHandler)
-//   .post('/users', c.register)
-//   .post('/users', c.check)
-//   .post('/users', c.restore)
-//   .post('/users', c.setPassword);
+  .patch('/login', c.updateUser, {
+    summary: 'Update user',
+    tokenRequired: true,
+    schema: {
+      code: 'string',
+      password: 'string',
+    },
+  });
 
 module.exports.setEmailTemplates = c.setEmailTemplates;
 module.exports.addFieldsToToken = c.addFieldsToToken;

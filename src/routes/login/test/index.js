@@ -1,12 +1,14 @@
 const { expect } = require('chai');
 
 describe('Login', () => {
-  const api = new global.TheAPI();
+  let api;
   const env = { ...process.env };
   const userData = { login: 'aaa15', password: 'bbb', email: '3@ivanoff.org.ua' };
 
   before(async () => {
-    process.env = { NODE_ENV: 'test', LOGIN_CHECK_EMAIL: 'true' };
+    process.env = { ...process.env, LOGIN_CHECK_EMAIL: 'true' };
+
+    api = new global.TheAPI();
     await api.up([api.extensions.errors, api.routes.login]);
   });
 

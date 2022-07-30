@@ -1,10 +1,13 @@
 const { expect } = require('chai');
 
 describe('Info', () => {
-  const api = new global.TheAPI();
+  let api;
 
   before(async () => {
-    const { logs, errors, info, cache } = api.extensions;
+    api = new global.TheAPI();
+    const {
+      logs, errors, info, cache,
+    } = api.extensions;
     const { check } = api.routes;
 
     info.endpointsToShow(check);
@@ -31,7 +34,5 @@ describe('Info', () => {
       res = await global.get('/unknown');
       expect(res.status).to.eql(404);
     });
-
   });
-
 });

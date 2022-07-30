@@ -158,9 +158,9 @@ Usage:
 
 ```javascript
 const TheAPI = require('the-api');
-const colors = require('the-api/crud')({ table: 'colors' });
 
 const api = new TheAPI();
+const colors = api.crud({ table: 'colors' });
 api.up([colors]);
 ```
 
