@@ -1,4 +1,4 @@
-const Router = require('../../lib/router');
+const { Router } = require('../../lib');
 
 const router = new Router();
 

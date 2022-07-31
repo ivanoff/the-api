@@ -7,12 +7,14 @@ module.exports = {
     "plugin:security/recommended",
   ],
   "parserOptions": {
-    "ecmaVersion": 2020
+    "ecmaVersion": 2020,
+    "indent": ["error", 2]
   },
   "env": {
     "mocha": true
   },
   "rules": {
+    "quotes": ["error", "single", { "allowTemplateLiterals": true }],
     "no-plusplus": "off",
     "no-restricted-syntax": "off",
     "no-continue": "off",

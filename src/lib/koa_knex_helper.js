@@ -2,16 +2,24 @@ const { checkRootToken } = require('./check_access');
 
 class KoaKnexHelper {
   constructor({
-    table, join, hiddenFieldsByType, forbiddenFieldsToAdd, required, defaultWhere, rootRequired,
+    table,
+    join,
+    hiddenFieldsByType,
+    forbiddenFieldsToAdd,
+    required,
+    defaultWhere,
+    rootRequired,
+    tableInfo,
   } = {}) {
     this.table = table;
     this.join = join || [];
     this.hiddenFieldsByType = hiddenFieldsByType || {};
-    this.forbiddenFieldsToAdd = forbiddenFieldsToAdd || [];
+    this.forbiddenFieldsToAdd = forbiddenFieldsToAdd || ['id', 'created_at', 'updated_at', 'deleted_at', 'deleted'];
     this.hiddenColumns = [];
     this.required = required || {};
     this.defaultWhere = defaultWhere || {};
     this.rootRequired = rootRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
+    this.tableInfo = tableInfo || {};
   }
 
   sort(_sort) {
@@ -99,22 +107,36 @@ class KoaKnexHelper {
  */
 
   optionsGet() {
-    console.log(
-      this.table,
-      this.jointable,
-      this.hiddenFieldsByTypetable,
-      this.forbiddenFieldsToAddtable,
-      this.hiddenColumnstable,
-      this.requiredtable,
-      this.defaultWheretable,
-    );
-    console.log({
-      tokenRequired: this.rootRequired.get,
-      queryParameters: ['_limit', '_page', '_order'],
-    });
+    const fields = {};
+    const fieldsSearchLike = {};
+    const fieldsFromTo = {};
+    for (const [key, data] of Object.entries(this.tableInfo || {})) {
+      fields[`${key}`] = data.data_type;
+      if (data.data_type === 'string') fieldsSearchLike[`${key}~`] = data.data_type;
+      if (data.data_type !== 'boolean') {
+        fieldsFromTo[`_from_${key}`] = data.data_type;
+        fieldsFromTo[`_to_${key}`] = data.data_type;
+      }
+    }
+
+    const queryParameters = {
+      ...fields,
+      ...fieldsSearchLike,
+      ...fieldsFromTo,
+      _fields: {
+        type: 'string',
+        example: 'id,name',
+      },
+      _sort: {
+        type: 'string',
+        example: '-created_at,name',
+      },
+      _limit: 'integer',
+      _page: 'integer',
+    };
     return {
       tokenRequired: this.rootRequired.get,
-      queryParameters: ['_limit', '_page', '_order'],
+      queryParameters,
     };
   }
 
@@ -148,6 +170,12 @@ class KoaKnexHelper {
     this.pagination(_page, _limit);
     // if (_or) console.log(this.res.toSQL())
     return { total, data: await this.res };
+  }
+
+  optionsGetById() {
+    return {
+      tokenRequired: this.rootRequired.get,
+    };
   }
 
   async getById({ ctx }) {
@@ -196,6 +224,18 @@ class KoaKnexHelper {
     return result;
   }
 
+  optionsAdd() {
+    const schema = Object.entries(this.tableInfo || {}).reduce((acc, [key, data]) => {
+      const keyForbiddeen = this.forbiddenFieldsToAdd.includes(key);
+      return keyForbiddeen ? acc : { ...acc, [key]: data };
+    }, {});
+
+    return {
+      tokenRequired: this.rootRequired.add,
+      schema,
+    };
+  }
+
   async add({ ctx }) {
     if (this.rootRequired.add) checkRootToken(ctx);
 
@@ -214,6 +254,18 @@ class KoaKnexHelper {
     if (Number.isInteger(result[0])) result = db(this.table).where({ id: result[0] });
 
     return result[0];
+  }
+
+  optionsUpdate() {
+    const schema = Object.entries(this.tableInfo || {}).reduce((acc, [key, data]) => {
+      const keyForbiddeen = this.forbiddenFieldsToAdd.includes(key);
+      return keyForbiddeen ? acc : { ...acc, [key]: data };
+    }, {});
+
+    return {
+      tokenRequired: this.rootRequired.update,
+      schema,
+    };
   }
 
   async update({ ctx }) {
@@ -236,6 +288,12 @@ class KoaKnexHelper {
 
     await db(this.table).update(data).where(where);
     return this.getById({ ctx });
+  }
+
+  optionsDelete() {
+    return {
+      tokenRequired: this.rootRequired.delete,
+    };
   }
 
   async delete({ ctx }) {
