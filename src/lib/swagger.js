@@ -5,7 +5,9 @@ function updateType(type = '') {
   return result;
 }
 
-module.exports = ({ flow, options, tablesInfo }) => {
+module.exports = ({
+  flow, options, tablesInfo, basePath,
+}) => {
   const tablesInfoAdditional = {};
   const { version: v = '0.0.1', title = 'API', host = '127.0.0.1:7788' } = options;
 
@@ -20,7 +22,8 @@ module.exports = ({ flow, options, tablesInfo }) => {
       return acc;
     }, {});
 
-  const header = `swagger: "2.0"\ninfo:\n  version: "${v}"\n  title: "${title}"\nhost: "${host}"\nschemes:\n- http\n- https\nsecurityDefinitions:\n  ApiKeyAuth:\n    type: apiKey\n    in: header\n    name: Authorization\n`;
+  const bp = basePath ? `basePath: ${basePath}\n` : '';
+  const header = `swagger: "2.0"\ninfo:\n  version: "${v}"\n  title: "${title}"\nhost: "${host}"\n${bp}schemes:\n- http\n- https\nsecurityDefinitions:\n  ApiKeyAuth:\n    type: apiKey\n    in: header\n    name: Authorization\n`;
 
   let paths = 'paths:\n';
 

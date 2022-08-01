@@ -21,6 +21,7 @@ const {
   SWAGGER_VERSION,
   SWAGGER_TITLE,
   SWAGGER_HOST,
+  SWAGGER_BASEPATH,
   UPLOAD_MULTIPLY_DISABLED,
 } = process.env;
 
@@ -41,6 +42,7 @@ class TheAPI {
       version: SWAGGER_VERSION,
       title: SWAGGER_TITLE,
       host: SWAGGER_HOST,
+      basePath: SWAGGER_BASEPATH,
     };
     this.log = (...toLog) => {
       for (const line of toLog) {
@@ -139,7 +141,11 @@ class TheAPI {
         options: this.swaggerOptions,
         tablesInfo: this.tablesInfo,
       });
-      const swaggerRoute = this.router().get('/swagger.yaml', (ctx) => (ctx.body = swaggerData)).routes();
+      const swaggerRoute = this.router().get('/swagger.yaml', (ctx) => {
+        ctx.set('Access-Control-Allow-Origin', '*');
+        ctx.set('Access-Control-Allow-Methods', 'GET');
+        ctx.body = swaggerData;
+      }).routes();
       this.app.use(swaggerRoute);
     }
 
