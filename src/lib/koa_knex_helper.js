@@ -80,8 +80,10 @@ class KoaKnexHelper {
     } of join) {
       const limitStr = limit ? `LIMIT ${limit}` : '';
       const lang = table === 'lang' && this.lang && this.lang.match(/^\w{2}$/) ? `AND lang='${this.lang}'` : '';
-      const f2 = !fields ? `"${as || table}".*`
-        : `json_build_object(${fields.map((item) => `'${item}', "${as || table}".${item}`).join(', ')})`;
+      const ff = fields?.map((item) => (typeof item === 'string'
+        ? `'${item}', "${as || table}".${item}`
+        : `'${Object.keys(item)[0]}', ${Object.values(item)[0]}`));
+      const f2 = ff ? `json_build_object(${ff.join(', ')})` : `"${as || table}".*`;
       joinCoaleise.push(db.raw(`
         COALESCE( ( SELECT jsonb_agg(${f2}) FROM (
           SELECT * FROM "${table}" AS "${as || table}"
