@@ -54,7 +54,7 @@ module.exports = ({
           paths += `      - name: "${fieldName}"\n        in: "path"\n        type: "string"\n        required: true\n`;
         }
         if (r2.schema) {
-          const nnn = typeof r2.schema === 'string' ? r2.schema : p.replace(/[/{}]/g, '_');
+          const nnn = typeof r2.schema === 'string' ? r2.schema : `${p}_${r1}`.replace(/[/{}]/g, '_');
           paths += `      - in: "body"\n        name: "body"\n        required: true\n        schema:\n          $ref: "#/definitions/${nnn}"\n`;
           if (typeof r2.schema !== 'string') tablesInfoAdditional[`${nnn}`] = r2.schema;
         }
