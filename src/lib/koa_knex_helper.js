@@ -115,7 +115,7 @@ class KoaKnexHelper {
     for (const [key, data] of Object.entries(this.tableInfo || {})) {
       fields[`${key}`] = data.data_type;
       if (data.data_type === 'string') fieldsSearchLike[`${key}~`] = data.data_type;
-      if (data.data_type !== 'boolean') {
+      if (data.data_type !== 'boolean' && data.data_type !== 'file') {
         fieldsFromTo[`_from_${key}`] = data.data_type;
         fieldsFromTo[`_to_${key}`] = data.data_type;
       }

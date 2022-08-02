@@ -33,13 +33,19 @@ module.exports = ({
 
     paths += `  ${p}:\n`;
     for (const [r1, r2 = {}] of Object.entries(r)) {
+      const hasFileType = Object.values(r2?.schema || {}).some(({ data_type }) => data_type === 'file');
+
       paths += `    ${r1}:\n`;
       if (r2.tag) paths += `      tags:\n      - "${r2.tag}"\n`;
       paths += `      summary: "${r2.summary || ''}"\n      description: ""\n`;
       if (r2.tokenRequired) paths += '      security:\n        - UserToken: []\n';
       if (r2.rootRequired) paths += '      security:\n        - RootToken: []\n';
-      if (!r1.match(/get|delete/)) paths += '      consumes:\n      - "application/json"\n';
+
+      const consumesType = hasFileType ? 'multipart/form-data' : r1.match(/get|delete/) && 'application/json';
+      if (consumesType) paths += `      consumes:\n      - "${consumesType}"\n`;
+
       paths += '      produces:\n      - "application/json"\n';
+
       if (r2.schema || r2.required || r2.queryParameters || pathParameters.length) {
         paths += '      parameters:\n';
         for (const fieldName of (r2.required || [])) {
@@ -54,9 +60,18 @@ module.exports = ({
           paths += `      - name: "${fieldName}"\n        in: "path"\n        type: "string"\n        required: true\n`;
         }
         if (r2.schema) {
-          const nnn = typeof r2.schema === 'string' ? r2.schema : `${p}_${r1}`.replace(/[/{}]/g, '_');
-          paths += `      - in: "body"\n        name: "body"\n        required: true\n        schema:\n          $ref: "#/definitions/${nnn}"\n`;
-          if (typeof r2.schema !== 'string') tablesInfoAdditional[`${nnn}`] = r2.schema;
+          if (hasFileType) {
+            for (const [fieldName, data] of (Object.entries(r2.schema))) {
+              const type = typeof data === 'string' ? data : data.type;
+              const required = data.is_nullable === 'YES' ? 'false' : 'true';
+
+              paths += `      - in: formData\n        name: ${fieldName}\n        type: ${updateType(type)}\n        required: ${required}\n`;
+            }
+          } else {
+            const nnn = typeof r2.schema === 'string' ? r2.schema : `${p}_${r1}`.replace(/[/{}]/g, '_');
+            paths += `      - in: "body"\n        name: "body"\n        required: true\n        schema:\n          $ref: "#/definitions/${nnn}"\n`;
+            if (typeof r2.schema !== 'string') tablesInfoAdditional[`${nnn}`] = r2.schema;
+          }
         }
       }
       paths += '      responses:\n        "200":\n          description: "Ok"\n';
@@ -81,6 +96,12 @@ module.exports = ({
     definitions += `  ${tableName}:\n    type: "object"\n    properties:\n`;
     for (const [field, opt] of Object.entries(t)) {
       definitions += `      ${field}:\n`;
+
+      if (field === 'file') {
+        definitions += `        type: array\n        items:\n          type: string\n          format: binary\n`;
+        continue;
+      }
+
       const o = (typeof opt === 'string') ? { data_type: opt } : opt;
       definitions += o.references ? `        $ref: "#/definitions/${o.references.foreign_table_name}"\n` : `        type: "${updateType(o.data_type)}"\n`;
     }
