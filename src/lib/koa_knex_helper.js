@@ -1,4 +1,4 @@
-const { checkRootToken } = require('./check_access');
+const { checkToken, checkRootToken } = require('./check_access');
 
 class KoaKnexHelper {
   constructor({
@@ -8,6 +8,7 @@ class KoaKnexHelper {
     forbiddenFieldsToAdd,
     required,
     defaultWhere,
+    tokenRequired,
     rootRequired,
     tableInfo,
   } = {}) {
@@ -18,6 +19,7 @@ class KoaKnexHelper {
     this.hiddenColumns = [];
     this.required = required || {};
     this.defaultWhere = defaultWhere || {};
+    this.tokenRequired = tokenRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
     this.rootRequired = rootRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
     this.tableInfo = tableInfo || {};
   }
@@ -135,12 +137,14 @@ class KoaKnexHelper {
       _page: 'integer',
     };
     return {
-      tokenRequired: this.rootRequired.get,
+      tokenRequired: this.tokenRequired.get,
+      rootRequired: this.rootRequired.get,
       queryParameters,
     };
   }
 
   async get({ ctx }) {
+    if (this.tokenRequired.get) checkToken(ctx);
     if (this.rootRequired.get) checkRootToken(ctx);
 
     const {
@@ -174,11 +178,13 @@ class KoaKnexHelper {
 
   optionsGetById() {
     return {
-      tokenRequired: this.rootRequired.get,
+      tokenRequired: this.tokenRequired.get,
+      rootRequired: this.rootRequired.get,
     };
   }
 
   async getById({ ctx }) {
+    if (this.tokenRequired.get) checkToken(ctx);
     if (this.rootRequired.get) checkRootToken(ctx);
 
     const { db, tablesInfo, token } = ctx.state;
@@ -231,12 +237,14 @@ class KoaKnexHelper {
     }, {});
 
     return {
-      tokenRequired: this.rootRequired.add,
+      tokenRequired: this.tokenRequired.add,
+      rootRequired: this.rootRequired.add,
       schema,
     };
   }
 
   async add({ ctx }) {
+    if (this.tokenRequired.add) checkToken(ctx);
     if (this.rootRequired.add) checkRootToken(ctx);
 
     const { db } = ctx.state;
@@ -263,12 +271,14 @@ class KoaKnexHelper {
     }, {});
 
     return {
-      tokenRequired: this.rootRequired.update,
+      tokenRequired: this.tokenRequired.update,
+      rootRequired: this.rootRequired.update,
       schema,
     };
   }
 
   async update({ ctx }) {
+    if (this.tokenRequired.update) checkToken(ctx);
     if (this.rootRequired.update) checkRootToken(ctx);
 
     const { db, tablesInfo, token } = ctx.state;
@@ -292,11 +302,13 @@ class KoaKnexHelper {
 
   optionsDelete() {
     return {
-      tokenRequired: this.rootRequired.delete,
+      tokenRequired: this.tokenRequired.delete,
+      rootRequired: this.rootRequired.delete,
     };
   }
 
   async delete({ ctx }) {
+    if (this.tokenRequired.delete) checkToken(ctx);
     if (this.rootRequired.delete) checkRootToken(ctx);
 
     const { db, token } = ctx.state;

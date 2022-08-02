@@ -1,5 +1,9 @@
-async function tokenRequired(ctx, next) {
+async function checkToken(ctx) {
   if (!ctx.state.token) throw new Error('NO_TOKEN');
+}
+
+async function tokenRequired(ctx, next) {
+  checkToken(ctx);
   await next();
 }
 
@@ -21,6 +25,7 @@ async function rootRequired(ctx, next) {
 }
 
 module.exports = {
+  checkToken,
   tokenRequired,
   ownerRequired,
   checkRootToken,

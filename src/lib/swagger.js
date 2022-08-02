@@ -23,7 +23,7 @@ module.exports = ({
     }, {});
 
   const bp = basePath ? `basePath: ${basePath}\n` : '';
-  const header = `swagger: "2.0"\ninfo:\n  version: "${v}"\n  title: "${title}"\nhost: "${host}"\n${bp}schemes:\n- http\n- https\nsecurityDefinitions:\n  ApiKeyAuth:\n    type: apiKey\n    in: header\n    name: Authorization\n`;
+  const header = `swagger: "2.0"\ninfo:\n  version: "${v}"\n  title: "${title}"\nhost: "${host}"\n${bp}schemes:\n- http\n- https\nsecurityDefinitions:\n  UserToken:\n    type: apiKey\n    in: header\n    name: Authorization\n  RootToken:\n    type: apiKey\n    in: header\n    name: Authorization\n`;
 
   let paths = 'paths:\n';
 
@@ -36,7 +36,8 @@ module.exports = ({
       paths += `    ${r1}:\n`;
       if (r2.tag) paths += `      tags:\n      - "${r2.tag}"\n`;
       paths += `      summary: "${r2.summary || ''}"\n      description: ""\n`;
-      if (r2.tokenRequired) paths += '      security:\n        - ApiKeyAuth: []\n';
+      if (r2.tokenRequired) paths += '      security:\n        - UserToken: []\n';
+      if (r2.rootRequired) paths += '      security:\n        - RootToken: []\n';
       if (!r1.match(/get|delete/)) paths += '      consumes:\n      - "application/json"\n';
       paths += '      produces:\n      - "application/json"\n';
       if (r2.schema || r2.required || r2.queryParameters || pathParameters.length) {

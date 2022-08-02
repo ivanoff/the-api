@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { FsMigrations } = require('knex/lib/migrations/migrate/sources/fs-migrations');
 const {
-  Router, getSwaggerData, crudHandler, getTablesInfo,
+  Router, getSwaggerData, crudHandler, getTablesInfo, KoaKnexHelper,
 } = require('./lib');
 const extensions = require('./extensions');
 const routes = require('./routes');
@@ -109,7 +109,12 @@ class TheAPI {
 
   async crud(params = {}) {
     await this.waitDb;
-    return crudHandler({ tableInfo: this.tablesInfo[`${params.table}`], ...params });
+    return crudHandler({ tableInfo: this.tablesInfo && this.tablesInfo[`${params.table}`], ...params });
+  }
+
+  async koaKnexHelper(params = {}) {
+    await this.waitDb;
+    return new KoaKnexHelper({ tableInfo: this.tablesInfo && this.tablesInfo[`${params.table}`], ...params });
   }
 
   async initServer(flowOrigin) {
