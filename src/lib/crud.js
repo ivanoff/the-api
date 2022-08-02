@@ -48,9 +48,9 @@ module.exports = async (params) => {
   return router.prefix(`/${endpoint || table}`)
     .tag(tag || table)
     .responseSchema(responseSchema || table)
-    .post('/', add, helper.optionsAdd())
     .get('/', getAll, helper.optionsGet())
     .get('/:id', getOne, helper.optionsGetById())
+    .post('/', add, helper.optionsAdd())
     .put('/:id', update, helper.optionsUpdate())
     .delete('/:id', remove, helper.optionsDelete());
 };
