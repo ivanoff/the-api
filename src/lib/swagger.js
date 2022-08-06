@@ -6,10 +6,12 @@ function updateType(type = '') {
 }
 
 module.exports = ({
-  flow, options, tablesInfo, basePath,
+  flow, options, tablesInfo,
 }) => {
   const tablesInfoAdditional = {};
-  const { version: v = '0.0.1', title = 'API', host = '127.0.0.1:7788' } = options;
+  const {
+    version: v = '0.0.1', title = 'API', host = '127.0.0.1:7788', basePath,
+  } = options;
 
   const routeErrors = flow.reduce((acc, item) => ({ ...acc, ...item.errors }), {});
 
@@ -33,12 +35,12 @@ module.exports = ({
 
     paths += `  ${p}:\n`;
     for (const [r1, r2 = {}] of Object.entries(r)) {
-      const hasFileType = Object.values(r2?.schema || {}).some(({ data_type }) => data_type === 'file');
+      const hasFileType = Object.values(r2?.schema || {}).some((type) => type === 'file' || type.data_type === 'file');
 
       paths += `    ${r1}:\n`;
       if (r2.tag) paths += `      tags:\n      - "${r2.tag}"\n`;
       paths += `      summary: "${r2.summary || ''}"\n      description: ""\n`;
-      if (r2.tokenRequired) paths += '      security:\n        - UserToken: []\n';
+      if (r2.tokenRequired || r2.ownerRequired) paths += '      security:\n        - UserToken: []\n';
       if (r2.rootRequired) paths += '      security:\n        - RootToken: []\n';
 
       const consumesType = hasFileType ? 'multipart/form-data' : r1.match(/get|delete/) && 'application/json';
@@ -52,9 +54,10 @@ module.exports = ({
           paths += `      - name: "${fieldName}"\n        in: "body"\n        type: "string"\n        required: true\n`;
         }
         for (const [fieldName, data] of (Object.entries(r2.queryParameters || {}))) {
-          const type = typeof data === 'string' ? data : data.type;
+          const type = updateType(typeof data === 'string' ? data : data.type);
+          if (type === 'object') continue;
           const example = data.example ? `        description: "Example: ${data.example}"\n` : '';
-          paths += `      - name: "${fieldName}"\n        in: "query"\n        type: "${updateType(type)}"\n${example}`;
+          paths += `      - name: "${fieldName}"\n        in: "query"\n        type: "${type}"\n${example}`;
         }
         for (const fieldName of pathParameters) {
           paths += `      - name: "${fieldName}"\n        in: "path"\n        type: "string"\n        required: true\n`;
@@ -62,14 +65,14 @@ module.exports = ({
         if (r2.schema) {
           if (hasFileType) {
             for (const [fieldName, data] of (Object.entries(r2.schema))) {
-              const type = typeof data === 'string' ? data : data.type;
-              const required = data.is_nullable === 'YES' ? 'false' : 'true';
+              const type = typeof data === 'string' ? data : data.data_type;
+              const required = data.is_nullable === 'NO' ? 'true' : 'false';
 
               paths += `      - in: formData\n        name: ${fieldName}\n        type: ${updateType(type)}\n        required: ${required}\n`;
             }
           } else {
             const nnn = typeof r2.schema === 'string' ? r2.schema : `${p}_${r1}`.replace(/[/{}]/g, '_');
-            paths += `      - in: "body"\n        name: "body"\n        required: true\n        schema:\n          $ref: "#/definitions/${nnn}"\n`;
+            paths += `      - in: "body"\n        name: "body"\n        required: false\n        schema:\n          $ref: "#/definitions/${nnn}"\n`;
             if (typeof r2.schema !== 'string') tablesInfoAdditional[`${nnn}`] = r2.schema;
           }
         }

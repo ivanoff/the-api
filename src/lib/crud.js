@@ -17,7 +17,7 @@ const KoaKnexHelper = require('./koa_knex_helper');
 
 module.exports = async (params) => {
   const {
-    table, endpoint, tag, responseSchema,
+    table, prefix, tag, responseSchema, forbiddenActions = [],
   } = params;
 
   const helper = new KoaKnexHelper(params);
@@ -45,12 +45,16 @@ module.exports = async (params) => {
 
   const router = new Router();
 
-  return router.prefix(`/${endpoint || table}`)
+  const p = `/${prefix || table}`.replace(/^\/+/, '/');
+
+  router.prefix(p)
     .tag(tag || table)
-    .responseSchema(responseSchema || table)
-    .get('/', getAll, helper.optionsGet())
-    .get('/:id', getOne, helper.optionsGetById())
-    .post('/', add, helper.optionsAdd())
-    .put('/:id', update, helper.optionsUpdate())
-    .delete('/:id', remove, helper.optionsDelete());
+    .responseSchema(responseSchema || table);
+
+  if (!forbiddenActions.includes('get')) router.get('/', getAll, helper.optionsGet()).get('/:id', getOne, helper.optionsGetById());
+  if (!forbiddenActions.includes('add')) router.post('/', add, helper.optionsAdd());
+  if (!forbiddenActions.includes('update')) router.put('/:id', update, helper.optionsUpdate());
+  if (!forbiddenActions.includes('remove')) router.delete('/:id', remove, helper.optionsDelete());
+
+  return router;
 };

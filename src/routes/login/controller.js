@@ -60,7 +60,7 @@ async function loginHandler(ctx) {
 
 async function register(ctx) {
   const {
-    login, password, email, firstName, secondName,
+    login, password, email, first_name, second_name,
   } = ctx.request.body;
 
   if (!login) return ctx.warning('LOGIN_REQUIRED');
@@ -80,7 +80,7 @@ async function register(ctx) {
   const status = email && checkEmail ? 'unconfirmed' : 'registered';
 
   const [{ id: user_id }] = await db('users').insert({
-    login, password: sha256(password + salt), salt, email, first_name: firstName, second_name: secondName, refresh: '', status, options,
+    login, password: sha256(password + salt), salt, email, first_name, second_name, refresh: '', status, options,
   }).returning('*');
 
   ctx.body = await loginTool({ ctx, login, password });
@@ -160,12 +160,12 @@ async function setPassword(ctx) {
 
 async function updateUser(ctx) {
   const { token, db } = ctx.state;
-  const { email, firstName } = ctx.request.body;
+  const { email, first_name } = ctx.request.body;
 
   if (!token) return ctx.warning('NO_TOKEN');
   if (!token.id) return ctx.warning('TOKEN_INVALID');
 
-  ctx.body = await db('users').update({ email, first_name: firstName }).where({ id: token.id });
+  ctx.body = await db('users').update({ email, first_name }).where({ id: token.id });
 }
 
 async function setEmailTemplates(templates = {}) {

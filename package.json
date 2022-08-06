@@ -1,6 +1,6 @@
 {
   "name": "the-api",
-  "version": "9.2.8",
+  "version": "9.3.5",
   "description": "The API - build your own API",
   "license": "MIT",
   "main": "src/index.js",

@@ -17,7 +17,7 @@ describe('CRUD', () => {
 
     const securedFlags = await api.crud({
       table: 'flags',
-      endpoint: 'secured_flags',
+      prefix: 'secured_flags',
       rootRequired: ['add', 'get', 'update', 'delete'],
     });
 

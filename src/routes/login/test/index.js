@@ -264,7 +264,7 @@ describe('Login', () => {
     });
 
     it('change first name', async () => {
-      res = await global.patch({ url: '/login', headers: { Authorization: `Bearer ${token}` }, data: { firstName: 'aaa' } });
+      res = await global.patch({ url: '/login', headers: { Authorization: `Bearer ${token}` }, data: { first_name: 'aaa' } });
       expect(res).to.have.property('ok');
     });
 

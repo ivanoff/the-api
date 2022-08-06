@@ -122,7 +122,8 @@ class TheAPI {
     const requests = { total: 0 };
 
     const flowSynced = await Promise.all(flowOrigin);
-    const flow = flowSynced.reduce((acc, cur) => (acc.concat(cur)), []).filter(Boolean);
+    const flowArray = flowSynced.reduce((acc, cur) => (acc.concat(cur)), []).filter(Boolean);
+    const flow = await Promise.all(flowArray);
 
     const routeErrors = flow.reduce((acc, item) => ({ ...acc, ...item.errors }), {});
 

@@ -1,4 +1,4 @@
-const { checkToken, checkRootToken } = require('./check_access');
+const { checkToken, checkOwnerToken, checkRootToken } = require('./check_access');
 
 class KoaKnexHelper {
   constructor({
@@ -9,6 +9,7 @@ class KoaKnexHelper {
     required,
     defaultWhere,
     tokenRequired,
+    ownerRequired,
     rootRequired,
     tableInfo,
   } = {}) {
@@ -16,12 +17,15 @@ class KoaKnexHelper {
     this.join = join || [];
     this.hiddenFieldsByType = hiddenFieldsByType || {};
     this.forbiddenFieldsToAdd = forbiddenFieldsToAdd || ['id', 'created_at', 'updated_at', 'deleted_at', 'deleted'];
-    this.hiddenColumns = [];
     this.required = required || {};
     this.defaultWhere = defaultWhere || {};
     this.tokenRequired = tokenRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
+    this.ownerRequired = ownerRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
     this.rootRequired = rootRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
+    this.hiddenColumns = [];
     this.tableInfo = tableInfo || {};
+    this.updateHiddenColumns();
+    this.hiddenColumns.map((item) => delete this.tableInfo[`${item}`]);
   }
 
   sort(_sort) {
@@ -76,19 +80,21 @@ class KoaKnexHelper {
 
     const join = f ? this.join.filter(({ table }) => f.includes(table)) : this.join;
     for (const {
-      table, as, where, alias, fields, limit, orderBy = 'id ASC',
+      table, as, where, alias, fields, field, limit, orderBy,
     } of join) {
+      const orderByStr = orderBy ? `ORDER BY ${orderBy}` : '';
       const limitStr = limit ? `LIMIT ${limit}` : '';
       const lang = table === 'lang' && this.lang && this.lang.match(/^\w{2}$/) ? `AND lang='${this.lang}'` : '';
       const ff = fields?.map((item) => (typeof item === 'string'
         ? `'${item}', "${as || table}".${item}`
         : `'${Object.keys(item)[0]}', ${Object.values(item)[0]}`));
       const f2 = ff ? `json_build_object(${ff.join(', ')})` : `"${as || table}".*`;
+      const f3 = field || `jsonb_agg(${f2})`;
       joinCoaleise.push(db.raw(`
-        COALESCE( ( SELECT jsonb_agg(${f2}) FROM (
+        COALESCE( ( SELECT ${f3} FROM (
           SELECT * FROM "${table}" AS "${as || table}"
           WHERE ${where} ${lang}
-          ORDER BY ${orderBy}
+          ${orderByStr}
           ${limitStr}
         ) ${as || table}), NULL) AS "${alias || table}"`));
     }
@@ -140,6 +146,7 @@ class KoaKnexHelper {
     };
     return {
       tokenRequired: this.tokenRequired.get,
+      ownerRequired: this.ownerRequired.get,
       rootRequired: this.rootRequired.get,
       queryParameters,
     };
@@ -147,13 +154,13 @@ class KoaKnexHelper {
 
   async get({ ctx }) {
     if (this.tokenRequired.get) checkToken(ctx);
+    if (this.ownerRequired.get) checkOwnerToken(ctx);
     if (this.rootRequired.get) checkRootToken(ctx);
 
     const {
-      db, tablesInfo, token, ownerMode,
+      db, tablesInfo, token,
     } = ctx.state;
     this.token = token;
-    this.isOwner = ownerMode;
 
     const {
       _fields, _sort, _page, _limit, _lang, _isNull, _or, ...where
@@ -163,16 +170,20 @@ class KoaKnexHelper {
     this.rows = tablesInfo[this.table] || {};
     this.res = db(this.table);
 
+    const { user_id } = await this.res.clone().first() || {};
+    this.isOwner = token?.id && token.id === user_id;
+
     if (_or) this.res.where(function () { [].concat(_or).map((key) => this.orWhere(key)); });
     if (_isNull) [].concat(_isNull).map((key) => this.res.andWhereNull(key));
 
     this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => ({ ...acc, [`${this.table}.${cur}`]: val }), {}));
     this.checkDeleted();
-    this.sort(_sort);
 
     const total = +(await db.from({ w: this.res }).count('*'))[0].count;
 
     this.fields(_fields, db);
+
+    this.sort(_sort);
     this.pagination(_page, _limit);
     // if (_or) console.log(this.res.toSQL())
     return { total, data: await this.res };
@@ -181,12 +192,14 @@ class KoaKnexHelper {
   optionsGetById() {
     return {
       tokenRequired: this.tokenRequired.get,
+      ownerRequired: this.ownerRequired.get,
       rootRequired: this.rootRequired.get,
     };
   }
 
   async getById({ ctx }) {
     if (this.tokenRequired.get) checkToken(ctx);
+    if (this.ownerRequired.get) checkOwnerToken(ctx);
     if (this.rootRequired.get) checkRootToken(ctx);
 
     const { db, tablesInfo, token } = ctx.state;
@@ -240,6 +253,7 @@ class KoaKnexHelper {
 
     return {
       tokenRequired: this.tokenRequired.add,
+      ownerRequired: this.ownerRequired.add,
       rootRequired: this.rootRequired.add,
       schema,
     };
@@ -247,6 +261,7 @@ class KoaKnexHelper {
 
   async add({ ctx }) {
     if (this.tokenRequired.add) checkToken(ctx);
+    if (this.ownerRequired.add) checkOwnerToken(ctx);
     if (this.rootRequired.add) checkRootToken(ctx);
 
     const { db } = ctx.state;
@@ -274,6 +289,7 @@ class KoaKnexHelper {
 
     return {
       tokenRequired: this.tokenRequired.update,
+      ownerRequired: this.ownerRequired.update,
       rootRequired: this.rootRequired.update,
       schema,
     };
@@ -281,6 +297,7 @@ class KoaKnexHelper {
 
   async update({ ctx }) {
     if (this.tokenRequired.update) checkToken(ctx);
+    if (this.ownerRequired.update) checkOwnerToken(ctx);
     if (this.rootRequired.update) checkRootToken(ctx);
 
     const { db, tablesInfo, token } = ctx.state;
@@ -305,12 +322,14 @@ class KoaKnexHelper {
   optionsDelete() {
     return {
       tokenRequired: this.tokenRequired.delete,
+      ownerRequired: this.ownerRequired.delete,
       rootRequired: this.rootRequired.delete,
     };
   }
 
   async delete({ ctx }) {
     if (this.tokenRequired.delete) checkToken(ctx);
+    if (this.ownerRequired.delete) checkOwnerToken(ctx);
     if (this.rootRequired.delete) checkRootToken(ctx);
 
     const { db, token } = ctx.state;

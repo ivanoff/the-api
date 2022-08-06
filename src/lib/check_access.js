@@ -7,9 +7,14 @@ async function tokenRequired(ctx, next) {
   await next();
 }
 
+async function checkOwnerToken(ctx) {
+  checkToken(ctx);
+  if (!ctx.params?.user_id) throw new Error('USER_NOT_FOUND');
+  if (ctx.state.token.id !== +ctx.params.user_id) throw new Error('OWNER_REQUIRED');
+}
+
 async function ownerRequired(ctx, next) {
-  if (!ctx.params?.userId || !ctx.state.token?.id) throw new Error('USER_NOT_FOUND');
-  if (ctx.state.token?.id !== +ctx.params.userId) throw new Error('OWNER_REQUIRED');
+  checkOwnerToken(ctx);
   await next();
 }
 
@@ -27,6 +32,7 @@ async function rootRequired(ctx, next) {
 module.exports = {
   checkToken,
   tokenRequired,
+  checkOwnerToken,
   ownerRequired,
   checkRootToken,
   rootRequired,
