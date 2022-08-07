@@ -152,6 +152,7 @@ describe('Notes', () => {
 
   describe('Get All Data', () => {
     let res;
+    let data;
 
     it('status 200', async () => {
       res = await global.get('/notes/1/data');
@@ -159,8 +160,12 @@ describe('Notes', () => {
     });
 
     it('status 200', async () => {
-      const data = await res.json();
-      expect(data).to.be.an('Array').lengthOf(3);
+      data = await res.json();
+      expect(data.data).to.be.an('Array').lengthOf(3);
+    });
+
+    it('has relations', async () => {
+      expect(data.relations.notes_categories['1'].title).to.eql('new');
     });
   });
 
@@ -251,7 +256,7 @@ describe('Notes', () => {
     it('status 200', async () => {
       res = await global.get('/swagger.yaml');
       expect(res.status).to.eql(200);
-      console.log(await res.text());
+      // console.log(await res.text());
     });
   });
 });

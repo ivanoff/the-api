@@ -1,3 +1,5 @@
+const buildRelations = require('../../lib/relations');
+
 async function getCategory(ctx) {
   const { db, token } = ctx.state;
   const { id: user_id = 0 } = token || {};
@@ -79,7 +81,11 @@ async function getAllData(ctx) {
   await getCategory(ctx);
 
   const { id } = ctx.params;
-  ctx.body = await ctx.state.db('notes_data').where({ notes_category_id: id, deleted: false });
+  ctx.body = { data: await ctx.state.db('notes_data').where({ notes_category_id: id, deleted: false }) };
+  const relations = {
+    notes_category_id: { table: 'notes_categories' },
+  };
+  await buildRelations({ ctx, relations });
 }
 
 async function getPublicData(ctx) {
