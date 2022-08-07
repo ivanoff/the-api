@@ -43,6 +43,48 @@ async function loginTool({
   };
 }
 
+async function externalLogin({
+  ctx, service, profile, external_id, first_name, second_name, email,
+}) {
+  if (!external_id) return ctx.warning('EXTERNAL_ID_REQUIRED');
+
+  const { db, jwtSecret } = ctx.state;
+  const { JWT_EXPIRES_IN: expiresIn } = process.env;
+
+  const user = await db('users').where({ external_service: service, external_id }).first();
+
+  const result = {
+    first_name, second_name, email, id: user?.id, status: user?.status, login: email,
+  };
+
+  const dataToSign = tokenFields.reduce((acc, key) => { acc[`${key}`] = user[`${key}`]; return acc; }, {});
+  result.token = jwt.sign(dataToSign, jwtSecret, { expiresIn: expiresIn || '1h' });
+  result.refresh = uuidv4();
+
+  if (!user) {
+    const salt = uuidv4();
+    result.status = 'registered';
+
+    const [{ id }] = await db('users').insert({
+      login: email,
+      password: sha256(uuidv4() + salt),
+      salt,
+      email,
+      first_name,
+      second_name,
+      refresh: result.refresh,
+      status: result.status,
+      external_service: service,
+      external_id,
+      external_profile: profile,
+    }).returning('*');
+
+    result.id = id;
+  }
+
+  ctx.body = result;
+}
+
 async function loginHandler(ctx) {
   const { login, password, refresh } = ctx.request.body;
 
@@ -180,6 +222,7 @@ async function addFieldsToToken(...fields) {
 
 module.exports = {
   loginHandler,
+  externalLogin,
   register,
   check,
   restore,

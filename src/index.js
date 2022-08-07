@@ -1,6 +1,7 @@
 const Koa = require('koa');
 const bodyParser = require('koa-bodyparser');
 const formidable = require('koa2-formidable');
+const passport = require('koa-passport');
 const knex = require('knex');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
@@ -29,10 +30,12 @@ class TheAPI {
   constructor({ port, migrationDirs = [] } = {}) {
     this.port = port || PORT || 8877;
     this.app = new Koa();
+    this.passport = passport;
     if (!UPLOAD_MULTIPLY_DISABLED) {
       this.app.use(formidable({ multiples: true }));
     }
     this.app.use(bodyParser());
+    this.app.use(this.passport.initialize());
     // eslint-disable-next-line no-console
     this.app.on('error', console.error);
     this.router = () => new Router();
