@@ -35,7 +35,9 @@ module.exports = async (api) => {
           email,
         } = profile._json;
 
-        await c.externalLogin(ctx, service, profile, external_id, first_name, second_name, email);
+        await c.externalLogin({
+          ctx, service, profile, external_id, first_name, second_name, email,
+        });
       },
     );
 };

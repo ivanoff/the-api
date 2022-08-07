@@ -1,6 +1,6 @@
 {
   "name": "the-api",
-  "version": "10.0.1",
+  "version": "10.0.6",
   "description": "The API - build your own API",
   "license": "MIT",
   "main": "src/index.js",
@@ -41,10 +41,10 @@
     "passport-microsoft": "^1.0.0",
     "passport-slack": "^0.0.7",
     "passport-steam": "^1.0.17",
-    "passport-twitter": "^1.0.4",
     "pg": "^8.7.3",
     "sqlite3": "^5.0.11",
     "the-log": "^3.0.1",
+    "twitter-api-v2": "^1.12.3",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

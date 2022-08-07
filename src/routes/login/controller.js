@@ -46,41 +46,57 @@ async function loginTool({
 async function externalLogin({
   ctx, service, profile, external_id, first_name, second_name, email,
 }) {
-  if (!external_id) return ctx.warning('EXTERNAL_ID_REQUIRED');
+  if (!service || !external_id) return ctx.warning('EXTERNALS_REQUIRED');
 
   const { db, jwtSecret } = ctx.state;
   const { JWT_EXPIRES_IN: expiresIn } = process.env;
 
-  const user = await db('users').where({ external_service: service, external_id }).first();
+  const refresh = uuidv4();
 
-  const result = {
-    first_name, second_name, email, id: user?.id, status: user?.status, login: email,
-  };
+  let user = await db('users').where({ email }).first();
 
-  const dataToSign = tokenFields.reduce((acc, key) => { acc[`${key}`] = user[`${key}`]; return acc; }, {});
-  result.token = jwt.sign(dataToSign, jwtSecret, { expiresIn: expiresIn || '1h' });
-  result.refresh = uuidv4();
+  const { rows: userByServiceArr } = await db.raw(`SELECT * FROM users WHERE (external_profiles->?)::jsonb->>'_id' = ?`, [service, external_id]);
+  const userByService = userByServiceArr[0];
+
+  if (!user && userByService) user = userByService;
 
   if (!user) {
     const salt = uuidv4();
-    result.status = 'registered';
 
-    const [{ id }] = await db('users').insert({
+    [user] = await db('users').insert({
       login: email,
       password: sha256(uuidv4() + salt),
       salt,
       email,
       first_name,
       second_name,
-      refresh: result.refresh,
-      status: result.status,
-      external_service: service,
-      external_id,
-      external_profile: profile,
+      refresh,
+      status: 'registered',
+      external_profiles: { [service]: { ...profile, _id: external_id } },
     }).returning('*');
-
-    result.id = id;
   }
+
+  if (!userByService) {
+    await db('users').where({ email }).update({
+      external_profiles: {
+        ...user.external_profiles,
+        [service]: { ...profile, _id: external_id },
+      },
+    });
+  }
+
+  const result = {
+    id: user.id,
+    status: user.status,
+    refresh: user.refresh,
+    login: user.login,
+    email: user.email,
+    first_name,
+    second_name,
+  };
+
+  const dataToSign = tokenFields.reduce((acc, key) => { acc[`${key}`] = user[`${key}`]; return acc; }, {});
+  result.token = jwt.sign(dataToSign, jwtSecret, { expiresIn: expiresIn || '1h' });
 
   ctx.body = result;
 }
