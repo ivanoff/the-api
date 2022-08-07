@@ -12,12 +12,35 @@
  *  PATCH /colors
  *  DELETE /colors
  */
+const flattening = require('flattening');
 const Router = require('./router');
 const KoaKnexHelper = require('./koa_knex_helper');
 
+const buildRelations = async ({ ctx, relations }) => {
+  const { body } = ctx;
+  const result = {};
+  const findRelations = async ([key, definition]) => {
+    const helper = new KoaKnexHelper(definition);
+    const flatData = flattening({ body, result });
+    const searchKey = new RegExp(`\\b${key}$`);
+    const matchPath = ([path, val]) => (path.match(searchKey) && val);
+
+    ctx.request.query.id = Object.entries(flatData).map(matchPath).filter(Boolean);
+    const { data } = await helper.get({ ctx });
+
+    const t = definition.table;
+    if (!result[`${t}`]) result[`${t}`] = {};
+    for (const d of data) {
+      result[`${t}`][d.id] = d;
+    }
+  };
+  await Promise.all(Object.entries(relations).map(findRelations));
+  return result;
+};
+
 module.exports = async (params) => {
   const {
-    table, prefix, tag, responseSchema, forbiddenActions = [],
+    table, prefix, tag, relations, responseSchema, forbiddenActions = [],
   } = params;
 
   const helper = new KoaKnexHelper(params);
@@ -28,6 +51,9 @@ module.exports = async (params) => {
 
   const getAll = async (ctx) => {
     ctx.body = await helper.get({ ctx });
+    if (relations) {
+      ctx.body.relations = await buildRelations({ ctx, relations });
+    }
   };
 
   const getOne = async (ctx) => {
