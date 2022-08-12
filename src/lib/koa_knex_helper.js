@@ -224,7 +224,7 @@ class KoaKnexHelper {
 
   updateIncomingData(ctx, data) {
     const { tablesInfo, token } = ctx.state;
-    const result = { ...data };
+    let result = { ...data };
     const rows = tablesInfo[this.table] || {};
 
     for (const [key, error_code] of Object.entries(this.required)) {
@@ -234,6 +234,8 @@ class KoaKnexHelper {
     for (const key of this.forbiddenFieldsToAdd) {
       delete result[`${key}`];
     }
+
+    result = { ...result, ...ctx.params };
 
     for (const r of Object.keys(result)) {
       if (rows[`${r}`] && result[`${r}`]) continue;
