@@ -10,8 +10,10 @@ module.exports = async ({ ctx, relations }) => {
     const searchKey = new RegExp(`\\b${key}$`);
     const matchPath = ([path, val]) => (path.match(searchKey) && val);
 
-    ctx.request.query.id = Object.entries(flatData).map(matchPath).filter(Boolean);
+    const { query } = ctx.request;
+    ctx.request.query = { id: Object.entries(flatData).map(matchPath).filter(Boolean) };
     const { data } = await helper.get({ ctx });
+    ctx.request.query = query;
 
     const t = definition.table;
     if (!result[`${t}`]) result[`${t}`] = {};

@@ -163,8 +163,19 @@ describe('Notes', () => {
       data = await res.json();
       expect(data.data).to.be.an('Array').lengthOf(3);
     });
+  });
+
+  describe('Search by body', () => {
+    let res;
+    let data;
+
+    it('status 200', async () => {
+      res = await global.get('/notes/1/data?body=Hi2');
+      expect(res.status).to.eql(200);
+    });
 
     it('has relations', async () => {
+      data = await res.json();
       expect(data.relations.notes_categories['1'].title).to.eql('new');
     });
   });
