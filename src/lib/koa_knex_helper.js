@@ -235,7 +235,7 @@ class KoaKnexHelper {
       delete result[`${key}`];
     }
 
-    result = { ...result, ...ctx.params };
+    result = { ...ctx.params, ...result };
 
     for (const r of Object.keys(result)) {
       if (rows[`${r}`] && result[`${r}`]) continue;
