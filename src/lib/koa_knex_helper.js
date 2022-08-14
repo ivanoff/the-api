@@ -153,9 +153,9 @@ class KoaKnexHelper {
   }
 
   async get({ ctx }) {
-    if (this.tokenRequired.get) checkToken(ctx);
-    if (this.ownerRequired.get) checkOwnerToken(ctx);
-    if (this.rootRequired.get) checkRootToken(ctx);
+    if (this.tokenRequired.get) await checkToken(ctx);
+    if (this.ownerRequired.get) await checkOwnerToken(ctx);
+    if (this.rootRequired.get) await checkRootToken(ctx);
 
     const {
       db, tablesInfo, token,
@@ -198,9 +198,9 @@ class KoaKnexHelper {
   }
 
   async getById({ ctx }) {
-    if (this.tokenRequired.get) checkToken(ctx);
-    if (this.ownerRequired.get) checkOwnerToken(ctx);
-    if (this.rootRequired.get) checkRootToken(ctx);
+    if (this.tokenRequired.get) await checkToken(ctx);
+    if (this.ownerRequired.get) await checkOwnerToken(ctx);
+    if (this.rootRequired.get) await checkRootToken(ctx);
 
     const { db, tablesInfo, token } = ctx.state;
     const { id } = ctx.params;
@@ -262,9 +262,9 @@ class KoaKnexHelper {
   }
 
   async add({ ctx }) {
-    if (this.tokenRequired.add) checkToken(ctx);
-    if (this.ownerRequired.add) checkOwnerToken(ctx);
-    if (this.rootRequired.add) checkRootToken(ctx);
+    if (this.tokenRequired.add) await checkToken(ctx);
+    if (this.ownerRequired.add) await checkOwnerToken(ctx);
+    if (this.rootRequired.add) await checkRootToken(ctx);
 
     const { db } = ctx.state;
 
@@ -298,9 +298,9 @@ class KoaKnexHelper {
   }
 
   async update({ ctx }) {
-    if (this.tokenRequired.update) checkToken(ctx);
-    if (this.ownerRequired.update) checkOwnerToken(ctx);
-    if (this.rootRequired.update) checkRootToken(ctx);
+    if (this.tokenRequired.update) await checkToken(ctx);
+    if (this.ownerRequired.update) await checkOwnerToken(ctx);
+    if (this.rootRequired.update) await checkRootToken(ctx);
 
     const { db, tablesInfo, token } = ctx.state;
     const { id } = ctx.params;
@@ -330,9 +330,9 @@ class KoaKnexHelper {
   }
 
   async delete({ ctx }) {
-    if (this.tokenRequired.delete) checkToken(ctx);
-    if (this.ownerRequired.delete) checkOwnerToken(ctx);
-    if (this.rootRequired.delete) checkRootToken(ctx);
+    if (this.tokenRequired.delete) await checkToken(ctx);
+    if (this.ownerRequired.delete) await checkOwnerToken(ctx);
+    if (this.rootRequired.delete) await checkRootToken(ctx);
 
     const { db, token } = ctx.state;
     const { id } = ctx.params;
