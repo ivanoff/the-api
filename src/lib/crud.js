@@ -25,6 +25,7 @@ module.exports = async (params) => {
 
   const add = async (ctx) => {
     ctx.body = await helper.add({ ctx });
+    if (relations) await buildRelations({ ctx, relations });
   };
 
   const getAll = async (ctx) => {
@@ -34,11 +35,13 @@ module.exports = async (params) => {
 
   const getOne = async (ctx) => {
     ctx.body = await helper.getById({ ctx });
-    return ctx.body || ctx.warning('NOT_FOUND');
+    if (relations) await buildRelations({ ctx, relations });
+    return ctx.body || ctx.throw('NOT_FOUND');
   };
 
   const update = async (ctx) => {
     ctx.body = await helper.update({ ctx });
+    if (relations) await buildRelations({ ctx, relations });
   };
 
   const remove = async (ctx) => {

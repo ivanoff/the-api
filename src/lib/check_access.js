@@ -1,5 +1,5 @@
 async function checkToken(ctx) {
-  if (!ctx.state.token) throw new Error('NO_TOKEN');
+  if (!ctx.state.token) ctx.throw('NO_TOKEN');
 }
 
 async function tokenRequired(ctx, next) {
@@ -9,8 +9,8 @@ async function tokenRequired(ctx, next) {
 
 async function checkOwnerToken(ctx) {
   checkToken(ctx);
-  if (!ctx.params?.user_id) throw new Error('USER_NOT_FOUND');
-  if (ctx.state.token.id !== +ctx.params.user_id) throw new Error('OWNER_REQUIRED');
+  if (!ctx.params?.user_id) ctx.throw('USER_NOT_FOUND');
+  if (ctx.state.token.id !== +ctx.params.user_id) ctx.throw('OWNER_REQUIRED');
 }
 
 async function ownerRequired(ctx, next) {
@@ -21,7 +21,7 @@ async function ownerRequired(ctx, next) {
 function checkRootToken(ctx) {
   const { login, status } = ctx.state.token || {};
   const rootMode = login === 'root' && status === 'root';
-  if (!rootMode) throw new Error('TOKEN_INVALID');
+  if (!rootMode) ctx.throw('TOKEN_INVALID');
 }
 
 async function rootRequired(ctx, next) {

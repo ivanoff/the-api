@@ -11,16 +11,20 @@ module.exports = async ({ ctx, relations }) => {
     const matchPath = ([path, val]) => (path.match(searchKey) && val);
 
     const { query } = ctx.request;
-    ctx.request.query = { id: Object.entries(flatData).map(matchPath).filter(Boolean) };
+    const id = [...new Set(Object.entries(flatData).map(matchPath).filter(Boolean))];
+    if (!id.length) return;
+
+    ctx.request.query = { id };
     const { data } = await helper.get({ ctx });
     ctx.request.query = query;
 
     const t = definition.table;
     if (!result[`${t}`]) result[`${t}`] = {};
     for (const d of data) {
-      result[`${t}`][d.id] = d;
+      result[`${t}`][`${d.id}`] = d;
     }
   };
   await Promise.all(Object.entries(relations).map(findRelations));
-  return ctx.body.relations = result;
+  if (ctx.body) ctx.body.relations = result;
+  return result;
 };

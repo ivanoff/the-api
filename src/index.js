@@ -49,8 +49,9 @@ class TheAPI {
     };
     this.log = (...toLog) => {
       for (const line of toLog) {
+        const l = typeof line === 'object' ? JSON.stringify(line) : line;
         // eslint-disable-next-line no-console
-        console.log(`[${(new Date()).toISOString()}] ${line}`);
+        console.log(`[${(new Date()).toISOString()}] ${l}`);
       }
     };
     this.log(`${name} v${version}`);
@@ -177,7 +178,7 @@ class TheAPI {
         jwtSecret,
         tablesInfo: this.tablesInfo,
       };
-      ctx.warning = this.log;
+      ctx.throw = this.log;
       await next();
     });
 

@@ -46,7 +46,7 @@ async function loginTool({
 async function externalLogin({
   ctx, service, profile, external_id, first_name, second_name, email,
 }) {
-  if (!service || !external_id) return ctx.warning('EXTERNALS_REQUIRED');
+  if (!service || !external_id) return ctx.throw('EXTERNALS_REQUIRED');
 
   const { db, jwtSecret } = ctx.state;
   const { JWT_EXPIRES_IN: expiresIn } = process.env;
@@ -55,7 +55,9 @@ async function externalLogin({
 
   let user = await db('users').where({ email }).first();
 
-  const { rows: userByServiceArr } = await db.raw(`SELECT * FROM users WHERE (external_profiles->?)::jsonb->>'_id' = ?`, [service, external_id]);
+  const _id = `${external_id}`;
+  const { rows: userByServiceArr } = await db.raw(`SELECT * FROM users WHERE external_profiles @> '[{"provider":??,"_id":??}]'`, [service, _id]);
+
   const userByService = userByServiceArr[0];
 
   if (!user && userByService) user = userByService;
@@ -72,16 +74,13 @@ async function externalLogin({
       second_name,
       refresh,
       status: 'registered',
-      external_profiles: { [service]: { ...profile, _id: external_id } },
+      external_profiles: JSON.stringify([{ ...profile, _id }]),
     }).returning('*');
-  }
-
-  if (!userByService) {
+  } else if (!userByService) {
     await db('users').where({ email }).update({
-      external_profiles: {
-        ...user.external_profiles,
-        [service]: { ...profile, _id: external_id },
-      },
+      external_profiles: JSON.stringify(
+        [].concat(user.external_profiles, { ...profile, _id }).filter(Boolean),
+      ),
     });
   }
 
@@ -109,9 +108,9 @@ async function loginHandler(ctx) {
   });
 
   const { status } = loginResult;
-  if (!status) return ctx.warning('USER_NOT_FOUND');
+  if (!status) return ctx.throw('USER_NOT_FOUND');
   const forbidUnconfirmed = process.env.LOGIN_UNCONFIRMED_FORBID === 'true';
-  if (status === 'unconfirmed' && forbidUnconfirmed) return ctx.warning('EMAIL_NOT_CONFIRMED');
+  if (status === 'unconfirmed' && forbidUnconfirmed) return ctx.throw('EMAIL_NOT_CONFIRMED');
 
   ctx.body = loginResult;
 }
@@ -121,16 +120,16 @@ async function register(ctx) {
     login, password, email, first_name, second_name,
   } = ctx.request.body;
 
-  if (!login) return ctx.warning('LOGIN_REQUIRED');
+  if (!login) return ctx.throw('LOGIN_REQUIRED');
 
   const { db } = ctx.state;
   const salt = uuidv4();
 
   const userLogin = (await db('users').where({ login }).first());
-  if (userLogin) return ctx.warning('LOGIN_EXISTS');
+  if (userLogin) return ctx.throw('LOGIN_EXISTS');
 
   const userEmail = email && (await db('users').where({ email }).first());
-  if (userEmail) return ctx.warning('EMAIL_EXISTS');
+  if (userEmail) return ctx.throw('EMAIL_EXISTS');
 
   const code = uuidv4();
   const options = JSON.stringify({ email: { on: true } });
@@ -158,7 +157,7 @@ async function check(ctx) {
   const { login, code } = ctx.request.body;
   const { db } = ctx.state;
 
-  if (!code || !login) return ctx.warning('WRONG_CODE');
+  if (!code || !login) return ctx.throw('WRONG_CODE');
 
   const expireIn = +process.env.LOGIN_CHECK_EMAIL_DELAY || 60;
   await db('code').del().where('time', '>', new Date((new Date()).getTime() + 1000 * 60 * expireIn));
@@ -167,7 +166,7 @@ async function check(ctx) {
 
   const data = await db('code').where({ login, code }).where('attempts', '<', 3).first();
 
-  if (!data) return ctx.warning('WRONG_CODE');
+  if (!data) return ctx.throw('WRONG_CODE');
 
   const { user_id: id } = data;
   await db('users').update({ status: 'registered' }).where({ id });
@@ -205,7 +204,7 @@ async function setPassword(ctx) {
   const expireTime = new Date((new Date()).getTime() - 1000 * 60 * expireIn);
   const { login } = await db('code').where({ recover: code }).where('time', '>', expireTime).first() || {};
 
-  if (!login) return ctx.warning('WRONG_CODE');
+  if (!login) return ctx.throw('WRONG_CODE');
 
   await db('code').del().where({ recover: code });
 
@@ -220,8 +219,8 @@ async function updateUser(ctx) {
   const { token, db } = ctx.state;
   const { email, first_name } = ctx.request.body;
 
-  if (!token) return ctx.warning('NO_TOKEN');
-  if (!token.id) return ctx.warning('TOKEN_INVALID');
+  if (!token) return ctx.throw('NO_TOKEN');
+  if (!token.id) return ctx.throw('TOKEN_INVALID');
 
   ctx.body = await db('users').update({ email, first_name }).where({ id: token.id });
 }

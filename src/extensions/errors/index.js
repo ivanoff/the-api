@@ -3,15 +3,13 @@ const errors = require('./list');
 const url = 'https://server/api/errors';
 
 module.exports = async (ctx, next) => {
-  let isWarning;
   try {
-    ctx.warning = (wrn) => {
-      isWarning = wrn;
+    ctx.throw = (err) => {
+      throw new Error(err);
     };
 
     await next();
 
-    if (isWarning) throw new Error(isWarning);
     if (ctx.status === 404 && !ctx.body) throw new Error('API_METHOD_NOT_FOUND');
   } catch (errorObj) {
     const { message: codeName, stack } = errorObj;
@@ -29,7 +27,6 @@ module.exports = async (ctx, next) => {
     ctx.status = error.status || 500;
     ctx.body = { code, name: errorName, description };
 
-    if (process.env.NODE_ENV === 'test') return;
-    if (!isWarning) ctx.state.log(error);
+    ctx.state.log(error);
   }
 };

@@ -119,7 +119,7 @@ async function getSingleData(ctx) {
 
   const { id: notes_category_id, dataId: id } = ctx.params;
   ctx.body = await ctx.state.db('notes_data').where({ id, notes_category_id, deleted: false }).first();
-  if (!ctx.body) ctx.warning('NOTE_RECORD_NOT_FOUND');
+  if (!ctx.body) ctx.throw('NOTE_RECORD_NOT_FOUND');
 }
 
 async function deleteAllData(ctx) {

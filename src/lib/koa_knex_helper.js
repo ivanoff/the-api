@@ -1,7 +1,9 @@
+const flattening = require('flattening');
 const { checkToken, checkOwnerToken, checkRootToken } = require('./check_access');
 
 class KoaKnexHelper {
   constructor({
+    ctx,
     table,
     join,
     hiddenFieldsByType,
@@ -13,6 +15,7 @@ class KoaKnexHelper {
     rootRequired,
     tableInfo,
   } = {}) {
+    this.ctx = ctx;
     this.table = table;
     this.join = join || [];
     this.hiddenFieldsByType = hiddenFieldsByType || {};
@@ -80,7 +83,7 @@ class KoaKnexHelper {
 
     const join = f ? this.join.filter(({ table }) => f.includes(table)) : this.join;
     for (const {
-      table, as, where, alias, fields, field, limit, orderBy,
+      table, as, where, whereBindings, alias, fields, field, limit, orderBy,
     } of join) {
       const orderByStr = orderBy ? `ORDER BY ${orderBy}` : '';
       const limitStr = limit ? `LIMIT ${limit}` : '';
@@ -90,13 +93,21 @@ class KoaKnexHelper {
         : `'${Object.keys(item)[0]}', ${Object.values(item)[0]}`));
       const f2 = ff ? `json_build_object(${ff.join(', ')})` : `"${as || table}".*`;
       const f3 = field || `jsonb_agg(${f2})`;
+      const wb = {};
+      if (whereBindings) {
+        if (!this.ctx) continue;
+        const { params, query, state } = this.ctx;
+        const dd = flattening({ params, query, token: state.token });
+        if (Object.values(whereBindings).filter((item) => !dd[`${item}`]).length) continue;
+        for (const [k, v] of Object.entries(whereBindings)) wb[`${k}`] = dd[`${v}`];
+      }
       joinCoaleise.push(db.raw(`
         COALESCE( ( SELECT ${f3} FROM (
           SELECT * FROM "${table}" AS "${as || table}"
           WHERE ${where} ${lang}
           ${orderByStr}
           ${limitStr}
-        ) ${as || table}), NULL) AS "${alias || table}"`));
+        ) ${as || table}), NULL) AS "${alias || table}"`, wb));
     }
 
     this.res.column(joinCoaleise);
@@ -204,14 +215,18 @@ class KoaKnexHelper {
 
     const { db, tablesInfo, token } = ctx.state;
     const { id } = ctx.params;
-    const { _fields, _lang } = ctx.request.query;
+    const {
+      _fields, _lang, _or, ...where
+    } = ctx.request.query;
     this.token = token;
     this.lang = _lang;
 
     this.rows = tablesInfo[this.table] || {};
     this.res = db(this.table);
 
-    this.where({ [`${this.table}.id`]: id });
+    if (_or) this.res.where(function () { [].concat(_or).map((key) => this.orWhere(key)); });
+    this.where({ ...where, [`${this.table}.id`]: id });
+
     this.checkDeleted();
 
     const { id: tokenId } = token || {};
