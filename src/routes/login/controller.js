@@ -2,10 +2,11 @@ const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const Mail = require('./mail');
+const { checkAccess } = require('../../lib');
 
 const mail = new Mail();
 
-const tokenFields = ['id', 'login', 'status', 'first_name'];
+const tokenFields = ['id', 'login', 'statuses', 'first_name'];
 
 const sha256 = (data) => crypto.createHash('sha256').update(data, 'utf8').digest('hex');
 
@@ -23,12 +24,12 @@ async function loginTool({
   if (!user) return {};
 
   const {
-    id, login, password: passDb, salt, status, first_name, second_name, email, options,
+    id, login, password: passDb, salt, statuses, first_name, second_name, email, options,
   } = user;
   if (loginOrigin && passDb !== sha256(password + salt)) return {};
 
   const forbidUnconfirmed = process.env.LOGIN_UNCONFIRMED_FORBID === 'true';
-  if (status === 'unconfirmed' && forbidUnconfirmed) return { id, status };
+  if (statuses.includes('unconfirmed') && forbidUnconfirmed) return { id, statuses };
 
   const { JWT_EXPIRES_IN: expiresIn } = process.env;
 
@@ -39,7 +40,7 @@ async function loginTool({
   await db('users').update({ refresh: refreshNew }).where({ id });
 
   return {
-    id, login, status, token, first_name, second_name, email, options, refresh: refreshNew,
+    id, login, statuses, token, first_name, second_name, email, options, refresh: refreshNew,
   };
 }
 
@@ -73,7 +74,7 @@ async function externalLogin({
       first_name,
       second_name,
       refresh,
-      status: 'registered',
+      statuses: ['registered'],
       external_profiles: JSON.stringify([{ ...profile, _id }]),
     }).returning('*');
   } else if (!userByService) {
@@ -86,7 +87,7 @@ async function externalLogin({
 
   const result = {
     id: user.id,
-    status: user.status,
+    statuses: user.statuses,
     refresh: user.refresh,
     login: user.login,
     email: user.email,
@@ -107,10 +108,10 @@ async function loginHandler(ctx) {
     ctx, login, password, refresh,
   });
 
-  const { status } = loginResult;
-  if (!status) return ctx.throw('USER_NOT_FOUND');
+  const { statuses } = loginResult;
+  if (!statuses) return ctx.throw('USER_NOT_FOUND');
   const forbidUnconfirmed = process.env.LOGIN_UNCONFIRMED_FORBID === 'true';
-  if (status === 'unconfirmed' && forbidUnconfirmed) return ctx.throw('EMAIL_NOT_CONFIRMED');
+  if (statuses.includes('unconfirmed') && forbidUnconfirmed) return ctx.throw('EMAIL_NOT_CONFIRMED');
 
   ctx.body = loginResult;
 }
@@ -134,10 +135,10 @@ async function register(ctx) {
   const code = uuidv4();
   const options = JSON.stringify({ email: { on: true } });
   const checkEmail = process.env.LOGIN_CHECK_EMAIL === 'true';
-  const status = email && checkEmail ? 'unconfirmed' : 'registered';
+  const statuses = email && checkEmail ? ['unconfirmed'] : ['registered'];
 
   const [{ id: user_id }] = await db('users').insert({
-    login, password: sha256(password + salt), salt, email, first_name, second_name, refresh: '', status, options,
+    login, password: sha256(password + salt), salt, email, first_name, second_name, refresh: '', statuses, options,
   }).returning('*');
 
   ctx.body = await loginTool({ ctx, login, password });
@@ -169,7 +170,7 @@ async function check(ctx) {
   if (!data) return ctx.throw('WRONG_CODE');
 
   const { user_id: id } = data;
-  await db('users').update({ status: 'registered' }).where({ id });
+  await db('users').update({ statuses: ['registered'] }).where({ id });
   await db('code').del().where({ login, code });
 
   ctx.body = await loginTool({ ctx, id });
@@ -225,6 +226,42 @@ async function updateUser(ctx) {
   ctx.body = await db('users').update({ email, first_name }).where({ id: token.id });
 }
 
+async function addStatus(ctx) {
+  await checkAccess.userAccess(ctx, 'create status');
+
+  const { db } = ctx.state;
+  const { user_id, status_name } = ctx.params;
+
+  if (['default', 'owner'].includes(status_name)) return ctx.throw('FORBIDDEN_STATUS_NAME');
+
+  const user = await db('users').where({ id: user_id }).first();
+  if (!user) return ctx.throw('USER_NOT_FOUND');
+
+  const { statuses = [] } = user;
+  if (!statuses.includes(status_name)) {
+    statuses.push(status_name);
+    ctx.body = await db('users').update({ statuses }).where({ id: user_id });
+  }
+  ctx.body = statuses;
+}
+
+async function deleteStatus(ctx) {
+  await checkAccess.userAccess(ctx, 'delete status');
+
+  const { db } = ctx.state;
+  const { user_id, status_name } = ctx.params;
+
+  const user = await db('users').where({ id: user_id }).first();
+  if (!user) return ctx.throw('USER_NOT_FOUND');
+
+  let { statuses = [] } = user;
+  if (statuses.includes(status_name)) {
+    statuses = statuses.filter((item) => item !== status_name);
+    ctx.body = await db('users').update({ statuses }).where({ id: user_id });
+  }
+  ctx.body = statuses;
+}
+
 async function setEmailTemplates(templates = {}) {
   for (const [key, value] of Object.entries(templates)) {
     mail.templates[`${key}`] = value;
@@ -243,6 +280,8 @@ module.exports = {
   restore,
   setPassword,
   updateUser,
+  addStatus,
+  deleteStatus,
   setEmailTemplates,
   addFieldsToToken,
 };

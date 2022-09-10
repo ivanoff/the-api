@@ -264,12 +264,12 @@ describe('Login', () => {
     });
 
     it('change first name', async () => {
-      res = await global.patch({ url: '/login', headers: { Authorization: `Bearer ${token}` }, data: { first_name: 'aaa' } });
+      res = await global.patch('/login', { first_name: 'aaa' }, { Authorization: `Bearer ${token}` });
       expect(res).to.have.property('ok');
     });
 
     it('change email', async () => {
-      res = await global.patch({ url: '/login', headers: { Authorization: `Bearer ${token}` }, data: { email: 'bbb' } });
+      res = await global.patch('/login', { email: 'bbb' }, { Authorization: `Bearer ${token}` });
       expect(res).to.have.property('ok');
     });
 

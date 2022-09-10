@@ -125,6 +125,9 @@ class TheAPI {
     const startTime = new Date();
     const requests = { total: 0 };
 
+    const jwtSecret = JWT_SECRET || this.generateJwtSecret();
+    this.checkToken(jwtSecret);
+
     const flowSynced = await Promise.all(flowOrigin);
     const flowArray = flowSynced.reduce((acc, cur) => (acc.concat(cur)), []).filter(Boolean);
     const flow = await Promise.all(flowArray);
@@ -139,9 +142,6 @@ class TheAPI {
     const stack = flow.filter((item) => typeof item.routes === 'function')
       .map((item) => item.routes().router.stack).reduce((acc, val) => acc.concat(val), [])
       .map(({ methods, path, regexp }) => ({ methods, path, regexp }));
-
-    const jwtSecret = JWT_SECRET || this.generateJwtSecret();
-    this.checkToken(jwtSecret);
 
     await this.migrations(flow);
     this.tablesInfo = { ...await getTablesInfo(this.db) };
@@ -160,6 +160,9 @@ class TheAPI {
       this.app.use(swaggerRoute);
     }
 
+    const accessRaw = await this.db('user_access').select();
+    const userAccess = accessRaw.reduce((cur, acc) => ({ ...cur, [acc.name]: acc.statuses }), {});
+
     this.app.use(async (ctx, next) => {
       const { db } = this;
       const { log } = this;
@@ -177,6 +180,7 @@ class TheAPI {
         stack,
         jwtSecret,
         tablesInfo: this.tablesInfo,
+        userAccess,
       };
       ctx.throw = this.log;
       await next();

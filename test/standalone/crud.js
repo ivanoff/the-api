@@ -61,7 +61,7 @@ describe('CRUD', () => {
       token = jwt.sign({
         id: -1,
         login: 'root',
-        status: 'root',
+        statuses: ['root'],
       }, process.env.JWT_SECRET, { expiresIn: '1h' });
     });
 

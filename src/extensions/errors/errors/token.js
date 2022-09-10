@@ -21,4 +21,24 @@ module.exports = {
     description: 'User token is invalid. Please get valid token from /login',
   },
 
+  STATUS_INVALID: {
+    code: 104,
+    status: 403,
+    name: 'Status is invalid',
+    description: 'User status is invalid',
+  },
+
+  USER_ACCESS_DENIED: {
+    code: 105,
+    status: 403,
+    name: 'User access denied',
+    description: 'User status was not found in user access table',
+  },
+
+  FORBIDDEN_STATUS_NAME: {
+    code: 106,
+    status: 403,
+    name: 'Status name is forbidden',
+    description: 'Status name is forbidden. Please use another status name',
+  },
 };

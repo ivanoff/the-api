@@ -38,7 +38,7 @@ describe('Notes', () => {
     let res;
 
     it('status 200', async () => {
-      res = await global.patch({ url: '/notes/2', data: { title: 'new2', public: true, lang: 'zz' } });
+      res = await global.patch('/notes/2', { title: 'new2', public: true, lang: 'zz' });
       expect(res.status).to.eql(200);
     });
   });

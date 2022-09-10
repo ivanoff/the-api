@@ -7,7 +7,7 @@ module.exports = async ({ ctx, relations }) => {
   const findRelations = async ([key, definition]) => {
     const helper = new KoaKnexHelper(definition);
     const flatData = flattening({ body, result });
-    const searchKey = new RegExp(`\\b${key}$`);
+    const searchKey = new RegExp(`\\b${key}(\\.\\d+)?$`);
     const matchPath = ([path, val]) => (path.match(searchKey) && val);
 
     const { query } = ctx.request;

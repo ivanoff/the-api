@@ -57,6 +57,14 @@ module.exports = router
       code: 'string',
       password: 'string',
     },
+  })
+  .post('/users/:user_id/statuses/:status_name', c.addStatus, {
+    tokenRequired: true,
+    summary: `Create status`,
+  })
+  .delete('/users/:user_id/statuses/:status_name', c.deleteStatus, {
+    tokenRequired: true,
+    summary: 'Delete status',
   });
 
 module.exports.setEmailTemplates = c.setEmailTemplates;

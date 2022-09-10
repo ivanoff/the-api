@@ -31,7 +31,6 @@ process.env = {
 const TheAPI = require('../../src');
 
 const site = 'http://localhost:8877';
-const defaultHeaders = { 'Content-Type': 'application/json' };
 
 const dropDb = async () => {
   const {
@@ -64,12 +63,14 @@ describe('Init', async () => {
 
     global.dropDb = dropDb;
 
+    const defaultHeaders = { 'Content-Type': 'application/json' };
+
     global.get = (url, headers) => fetch(site + url, { headers });
 
-    global.post = async (url, data) => fetch(site + url, { method: 'POST', headers: defaultHeaders, body: data && JSON.stringify(data) });
+    global.post = async (url, data, headers = {}) => fetch(site + url, { method: 'POST', headers: { ...defaultHeaders, ...headers }, body: data && JSON.stringify(data) });
 
-    global.patch = async ({ url, headers, data }) => fetch(site + url, { method: 'PATCH', headers: { ...defaultHeaders, ...headers }, body: data && JSON.stringify(data) });
+    global.patch = async (url, data, headers = {}) => fetch(site + url, { method: 'PATCH', headers: { ...defaultHeaders, ...headers }, body: data && JSON.stringify(data) });
 
-    global.delete = async (url) => fetch(site + url, { method: 'DELETE' });
+    global.delete = async (url, headers = {}) => fetch(site + url, { method: 'DELETE', headers });
   });
 });

@@ -56,10 +56,10 @@ module.exports = async (params) => {
     .tag(tag || table)
     .responseSchema(responseSchema || table);
 
-  if (!forbiddenActions.includes('get')) router.get('/', getAll, helper.optionsGet()).get('/:id', getOne, helper.optionsGetById());
-  if (!forbiddenActions.includes('add')) router.post('/', add, helper.optionsAdd());
+  if (!forbiddenActions.includes('create')) router.post('/', add, helper.optionsAdd());
+  if (!forbiddenActions.includes('read')) router.get('/', getAll, helper.optionsGet()).get('/:id', getOne, helper.optionsGetById());
   if (!forbiddenActions.includes('update')) router.put('/:id', update, helper.optionsUpdate());
-  if (!forbiddenActions.includes('remove')) router.delete('/:id', remove, helper.optionsDelete());
+  if (!forbiddenActions.includes('delete')) router.delete('/:id', remove, helper.optionsDelete());
 
   return router;
 };

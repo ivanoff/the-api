@@ -7,7 +7,7 @@ describe('Token', () => {
 
   before(async () => {
     api = new global.TheAPI();
-    process.env = { ...process.env, NODE_ENV: 'test_log', JWT_EXPIRES_IN: '1300ms' };
+    process.env = { ...process.env, JWT_EXPIRES_IN: '1300ms' };
     const { logs, errors, access } = api.extensions;
     const { login, check } = api.routes;
 

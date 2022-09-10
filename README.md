@@ -212,7 +212,7 @@ const apiHelper = new koaKnexHelper({
     { table: 'lang', where: 'lang.key = ships.name', alias: 'name_lang' },
     { table: 'users', where: 'users.id = ships.user_id', fields: ['company_country', 'company_id', 'company_name', 'first_name', 'second_name', 'id', 'position', 'product', 'status'] },
   ],
-  hiddenFieldsByType: {
+  hiddenFieldsByStatus: {
     default: ['imo', 'user_id', 'title', 'message', 'external_company_name', 'external_id', 'external_url'],
     registered: ['external_company_name', 'external_id', 'external_url'],
     owner: ['external_company_name', 'external_id', 'external_url'],

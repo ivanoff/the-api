@@ -6,7 +6,7 @@ class KoaKnexHelper {
     ctx,
     table,
     join,
-    hiddenFieldsByType,
+    hiddenFieldsByStatus,
     forbiddenFieldsToAdd,
     required,
     defaultWhere,
@@ -18,7 +18,7 @@ class KoaKnexHelper {
     this.ctx = ctx;
     this.table = table;
     this.join = join || [];
-    this.hiddenFieldsByType = hiddenFieldsByType || {};
+    this.hiddenFieldsByStatus = hiddenFieldsByStatus || {};
     this.forbiddenFieldsToAdd = forbiddenFieldsToAdd || ['id', 'created_at', 'updated_at', 'deleted_at', 'deleted'];
     this.required = required || {};
     this.defaultWhere = defaultWhere || {};
@@ -70,9 +70,10 @@ class KoaKnexHelper {
   }
 
   updateHiddenColumns() {
-    const hideByStatus = this.token && this.hiddenFieldsByType[this.token.status];
-    const hideForOwner = this.isOwner && this.hiddenFieldsByType.owner;
-    this.hiddenColumns = hideForOwner || hideByStatus || this.hiddenFieldsByType.default || [];
+    const hideByStatus = Array.isArray(this.token?.statuses)
+      && [].concat(this.token.statuses.map((status) => this.hiddenFieldsByStatus[`${status}`]));
+    const hideForOwner = this.isOwner && this.hiddenFieldsByStatus.owner;
+    this.hiddenColumns = hideForOwner || hideByStatus || this.hiddenFieldsByStatus.default || [];
   }
 
   fields(_fields, db) {
