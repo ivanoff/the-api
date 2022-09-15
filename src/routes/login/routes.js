@@ -33,7 +33,7 @@ module.exports = router
   .post('/login/refresh', c.loginHandler, {
     summary: 'Refresh jwt token',
     schema: {
-      token: 'string',
+      refresh: 'string',
     },
     responses: ['USER_NOT_FOUND', 'EMAIL_NOT_CONFIRMED'],
   })
