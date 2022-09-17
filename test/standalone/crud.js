@@ -5,6 +5,7 @@ const TheAPI = require('../../src');
 describe('CRUD', () => {
   let api;
   let res;
+  let token;
 
   before(async () => {
     await global.dropDb();
@@ -30,6 +31,16 @@ describe('CRUD', () => {
 
   after(() => api.down());
 
+  describe('Token ', () => {
+    it('get token', async () => {
+      token = jwt.sign({
+        id: -1,
+        login: 'root',
+        statuses: ['root'],
+      }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    });
+  });
+
   describe('usual', () => {
     it('swagger returns 200 status code', async () => {
       res = await global.get('/swagger.yaml');
@@ -42,16 +53,62 @@ describe('CRUD', () => {
     });
   });
 
-  describe('GET /flags', () => {
+  describe('GET /flags empty', () => {
     it('returns 200 status code', async () => {
       res = await global.get('/flags');
       expect(res.status).to.eql(200);
     });
   });
 
-  describe('GET /secured_flags ', () => {
-    let token;
+  describe('POST /flags', () => {
+    it('returns 200 status code', async () => {
+      res = await global.post('/flags', { name: 'flag1' }, { Authorization: `Bearer ${token}` });
+      expect(res.status).to.eql(200);
 
+      await global.post('/flags', { name: 'flag3' }, { Authorization: `Bearer ${token}` });
+      await global.post('/flags', { name: 'flag2' }, { Authorization: `Bearer ${token}` });
+      await global.post('/flags', { name: 'flag4' }, { Authorization: `Bearer ${token}` });
+      await global.post('/flags', { name: 'xflag' }, { Authorization: `Bearer ${token}` });
+    });
+  });
+
+  describe('GET /flags', () => {
+    it('iLike search, sort, fields and pagination', async () => {
+      res = await global.get('/flags?name~=FLAG%25&_sort=-name&_fields=name&_page=2&_limit=2');
+      const { data } = await res.json();
+      expect(data).to.deep.equal([{ name: 'flag2' }, { name: 'flag1' }]);
+    });
+
+    it('iLike search, sort, fields and offset', async () => {
+      res = await global.get('/flags?name~=FLAG%25&_sort=-name&_fields=name&_skip=1&_limit=2');
+      const { data } = await res.json();
+      expect(data).to.deep.equal([{ name: 'flag3' }, { name: 'flag2' }]);
+    });
+
+    it('iLike search, sort, fields, pagination and offset', async () => {
+      res = await global.get('/flags?name~=FLAG%25&_sort=-name&_fields=name&_skip=1&_page=2&_limit=2');
+      const { data } = await res.json();
+      expect(data).to.deep.equal([{ name: 'flag1' }]);
+    });
+
+    it('random sort', async () => {
+      const res1 = await global.get('/flags?_sort=random()&name~=FLAG%25&_fields=name&_limit=1');
+      const { data: data1 } = await res1.json();
+      const res2 = await global.get('/flags?_sort=random()&name~=FLAG%25&_fields=name&_limit=1');
+      const { data: data2 } = await res2.json();
+      const res3 = await global.get('/flags?_sort=random()&name~=FLAG%25&_fields=name&_limit=1');
+      const { data: data3 } = await res3.json();
+      const res4 = await global.get('/flags?_sort=random()&name~=FLAG%25&_fields=name&_limit=1');
+      const { data: data4 } = await res4.json();
+      expect(
+        data1[0].name !== data2[0].name
+      || data1[0].name !== data3[0].name
+      || data1[0].name !== data4[0].name,
+      ).to.equal(true);
+    });
+  });
+
+  describe('GET /secured_flags ', () => {
     it('returns 403 status code', async () => {
       res = await global.get('/secured_flags ');
       expect(res.status).to.eql(403);

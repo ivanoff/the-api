@@ -1,14 +1,14 @@
-async function checkToken(ctx) {
+function checkToken(ctx) {
   if (!ctx.state.token) ctx.throw('NO_TOKEN');
 }
 
 async function tokenRequired(ctx, next) {
-  await checkToken(ctx);
+  checkToken(ctx);
   await next();
 }
 
-async function checkOwnerToken(ctx) {
-  await checkToken(ctx);
+function checkOwnerToken(ctx) {
+  checkToken(ctx);
   if (!ctx.params?.user_id) ctx.throw('USER_NOT_FOUND');
   if (ctx.state.token.id !== +ctx.params.user_id) ctx.throw('OWNER_REQUIRED');
 }
@@ -31,7 +31,7 @@ async function rootRequired(ctx, next) {
 
 function statusRequired(statuses = [], ...restStatuses) {
   return async (ctx, next) => {
-    await checkToken(ctx);
+    checkToken(ctx);
 
     const { statuses: tokenStatuses } = ctx.state.token || {};
     const s = [].concat(statuses, restStatuses).filter(Boolean);
@@ -43,7 +43,7 @@ function statusRequired(statuses = [], ...restStatuses) {
 }
 
 async function userAccess(ctx, name) {
-  await checkToken(ctx);
+  checkToken(ctx);
 
   const { statuses: tokenStatuses } = ctx.state.token || {};
   const s = ctx.state.userAccess && ctx.state.userAccess[`${name}`];

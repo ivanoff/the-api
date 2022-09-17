@@ -2,6 +2,7 @@ const flattening = require('flattening');
 const KoaKnexHelper = require('./koa_knex_helper');
 
 module.exports = async ({ ctx, relations }) => {
+  if (!relations) return;
   const { body } = ctx;
   const result = {};
   const findRelations = async ([key, definition]) => {

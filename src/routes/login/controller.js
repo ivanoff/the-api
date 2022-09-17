@@ -35,9 +35,9 @@ async function loginTool({
 
   const dataToSign = tokenFields.reduce((acc, key) => { acc[`${key}`] = user[`${key}`]; return acc; }, {});
   const token = jwt.sign(dataToSign, jwtSecret, { expiresIn: expiresIn || '1h' });
-  const refreshNew = uuidv4();
+  const refreshNew = refresh || uuidv4();
 
-  await db('users').update({ refresh: refreshNew }).where({ id });
+  if (!refresh) await db('users').update({ refresh: refreshNew }).where({ id });
 
   return {
     id, login, statuses, token, first_name, second_name, email, options, refresh: refreshNew,

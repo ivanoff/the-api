@@ -118,18 +118,18 @@ describe('Login', () => {
       expect(res.status).to.eql(200);
     });
 
-    it('new refresh is not equat to old one', async () => {
+    it('new refresh is equal to the old one in case of using refresh token', async () => {
       secondRefresh = (await res.json()).refresh;
-      expect(secondRefresh).to.not.eql(refresh);
+      expect(secondRefresh).to.eql(refresh);
     });
 
     it('new refresh is looks like uuid', async () => {
       expect(secondRefresh.split('-')).to.have.lengthOf(5);
     });
 
-    it('Old refresh token does not work', async () => {
+    it('Old refresh token does work', async () => {
       res = await global.post('/login', { refresh });
-      expect(res.status).to.eql(404);
+      expect(res.status).to.eql(200);
     });
 
     it('New refresh token works', async () => {

@@ -191,9 +191,10 @@ Implement REST endpoinds for KOA and Knex. Main features:
 - .get searching by array (GET /ship?category_id[]=3&category_id[]=5)
 - .get null searching (GET /ship?category_id[]=null)
 - .get pagination (GET /ship?_page=2&_limit=10)
+- .get offset (GET /ship?_skip=100&_limit=10)
 - .get ASC/DESC multifields sorting (GET /ship?_sort=name,-date)
-- .get sorting (GET /ship?)
-- .get pays attantion to `deleted` field in the table (get deleted=false by dafault)
+- .get random sorting (GET /ship?_sort=random())
+- .get pays attention to `deleted` field in the table (get deleted=false by dafault)
 - .post/.path/.delete implementation
 
 Usage:

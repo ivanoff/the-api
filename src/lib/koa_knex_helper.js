@@ -29,22 +29,27 @@ class KoaKnexHelper {
     this.tableInfo = tableInfo || {};
     this.updateHiddenColumns();
     this.hiddenColumns.map((item) => delete this.tableInfo[`${item}`]);
+    this.coaliseWhere = {};
   }
 
-  sort(_sort) {
+  sort(_sort, db) {
     if (!_sort) return;
 
     _sort.split(',').forEach((item) => {
+      if (item.match(/^random\(\)$/i)) return this.res.orderBy(db.raw('RANDOM()'));
+
       const match = item.match(/^(-)?(.*)$/);
       this.res.orderBy(match[2], match[1] && 'desc');
     });
   }
 
-  pagination(_page, _limit) {
+  pagination({ _page, _skip = 0, _limit }) {
     if (!_limit) return;
 
     this.res.limit(_limit);
-    if (_page) this.res.offset((_page - 1) * _limit);
+    const offset = _page ? (_page - 1) * _limit : 0;
+    console.log({ offset, _skip });
+    this.res.offset(offset + (+_skip));
   }
 
   where(whereObj) {
@@ -54,15 +59,25 @@ class KoaKnexHelper {
       if (key.match(/~$/)) {
         // iLike
         this.res.where(key.replace(/~$/, ''), 'ilike', value);
-      } else if (key.match(/\._(from|to)_/)) {
+      } else if (key.match(/_(from|to)_/)) {
         if (value !== '') {
-          const m = key.match(/^(.+)\._(from|to)_(.+)$/);
-          this.res.where(`${m[1]}.${m[3]}`, m[2] === 'from' ? '>=' : '<=', value);
+          const m = key.match(/_(from|to)_(.+)$/);
+          const sign = m[1] === 'from' ? '>=' : '<=';
+
+          const coaliseWhere = this.coaliseWhere[`${m[2]}`];
+          if (coaliseWhere) {
+            this.res.whereRaw(`${coaliseWhere} ${sign} ?`, [value]);
+          } else {
+            this.res.where(`${m[2]}`, sign, value);
+          }
         }
       } else if (Array.isArray(value)) {
         this.res.whereIn(key, value);
       } else if (value === null) {
         this.res.whereNull(key);
+      } else if (this.coaliseWhere[`${key}`]) {
+        const coaliseWhere = this.coaliseWhere[`${key}`];
+        this.res.whereRaw(`${coaliseWhere} = ?`, [value]);
       } else {
         this.res.where(key, value);
       }
@@ -102,13 +117,17 @@ class KoaKnexHelper {
         if (Object.values(whereBindings).filter((item) => !dd[`${item}`]).length) continue;
         for (const [k, v] of Object.entries(whereBindings)) wb[`${k}`] = dd[`${v}`];
       }
-      joinCoaleise.push(db.raw(`
-        COALESCE( ( SELECT ${f3} FROM (
-          SELECT * FROM "${table}" AS "${as || table}"
-          WHERE ${where} ${lang}
-          ${orderByStr}
-          ${limitStr}
-        ) ${as || table}), NULL) AS "${alias || table}"`, wb));
+
+      const coaliseWhere = `COALESCE( ( SELECT ${f3} FROM (
+        SELECT * FROM "${table}" AS "${as || table}"
+        WHERE ${where} ${lang}
+        ${orderByStr}
+        ${limitStr}
+      ) ${as || table}), NULL)`;
+
+      this.coaliseWhere = { ...this.coaliseWhere, [`${alias || table}`]: coaliseWhere };
+
+      joinCoaleise.push(db.raw(`${coaliseWhere} AS "${alias || table}"`, wb));
     }
 
     this.res.column(joinCoaleise);
@@ -122,6 +141,7 @@ class KoaKnexHelper {
  * examples:
  * - second page, 1 record per page, sort by title desc, only id and title fields:
  *   /ships?_fields=id,title&_sort=-title&_page=2&_limit=1
+ * - skip 100 records, get next 10 records: /ships?_skip=100&_limit=10
  * - search by id and title: /ships?_fields=title&id=2&title=second data
  * - search by multiply ids: /ships?_fields=id&id=1&id=3
  * - search by 'like' mask: /ships?_fields=title&title~=_e%25 d_ta
@@ -151,10 +171,11 @@ class KoaKnexHelper {
       },
       _sort: {
         type: 'string',
-        example: '-created_at,name',
+        example: '-created_at,name,random()',
       },
       _limit: 'integer',
       _page: 'integer',
+      _skip: 'integer',
     };
     return {
       tokenRequired: this.tokenRequired.get,
@@ -175,7 +196,7 @@ class KoaKnexHelper {
     this.token = token;
 
     const {
-      _fields, _sort, _page, _limit, _lang, _isNull, _or, ...where
+      _fields, _sort, _page, _skip, _limit, _lang, _isNull, _or, ...where
     } = ctx.request.query;
 
     this.lang = _lang;
@@ -188,15 +209,15 @@ class KoaKnexHelper {
     if (_or) this.res.where(function () { [].concat(_or).map((key) => this.orWhere(key)); });
     if (_isNull) [].concat(_isNull).map((key) => this.res.andWhereNull(key));
 
-    this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => ({ ...acc, [`${this.table}.${cur}`]: val }), {}));
+    this.fields(_fields, db);
+
+    this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => ({ ...acc, [`${cur}`]: val }), {}));
     this.checkDeleted();
 
     const total = +(await db.from({ w: this.res }).count('*'))[0].count;
 
-    this.fields(_fields, db);
-
-    this.sort(_sort);
-    this.pagination(_page, _limit);
+    this.sort(_sort, db);
+    this.pagination({ _page, _skip, _limit });
     // if (_or) console.log(this.res.toSQL())
     return { total, data: await this.res };
   }
@@ -319,10 +340,10 @@ class KoaKnexHelper {
     if (this.rootRequired.update) await checkRootToken(ctx);
 
     const { db, tablesInfo, token } = ctx.state;
-    const { id } = ctx.params;
     const rows = tablesInfo[this.table] || {};
-    const where = { id, deleted: false };
 
+    const where = { ...ctx.params };
+    if (rows.deleted) where.deleted = false;
     if (rows.user_id && token && token.id !== -1) where.user_id = token.id;
 
     const data = { ...ctx.request.body };
@@ -350,12 +371,15 @@ class KoaKnexHelper {
     if (this.ownerRequired.delete) await checkOwnerToken(ctx);
     if (this.rootRequired.delete) await checkRootToken(ctx);
 
-    const { db, token } = ctx.state;
-    const { id } = ctx.params;
-    const where = { id, deleted: false };
+    const { db, tablesInfo, token } = ctx.state;
+    const rows = tablesInfo[this.table] || {};
+
+    const where = { ...ctx.params };
+    if (rows.deleted) where.deleted = false;
     if (token.id !== -1) where.user_id = token.id;
 
-    return db(this.table).update({ deleted: true }).where(where);
+    const t = db(this.table).where(where);
+    return rows.deleted ? t.update({ deleted: true }) : t.delete();
   }
 }
 
