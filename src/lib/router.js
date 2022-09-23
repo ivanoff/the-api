@@ -1,4 +1,28 @@
+const crypto = require('crypto');
 const Router = require('@koa/router');
+
+const redis = {};
+const getWithCache = (cb, timeoutOrigin = 5) => {
+  const timeout = +timeoutOrigin * 1000;
+  return async (ctx, next, ...other) => {
+    const { method, url, request } = ctx;
+
+    const params = JSON.stringify(await ctx.params);
+    const query = JSON.stringify(request.query);
+    const md5sum = crypto.createHash('md5').update(method + url + params + query);
+    const key = md5sum.digest('hex');
+
+    if (redis[`${key}`]) {
+      ctx.state.log(`Get data from cache by key ${key}`);
+      ctx.body = redis[`${key}`];
+    } else {
+      ctx.state.log(`Store data in cache for ${timeout}ms`);
+      await cb(ctx, next, ...other);
+      redis[`${key}`] = ctx.body;
+      ((eraseKey) => setTimeout(() => delete redis[`${eraseKey}`], timeout))(key);
+    }
+  };
+};
 
 class RouterHandler extends Router {
   constructor(opt) {
@@ -31,9 +55,10 @@ class RouterHandler extends Router {
   }
 
   _h(t) {
-    return (path, cb, middleWare, options) => {
+    return (path, cbOrigin, middleWare, options) => {
       const hasMiddleware = typeof middleWare === 'function';
       let o = hasMiddleware ? options : middleWare;
+      const cb = (t === 'get' && o?.cache) ? getWithCache(cbOrigin, o?.cache) : cbOrigin;
       if (!o?.tag) o = { ...o, tag: this.currentTag };
       if (this.currentSchema) o = { ...o, currentSchema: this.currentSchema };
       if (this._tokenRequired) o = { ...o, tokenRequired: this._tokenRequired };

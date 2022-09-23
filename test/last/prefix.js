@@ -6,7 +6,7 @@ describe('Prefix', () => {
 
   before(async () => {
     process.env = { ...process.env, API_PREFIX: '/v1', NODE_ENV: 'test' };
-    const { logs, errors, cache } = api.extensions;
+    const { logs, errors } = api.extensions;
     const { check } = api.routes;
 
     const test = api.router().get('/test_prefix', (ctx) => { ctx.body = { ok: 1 }; });
@@ -14,7 +14,6 @@ describe('Prefix', () => {
     await api.up([
       logs,
       errors,
-      cache,
       check,
       test,
     ]);

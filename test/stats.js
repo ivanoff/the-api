@@ -1,26 +1,23 @@
 const { expect } = require('chai');
 
-describe('Stats', () => {
+describe('Stats and cache', () => {
   let api;
 
   before(async () => {
     api = new global.TheAPI();
     const {
-      logs, errors, limits, cache,
+      logs, errors, limits,
     } = api.extensions;
 
-    const test1 = api.router().get('/test', (ctx) => { ctx.body = { ok: 1 }; });
+    const test1 = api.router().get('/test', (ctx) => { ctx.body = { ok: 1 }; }, { cache: 1 });
     const test2 = api.router().post('/test', (ctx) => { ctx.body = { ok: 1 }; });
 
     limits.setLimits({ 'GET /test': { minute: 2 } });
-
-    cache.cacheTimeout(1000);
 
     await api.up([
       logs,
       errors,
       limits,
-      cache,
       test1,
       test2,
     ]);

@@ -6,7 +6,7 @@ describe('Info', () => {
   before(async () => {
     api = new global.TheAPI();
     const {
-      logs, errors, info, cache,
+      logs, errors, info,
     } = api.extensions;
     const { check } = api.routes;
 
@@ -15,7 +15,6 @@ describe('Info', () => {
     await api.up([
       logs,
       errors,
-      cache,
       info,
     ]);
   });

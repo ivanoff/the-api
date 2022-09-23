@@ -48,7 +48,7 @@ index.js
 const TheAPI = require('the-api');
 const api = new TheAPI();
 
-const { logs, errors, info, token, access, cache } = api.extensions;
+const { logs, errors, info, token, access } = api.extensions;
 const { login, check, notes } = api.routes;
 
 info.endpointsToShow(login, check, notes);
@@ -62,7 +62,6 @@ api.up([
   check,  // check route - small example, just send {ok: 1}
   token,  // check token, return unauthorized if token is invalid
   access, // handle white/black list, count of requests
-  cache,  // cache data in memory for 5 seconds
   notes,  // notes route - example of category/notes api
 ]);
 ```

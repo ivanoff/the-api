@@ -48,7 +48,6 @@ class KoaKnexHelper {
 
     this.res.limit(_limit);
     const offset = _page ? (_page - 1) * _limit : 0;
-    console.log({ offset, _skip });
     this.res.offset(offset + (+_skip));
   }
 

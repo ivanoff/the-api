@@ -1,7 +1,10 @@
 const TheAPI = require('./src');
+
 const api = new TheAPI();
 
-const { logs, errors, info, access, limits, cache } = api.extensions;
+const {
+  logs, errors, info, access, limits,
+} = api.extensions;
 const { login, check, notes } = api.routes;
 
 info.endpointsToShow(login, check, notes);
@@ -12,7 +15,7 @@ login.setTemplates({
     text: 'Hello, use your code {{code}} to POST /register/check!',
     html: 'Hello, use your <b>code {{code}}</b> to POST <b>/register/check</b>!',
   },
-})
+});
 
 api.up([
   logs,
@@ -22,6 +25,5 @@ api.up([
   check,
   login,
   access,
-  cache,
   notes,
 ]);
