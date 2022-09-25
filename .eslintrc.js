@@ -1,15 +1,14 @@
 module.exports = {
+  "parser": "@typescript-eslint/parser",
   "plugins": [
-    "security"
+    "security",
+    "@typescript-eslint"
   ],
   "extends": [
-    "airbnb-base",
-    "plugin:security/recommended",
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended"
   ],
-  "parserOptions": {
-    "ecmaVersion": 2020,
-    "indent": ["error", 2]
-  },
   "env": {
     "mocha": true
   },

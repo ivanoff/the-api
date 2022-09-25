@@ -31,8 +31,6 @@ Create API asap. Includes the following:
 
 - cache data in memory/redis
 
-- notes route - example of category/notes api
-
 ## Install
 
 ```npm i -S the-api```
@@ -49,9 +47,9 @@ const TheAPI = require('the-api');
 const api = new TheAPI();
 
 const { logs, errors, info, token, access } = api.extensions;
-const { login, check, notes } = api.routes;
+const { login, check } = api.routes;
 
-info.endpointsToShow(login, check, notes);
+info.endpointsToShow(login, check);
 
 api.up([
           // select any extension you want to use
@@ -62,7 +60,6 @@ api.up([
   check,  // check route - small example, just send {ok: 1}
   token,  // check token, return unauthorized if token is invalid
   access, // handle white/black list, count of requests
-  notes,  // notes route - example of category/notes api
 ]);
 ```
 
