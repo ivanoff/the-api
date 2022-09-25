@@ -1,4 +1,5 @@
-require('the-log').silent();
+import theLog from 'the-log';
+theLog.silent();
 
 import 'mocha';
 import { expect } from 'chai';

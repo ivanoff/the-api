@@ -27,7 +27,7 @@ const getWithCache = (cb, timeoutOrigin = 5) => {
 class RouterHandler extends Router {
   private _prefix: string;
   private _tokenRequired: boolean;
-  swagger: {};
+  swagger: any;
   currentTag: string;
   currentSchema: any;
 

@@ -26,5 +26,6 @@ module.exports = {
     "no-return-assign": "off",
     "func-names": "off",
     "no-underscore-dangle": "off",
+    "@typescript-eslint/no-explicit-any": "off"
   },
 };

@@ -7,7 +7,7 @@ import { checkAccess } from '../../lib';
 interface IExternalLogin {
   ctx: any;
   service: string;
-  profile: {};
+  profile: any;
   external_id: string | number;
   first_name: string;
   second_name?: string;

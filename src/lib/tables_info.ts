@@ -4,7 +4,7 @@ export default async (db) => {
 
   switch (db.client.constructor.name) {
     case 'Client_MSSQL':
-      query = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_catalog = ?";
+      query = 'SELECT table_name FROM information_schema.tables WHERE table_schema = \'public\' AND table_catalog = ?';
       break;
     case 'Client_MySQL':
     case 'Client_MySQL2':

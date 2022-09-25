@@ -37,7 +37,7 @@ class KoaKnexHelper {
   rootRequired: any;
   hiddenColumns: any[];
   tableInfo: ITableInfo;
-  coaliseWhere: {};
+  coaliseWhere: any;
   res: any;
   lang: string;
   token: any;
