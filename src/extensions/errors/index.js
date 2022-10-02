@@ -25,7 +25,7 @@ module.exports = async (ctx, next) => {
 
     const { code, name: errorName, description } = error;
     ctx.status = error.status || 500;
-    ctx.body = { code, name: errorName, description };
+    ctx.body = process.env.NODE_ENV === 'production' ? { code, name: errorName, description } : error;
 
     ctx.state.log(error);
   }

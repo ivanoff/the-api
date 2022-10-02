@@ -90,7 +90,7 @@ class KoaKnexHelper {
     this.hiddenColumns = hideForOwner || hideByStatus || this.hiddenFieldsByStatus.default || [];
   }
 
-  fields(_fields, db) {
+  fields({ ctx, _fields, db }) {
     this.updateHiddenColumns();
 
     const f = _fields && _fields.split(',');
@@ -110,8 +110,8 @@ class KoaKnexHelper {
       const f3 = field || `jsonb_agg(${f2})`;
       const wb = {};
       if (whereBindings) {
-        if (!this.ctx) continue;
-        const { params, query, state } = this.ctx;
+        if (!ctx) continue;
+        const { params, query, state } = ctx;
         const dd = flattening({ params, query, token: state.token });
         if (Object.values(whereBindings).filter((item) => !dd[`${item}`]).length) continue;
         for (const [k, v] of Object.entries(whereBindings)) wb[`${k}`] = dd[`${v}`];
@@ -208,7 +208,7 @@ class KoaKnexHelper {
     if (_or) this.res.where(function () { [].concat(_or).map((key) => this.orWhere(key)); });
     if (_isNull) [].concat(_isNull).map((key) => this.res.andWhereNull(key));
 
-    this.fields(_fields, db);
+    this.fields({ ctx, _fields, db });
 
     this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => ({ ...acc, [`${cur}`]: val }), {}));
     this.checkDeleted();
@@ -218,7 +218,9 @@ class KoaKnexHelper {
     this.sort(_sort, db);
     this.pagination({ _page, _skip, _limit });
     // if (_or) console.log(this.res.toSQL())
-    return { total, data: await this.res };
+    return {
+      total, page: _page, limit: _limit, skip: _skip, data: await this.res,
+    };
   }
 
   optionsGetById() {
@@ -254,7 +256,7 @@ class KoaKnexHelper {
     const { user_id } = await this.res.clone().first() || {};
     this.isOwner = tokenId && tokenId === user_id;
 
-    this.fields(_fields, db);
+    this.fields({ ctx, _fields, db });
     return this.res.first();
   }
 
