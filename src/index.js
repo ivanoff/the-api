@@ -5,6 +5,7 @@ const passport = require('koa-passport');
 const knex = require('knex');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+const { CronJob } = require('cron');
 const { FsMigrations } = require('knex/lib/migrations/migrate/sources/fs-migrations');
 const {
   Router, getSwaggerData, crud, getTablesInfo, KoaKnexHelper,
@@ -41,6 +42,7 @@ class TheAPI {
     this.router = () => new Router();
     this.routes = routes;
     this.extensions = extensions;
+    this.cronJobs = [];
     this.swaggerOptions = {
       version: SWAGGER_VERSION,
       title: SWAGGER_TITLE,
@@ -119,6 +121,32 @@ class TheAPI {
   async koaKnexHelper(params = {}) {
     await this.waitDb;
     return new KoaKnexHelper({ tableInfo: this.tablesInfo && this.tablesInfo[`${params.table}`], ...params });
+  }
+
+  cron(jobs = {}) {
+    for (const [jobName, { cronTime, job, timezone }] of Object.entries(jobs)) {
+      if (typeof job !== 'function') continue;
+      const { db, log } = this;
+
+      const cj = new CronJob(
+        cronTime,
+        async () => {
+          this.log(`[CRON] ${jobName} begin...`);
+          try {
+            await job({ db, log });
+          } catch (error) {
+            this.log(`[CRON] ${jobName} error`, error);
+          }
+          this.log(`[CRON] ${jobName} done`);
+        },
+        null,
+        false,
+        timezone,
+      );
+
+      cj.start();
+      this.cronJobs.push(cj);
+    }
   }
 
   async initServer(flowOrigin) {
@@ -230,6 +258,8 @@ class TheAPI {
     if (this.connection) await this.connection.close();
     await this.db.destroy();
     this.extensions.limits.destructor();
+    for (const cj of this.cronJobs) cj.stop();
+
     this.log('Stopped');
   }
 }

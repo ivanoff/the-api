@@ -1,8 +1,9 @@
 const { expect } = require('chai');
 const { sleep } = require('../src/lib');
 
-describe('Token', () => {
+describe('Token and Cron', () => {
   let api;
+  let cronFlag = false;
   const env = { ...process.env };
 
   before(async () => {
@@ -18,6 +19,13 @@ describe('Token', () => {
       access,
       check,
     ]);
+
+    api.cron({
+      test: {
+        cronTime: '* * * * * *',
+        job: async () => { cronFlag = true; },
+      },
+    });
   });
 
   after(() => {
@@ -50,6 +58,12 @@ describe('Token', () => {
       await sleep(1800);
       res = await global.get('/check', { Authorization: `Bearer ${token}` });
       expect(res.status).to.eql(403);
+    });
+  });
+
+  describe('Check cron result', () => {
+    it('cron flag is true', async () => {
+      expect(cronFlag).to.eql(true);
     });
   });
 
