@@ -51,7 +51,8 @@ async function userAccess({
   const { statuses: tokenStatuses } = ctx.state.token || {};
 
   let access = statusesToCheck.some((item) => tokenStatuses.includes(item));
-  if (statusesToCheck.includes('owner') && isOwner) access = true;
+  const paramsOwner = ctx.params.user_id && ctx.params.user_id === +ctx.state.token.id;
+  if (statusesToCheck.includes('owner') && (isOwner || paramsOwner)) access = true;
   if (statusesToCheck.includes('*')) access = true;
 
   if (!access) ctx.throw('USER_ACCESS_DENIED');
