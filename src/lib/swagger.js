@@ -41,8 +41,11 @@ module.exports = ({
       if (r2.tag) paths += `      tags:\n      - "${r2.tag}"\n`;
       const summary = r2.summary || typeof r2.access === 'string' ? r2.access : '';
       paths += `      summary: "${summary}"\n      description: ""\n`;
-      if (r2.tokenRequired || r2.ownerRequired) paths += '      security:\n        - UserToken: []\n';
-      if (r2.rootRequired) paths += '      security:\n        - RootToken: []\n';
+      if (r2.tokenRequired || r2.ownerRequired || r2.rootRequired) {
+        paths += '      security:\n';
+        if (r2.rootRequired) paths += `        - RootToken: []\n`;
+        if (r2.tokenRequired || r2.ownerRequired) paths += '        - UserToken: []\n';
+      }
 
       const consumesType = hasFileType ? 'multipart/form-data' : r1.match(/get|delete/) && 'application/json';
       if (consumesType) paths += `      consumes:\n      - "${consumesType}"\n`;

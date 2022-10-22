@@ -13,7 +13,6 @@ const {
 const extensions = require('./extensions');
 const routes = require('./routes');
 const errorsList = require('./extensions/errors/list');
-const { name, version } = require('../package.json');
 
 require('dotenv').config();
 
@@ -25,6 +24,8 @@ const {
   SWAGGER_HOST,
   SWAGGER_BASEPATH,
   UPLOAD_MULTIPLY_DISABLED,
+  npm_package_name: name,
+  npm_package_version: version,
 } = process.env;
 
 class TheAPI {

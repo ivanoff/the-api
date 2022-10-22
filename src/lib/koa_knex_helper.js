@@ -1,5 +1,7 @@
 const flattening = require('flattening');
-const { checkToken, checkOwnerToken, checkRootToken } = require('./check_access');
+const {
+  checkToken, checkOwnerToken, checkRootToken, userAccess,
+} = require('./check_access');
 
 class KoaKnexHelper {
   constructor({
@@ -13,6 +15,8 @@ class KoaKnexHelper {
     tokenRequired,
     ownerRequired,
     rootRequired,
+    access,
+    accessByStatuses,
     tableInfo,
   } = {}) {
     this.ctx = ctx;
@@ -25,6 +29,8 @@ class KoaKnexHelper {
     this.tokenRequired = tokenRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
     this.ownerRequired = ownerRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
     this.rootRequired = rootRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
+    this.access = access || {};
+    this.accessByStatuses = accessByStatuses || {};
     this.hiddenColumns = [];
     this.tableInfo = tableInfo || {};
     this.updateHiddenColumns();
@@ -136,6 +142,20 @@ class KoaKnexHelper {
     if (this.rows.deleted) this.res.where({ [`${this.table}.deleted`]: false });
   }
 
+  async isFullAccess({ ctx, where, method }) {
+    if (!this.access[`${method}`] && !this.accessByStatuses[`${method}`]) return;
+    const { db, tablesInfo, token } = ctx.state;
+    const rows = tablesInfo[this.table] || {};
+    let isOwner = false;
+    if (where && rows.user_id) {
+      isOwner = await db(this.table).where({ ...where, user_id: token.id }).first();
+    }
+    await userAccess({
+      ctx, isOwner, name: this.access[`${method}`], statuses: this.accessByStatuses[`${method}`],
+    });
+    return true;
+  }
+
   /** return data from table. Use '_fields', '_sort', '_start', '_limit' options
  * examples:
  * - second page, 1 record per page, sort by title desc, only id and title fields:
@@ -177,7 +197,7 @@ class KoaKnexHelper {
       _skip: 'integer',
     };
     return {
-      tokenRequired: this.tokenRequired.get,
+      tokenRequired: this.tokenRequired.get || this.access.read || this.accessByStatuses.read,
       ownerRequired: this.ownerRequired.get,
       rootRequired: this.rootRequired.get,
       queryParameters,
@@ -188,6 +208,8 @@ class KoaKnexHelper {
     if (this.tokenRequired.get) await checkToken(ctx);
     if (this.ownerRequired.get) await checkOwnerToken(ctx);
     if (this.rootRequired.get) await checkRootToken(ctx);
+
+    await this.isFullAccess({ ctx, method: 'read' });
 
     const {
       db, tablesInfo, token,
@@ -225,7 +247,7 @@ class KoaKnexHelper {
 
   optionsGetById() {
     return {
-      tokenRequired: this.tokenRequired.get,
+      tokenRequired: this.tokenRequired.get || this.access.read || this.accessByStatuses.read,
       ownerRequired: this.ownerRequired.get,
       rootRequired: this.rootRequired.get,
     };
@@ -235,6 +257,8 @@ class KoaKnexHelper {
     if (this.tokenRequired.get) await checkToken(ctx);
     if (this.ownerRequired.get) await checkOwnerToken(ctx);
     if (this.rootRequired.get) await checkRootToken(ctx);
+
+    await this.isFullAccess({ ctx, method: 'read' });
 
     const { db, tablesInfo, token } = ctx.state;
     const { id } = ctx.params;
@@ -292,7 +316,9 @@ class KoaKnexHelper {
     }, {});
 
     return {
-      tokenRequired: this.tokenRequired.add,
+      tokenRequired: this.tokenRequired.add
+        || this.access.create
+        || this.accessByStatuses.create,
       ownerRequired: this.ownerRequired.add,
       rootRequired: this.rootRequired.add,
       schema,
@@ -303,6 +329,8 @@ class KoaKnexHelper {
     if (this.tokenRequired.add) await checkToken(ctx);
     if (this.ownerRequired.add) await checkOwnerToken(ctx);
     if (this.rootRequired.add) await checkRootToken(ctx);
+
+    await this.isFullAccess({ ctx, method: 'create' });
 
     const { db } = ctx.state;
 
@@ -328,7 +356,9 @@ class KoaKnexHelper {
     }, {});
 
     return {
-      tokenRequired: this.tokenRequired.update,
+      tokenRequired: this.tokenRequired.update
+        || this.access.update
+        || this.accessByStatuses.update,
       ownerRequired: this.ownerRequired.update,
       rootRequired: this.rootRequired.update,
       schema,
@@ -341,11 +371,14 @@ class KoaKnexHelper {
     if (this.rootRequired.update) await checkRootToken(ctx);
 
     const { db, tablesInfo, token } = ctx.state;
+    const where = { ...ctx.params };
     const rows = tablesInfo[this.table] || {};
 
-    const where = { ...ctx.params };
+    let needToCheckUserId = rows.user_id && token.id !== -1;
+    if (await this.isFullAccess({ ctx, where, method: 'update' })) needToCheckUserId = false;
+
     if (rows.deleted) where.deleted = false;
-    if (rows.user_id && token && token.id !== -1) where.user_id = token.id;
+    if (needToCheckUserId) where.user_id = token.id;
 
     const data = { ...ctx.request.body };
 
@@ -361,7 +394,9 @@ class KoaKnexHelper {
 
   optionsDelete() {
     return {
-      tokenRequired: this.tokenRequired.delete,
+      tokenRequired: this.tokenRequired.delete
+        || this.access.delete
+        || this.accessByStatuses.delete,
       ownerRequired: this.ownerRequired.delete,
       rootRequired: this.rootRequired.delete,
     };
@@ -373,11 +408,14 @@ class KoaKnexHelper {
     if (this.rootRequired.delete) await checkRootToken(ctx);
 
     const { db, tablesInfo, token } = ctx.state;
+    const where = { ...ctx.params };
     const rows = tablesInfo[this.table] || {};
 
-    const where = { ...ctx.params };
+    let needToCheckUserId = rows.user_id && token.id !== -1;
+    if (await this.isFullAccess({ ctx, where, method: 'delete' })) needToCheckUserId = false;
+
     if (rows.deleted) where.deleted = false;
-    if (token.id !== -1 && rows.user_id) where.user_id = token.id;
+    if (needToCheckUserId) where.user_id = token.id;
 
     const t = db(this.table).where(where);
     return rows.deleted ? t.update({ deleted: true }) : t.delete();

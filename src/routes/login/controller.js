@@ -227,7 +227,7 @@ async function updateUser(ctx) {
 }
 
 async function addStatus(ctx) {
-  await checkAccess.userAccess(ctx, 'create status');
+  await checkAccess.userAccess({ ctx, name: 'create status' });
 
   const { db } = ctx.state;
   const { user_id, status_name } = ctx.params;
@@ -246,7 +246,7 @@ async function addStatus(ctx) {
 }
 
 async function deleteStatus(ctx) {
-  await checkAccess.userAccess(ctx, 'delete status');
+  await checkAccess.userAccess({ ctx, name: 'delete status' });
 
   const { db } = ctx.state;
   const { user_id, status_name } = ctx.params;

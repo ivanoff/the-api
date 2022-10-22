@@ -16,7 +16,9 @@ module.exports = async ({ ctx, relations }) => {
     if (!id.length) return;
 
     ctx.request.query = { id };
-    const { data } = await helper.get({ ctx });
+    const { data } = await helper.get({
+      ctx: { ...ctx, request: { ...ctx.request, query: { id } } },
+    });
     ctx.request.query = query;
 
     const t = definition.table;

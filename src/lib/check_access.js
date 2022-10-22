@@ -1,5 +1,5 @@
 function checkToken(ctx) {
-  if (!ctx.state.token) ctx.throw('NO_TOKEN');
+  if (!ctx?.state?.token) ctx.throw('NO_TOKEN');
 }
 
 async function tokenRequired(ctx, next) {
@@ -42,13 +42,19 @@ function statusRequired(statuses = [], ...restStatuses) {
   };
 }
 
-async function userAccess(ctx, name) {
+async function userAccess({
+  ctx, isOwner, name, statuses,
+}) {
   checkToken(ctx);
 
+  const statusesToCheck = [].concat(statuses, ctx.state.userAccess && ctx.state.userAccess[`${name}`]).filter(Boolean);
   const { statuses: tokenStatuses } = ctx.state.token || {};
-  const s = ctx.state.userAccess && ctx.state.userAccess[`${name}`];
 
-  if (s && !s.some((item) => tokenStatuses.includes(item))) ctx.throw('USER_ACCESS_DENIED');
+  let access = statusesToCheck.some((item) => tokenStatuses.includes(item));
+  if (statusesToCheck.includes('owner') && isOwner) access = true;
+  if (statusesToCheck.includes('*')) access = true;
+
+  if (!access) ctx.throw('USER_ACCESS_DENIED');
 }
 
 module.exports = {
