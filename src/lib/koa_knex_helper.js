@@ -379,6 +379,7 @@ class KoaKnexHelper {
 
     if (rows.deleted) where.deleted = false;
     if (needToCheckUserId) where.user_id = token.id;
+    else delete where.user_id;
 
     const data = { ...ctx.request.body };
 
@@ -416,6 +417,7 @@ class KoaKnexHelper {
 
     if (rows.deleted) where.deleted = false;
     if (needToCheckUserId) where.user_id = token.id;
+    else delete where.user_id;
 
     const t = db(this.table).where(where);
     return rows.deleted ? t.update({ deleted: true }) : t.delete();
