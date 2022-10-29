@@ -54,13 +54,23 @@ module.exports = router
     summary: 'Update user',
     tokenRequired: true,
     schema: {
-      code: 'string',
+      email: 'string',
+      first_name: 'string',
       password: 'string',
+      new_password: 'string',
     },
+  })
+  .get('/login/externals', c.getExternals, {
+    tokenRequired: true,
+    summary: `Get list of user's external services`,
+  })
+  .delete('/login/externals/:external_name', c.deleteExternal, {
+    tokenRequired: true,
+    summary: `Remove external service from user's profile`,
   })
   .post('/users/:user_id/statuses/:status_name', c.addStatus, {
     tokenRequired: true,
-    summary: `Create status`,
+    summary: 'Create status',
   })
   .delete('/users/:user_id/statuses/:status_name', c.deleteStatus, {
     tokenRequired: true,

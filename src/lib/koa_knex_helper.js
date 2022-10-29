@@ -156,6 +156,18 @@ class KoaKnexHelper {
     return true;
   }
 
+  getJoinFields() {
+    return this.join.reduce((acc, { alias, table, field }) => {
+      let type = !field && 'ARRAY';
+      if (!type) type = field.match(/::bool$/) && 'boolean';
+      if (!type) type = field.match(/::int$/) && 'integer';
+      if (!type) type = 'string';
+
+      acc[alias || table] = type;
+      return acc;
+    }, {});
+  }
+
   /** return data from table. Use '_fields', '_sort', '_start', '_limit' options
  * examples:
  * - second page, 1 record per page, sort by title desc, only id and title fields:
@@ -200,6 +212,7 @@ class KoaKnexHelper {
       tokenRequired: this.tokenRequired.get || this.access.read || this.accessByStatuses.read,
       ownerRequired: this.ownerRequired.get,
       rootRequired: this.rootRequired.get,
+      joinFields: this.getJoinFields(),
       queryParameters,
     };
   }
@@ -250,6 +263,7 @@ class KoaKnexHelper {
       tokenRequired: this.tokenRequired.get || this.access.read || this.accessByStatuses.read,
       ownerRequired: this.ownerRequired.get,
       rootRequired: this.rootRequired.get,
+      joinFields: this.getJoinFields(),
     };
   }
 
@@ -285,6 +299,11 @@ class KoaKnexHelper {
   }
 
   updateIncomingData(ctx, data) {
+    return Array.isArray(data) ? data.map((item) => this.updateData(ctx, item))
+      : this.updateData(ctx, data);
+  }
+
+  updateData(ctx, data) {
     const { tablesInfo, token } = ctx.state;
     let result = { ...data };
     const rows = tablesInfo[this.table] || {};
@@ -334,7 +353,8 @@ class KoaKnexHelper {
 
     const { db } = ctx.state;
 
-    const looksLikeArray = Object.keys(ctx.request.body).every((j, i) => i === +j);
+    const bodyKeys = Object.keys(ctx.request.body);
+    const looksLikeArray = bodyKeys.length && bodyKeys.every((j, i) => i === +j);
     const body = looksLikeArray ? Object.values(ctx.request.body) : ctx.request.body;
 
     const data = this.updateIncomingData(ctx, body);

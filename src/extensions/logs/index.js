@@ -1,5 +1,9 @@
 const simpleLog = require('./simple');
-const { name, version } = require('../../../package.json');
+
+const {
+  npm_package_name: name,
+  npm_package_version: version,
+} = process.env;
 
 module.exports = async (ctx, next) => {
   const id = Math.random().toString(36).substring(2, 10);

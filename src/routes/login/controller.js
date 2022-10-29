@@ -44,17 +44,40 @@ async function loginTool({
   };
 }
 
+async function getExternals(ctx) {
+  const { token: { id }, db } = ctx.state;
+
+  const user = await db('users').select(['external_profiles']).where({ id }).first();
+
+  ctx.body = user.external_profiles?.map(({ provider }) => provider) || [];
+}
+
+async function deleteExternal(ctx) {
+  const { external_name } = ctx.params;
+  const { token: { id }, db } = ctx.state;
+
+  const user = await db('users').select(['external_profiles']).where({ id }).first();
+
+  const profiles = user.external_profiles?.filter(({ provider: p }) => p !== external_name) || [];
+
+  await db('users').where({ id }).update({ external_profiles: JSON.stringify(profiles) });
+
+  ctx.body = { ok: 1 };
+}
+
 async function externalLogin({
   ctx, service, profile, external_id, first_name, second_name, email,
 }) {
   if (!service || !external_id) return ctx.throw('EXTERNALS_REQUIRED');
 
-  const { db, jwtSecret } = ctx.state;
+  const { db, jwtSecret, token } = ctx.state;
   const { JWT_EXPIRES_IN: expiresIn } = process.env;
 
   const refresh = uuidv4();
 
-  let user = await db('users').where({ email }).first();
+  const dbUsers = db('users').where({ email });
+  if (token?.id) dbUsers.orWhere({ id: token?.id });
+  let user = await dbUsers.first();
 
   const _id = `${external_id}`;
   const { rows: userByServiceArr } = await db.raw(`SELECT * FROM users WHERE external_profiles @> '[{"provider":??,"_id":??}]'`, [service, _id]);
@@ -218,10 +241,22 @@ async function setPassword(ctx) {
 
 async function updateUser(ctx) {
   const { token, db } = ctx.state;
-  const { email, first_name } = ctx.request.body;
+  const {
+    email, first_name, password, new_password,
+  } = ctx.request.body;
 
   if (!token) return ctx.throw('NO_TOKEN');
   if (!token.id) return ctx.throw('TOKEN_INVALID');
+
+  if (password && new_password) {
+    const { salt } = await db('users').where({ id: token.id }).first();
+
+    const result = await db('users')
+      .update({ password: sha256(new_password + salt) })
+      .where({ id: token.id, password: sha256(password + salt) });
+
+    if (!result) return ctx.throw('WRONG_PASSWORD');
+  }
 
   ctx.body = await db('users').update({ email, first_name }).where({ id: token.id });
 }
@@ -274,6 +309,8 @@ async function addFieldsToToken(...fields) {
 
 module.exports = {
   loginHandler,
+  getExternals,
+  deleteExternal,
   externalLogin,
   register,
   check,

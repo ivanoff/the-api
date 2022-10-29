@@ -42,4 +42,10 @@ module.exports = {
     description: 'Login required. Please enter login',
   },
 
+  WRONG_PASSWORD: {
+    code: 1036,
+    status: 401,
+    name: 'Wrong password',
+    description: 'Password is wrong. Please check it or restore your password',
+  },
 };

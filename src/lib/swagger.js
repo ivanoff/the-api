@@ -1,14 +1,16 @@
 function updateType(type = '') {
   let result = type;
   if (type.match(/^jsonb?$/)) result = 'object';
+  if (type.match(/^uuid?$/)) result = 'string';
   if (type?.match(/^text|character varying|timestamp with time zone$/)) result = 'string';
   return result;
 }
 
 module.exports = ({
-  flow, options, tablesInfo,
+  flow, options, tablesInfo: ti,
 }) => {
   const tablesInfoAdditional = {};
+  const tablesInfo = { ...ti };
   const {
     version: v = '0.0.1', title = 'API', host = '127.0.0.1:7788', basePath,
   } = options;
@@ -35,11 +37,15 @@ module.exports = ({
 
     paths += `  ${p}:\n`;
     for (const [r1, r2 = {}] of Object.entries(r)) {
+      if (r2.currentSchema) {
+        tablesInfo[`${r2.currentSchema}`] = { ...tablesInfo[`${r2.currentSchema}`], ...r2.joinFields };
+      }
+
       const hasFileType = Object.values(r2?.schema || {}).some((type) => type === 'file' || type.data_type === 'file');
 
       paths += `    ${r1}:\n`;
       if (r2.tag) paths += `      tags:\n      - "${r2.tag}"\n`;
-      const summary = r2.summary || typeof r2.access === 'string' ? r2.access : '';
+      const summary = r2.summary || (typeof r2.access === 'string' ? r2.access : '');
       paths += `      summary: "${summary}"\n      description: ""\n`;
       if (r2.tokenRequired || r2.ownerRequired || r2.rootRequired) {
         paths += '      security:\n';
@@ -88,9 +94,12 @@ module.exports = ({
         paths += '            items:\n';
         paths += `              $ref: "#/definitions/${r2.currentSchema}"\n`;
       }
+      const uniqueStatuses = { 200: true };
       for (const resp of (r2.responses || [])) {
         if (!routeErrors[`${resp}`]) continue;
         const { status, description } = routeErrors[`${resp}`];
+        if (uniqueStatuses[`${status}`]) continue;
+        uniqueStatuses[`${status}`] = true;
         paths += `        "${status}":\n          description: "${description}"\n`;
       }
     }
@@ -101,7 +110,8 @@ module.exports = ({
     if (tableName.match(/^knex_/)) continue;
 
     definitions += `  ${tableName}:\n    type: "object"\n    properties:\n`;
-    for (const [field, opt] of Object.entries(t)) {
+
+    for (const [field, opt] of Object.entries({ ...t, ...tablesInfo[`${tableName}`] })) {
       definitions += `      ${field}:\n`;
 
       if (field === 'file') {
@@ -110,7 +120,7 @@ module.exports = ({
       }
 
       const o = (typeof opt === 'string') ? { data_type: opt } : opt;
-      definitions += o.references ? `        $ref: "#/definitions/${o.references.foreign_table_name}"\n` : `        type: "${updateType(o.data_type)}"\n`;
+      definitions += `        type: "${updateType(o.data_type)}"\n`;
     }
   }
 

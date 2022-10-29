@@ -24,6 +24,7 @@ class Mail {
     this.message = {
       from: this.config.auth.user,
     };
+    this.defaultParams = options?.defaultParams || {};
   }
 
   async send({
@@ -35,6 +36,17 @@ class Mail {
     return new Promise((resolve, reject) => {
       this.transport.sendMail(message, (err, info) => (err ? reject(err) : resolve(info)));
     });
+  }
+
+  getPreparedData(template, params = {}) {
+    const result = { ...template };
+    for (const key of Object.keys(result)) {
+      for (const [name, replace] of Object.entries({ ...this.defaultParams, ...params })) {
+        const r = new RegExp(`\\{\\{${name}\\}\\}`, 'g');
+        result[`${key}`] = result[`${key}`].replace(r, replace);
+      }
+    }
+    return result;
   }
 }
 
