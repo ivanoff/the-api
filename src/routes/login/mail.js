@@ -29,7 +29,8 @@ class LoginMail extends Mail {
     return result;
   }
 
-  async register({ email, ...params }) {
+  async register(params) {
+    const { email } = params;
     try {
       await this.send({ email, ...this.getPreparedData('register', params) });
     } catch (err) {
@@ -37,7 +38,8 @@ class LoginMail extends Mail {
     }
   }
 
-  async recover({ email, ...params }) {
+  async recover(params) {
+    const { email } = params;
     try {
       await this.send({ email, ...this.getPreparedData('recover', params) });
     } catch (err) {
