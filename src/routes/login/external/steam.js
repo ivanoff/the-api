@@ -1,21 +1,23 @@
-const Strategy = require('passport-steam');
+const { Strategy } = require('passport-steam');
 const c = require('../controller');
 
 const service = 'steam';
 
 const {
+  AUTH_STEAM_KEY: apiKey,
   AUTH_STEAM_RETURN_URL: returnURL,
   AUTH_STEAM_REALM: realm,
-  AUTH_STEAM_API_KEY: apiKey,
 } = process.env;
 
 module.exports = async (api) => {
+  if (!apiKey || !returnURL || !realm) return;
+
   api.passport.use(
     new Strategy(
       {
-        returnURL, realm, apiKey,
+        apiKey, returnURL, realm,
       },
-      (token, refresh, profile, done) => done(null, { token, refresh, profile }),
+      (identifier, profile, done) => done(null, { identifier, profile }),
     ),
   );
 
@@ -31,13 +33,11 @@ module.exports = async (api) => {
 
         const {
           id: external_id,
-          given_name: first_name,
-          family_name: second_name,
-          email,
-        } = profile._json;
+          displayName: first_name,
+        } = profile;
 
         await c.externalLogin({
-          ctx, service, profile, external_id, first_name, second_name, email,
+          ctx, service, profile, external_id, first_name,
         });
       },
     );

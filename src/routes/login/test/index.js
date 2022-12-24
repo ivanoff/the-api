@@ -3,7 +3,7 @@ const { expect } = require('chai');
 describe('Login', () => {
   let api;
   const env = { ...process.env };
-  const userData = { login: 'aaa15', password: 'bbb', email: '3@ivanoff.org.ua' };
+  const userData = { login: 'aaa15', password: 'bbb', email: '3@ivanoFF.org.ua' };
 
   before(async () => {
     process.env = { ...process.env, LOGIN_CHECK_EMAIL: 'true' };
@@ -47,7 +47,7 @@ describe('Login', () => {
     });
 
     it('email `to` contains right email address', async () => {
-      expect(global.message.to).to.eql(userData.email);
+      expect(global.message.to).to.eql(userData.email.toLowerCase());
     });
 
     it('email has `text` property', async () => {
@@ -191,7 +191,7 @@ describe('Login', () => {
     });
 
     it('email `to` contains right email address', async () => {
-      expect(global.message.to).to.eql(userData.email);
+      expect(global.message.to).to.eql(userData.email.toLowerCase());
     });
 
     it('email has `text` property', async () => {
@@ -269,7 +269,7 @@ describe('Login', () => {
     });
 
     it('change email', async () => {
-      res = await global.patch('/login', { email: 'bbb' }, { Authorization: `Bearer ${token}` });
+      res = await global.patch('/login', { email: 'BBB' }, { Authorization: `Bearer ${token}` });
       expect(res).to.have.property('ok');
     });
 

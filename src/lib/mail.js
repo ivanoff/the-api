@@ -5,6 +5,7 @@ require('dotenv').config();
 const {
   EMAIL_USER: user,
   EMAIL_PASSWORD: pass,
+  EMAIL_FROM: from,
   EMAIL_HOST: host,
   EMAIL_PORT: port,
   EMAIL_SECURE: isSecure,
@@ -18,11 +19,11 @@ const tls = rejectUnauth && { rejectUnauthorized: rejectUnauth === 'true' };
 class Mail {
   constructor(options) {
     this.config = options || {
-      auth, host, port, secure, tls,
+      auth, from, host, port, secure, tls,
     };
     this.transport = nodemailer.createTransport(this.config);
     this.message = {
-      from: this.config.auth.user,
+      from: from || this.config.auth.user,
     };
     this.defaultParams = options?.defaultParams || {};
   }

@@ -100,10 +100,19 @@ describe('CRUD', () => {
       const { data: data3 } = await res3.json();
       const res4 = await global.get('/flags?_sort=random()&name~=FLAG%25&_fields=name&_limit=1');
       const { data: data4 } = await res4.json();
+      const res5 = await global.get('/flags?_sort=random()&name~=FLAG%25&_fields=name&_limit=1');
+      const { data: data5 } = await res5.json();
       expect(
         data1[0].name !== data2[0].name
       || data1[0].name !== data3[0].name
-      || data1[0].name !== data4[0].name,
+      || data1[0].name !== data4[0].name
+      || data1[0].name !== data5[0].name
+      || data2[0].name !== data3[0].name
+      || data2[0].name !== data4[0].name
+      || data2[0].name !== data5[0].name
+      || data3[0].name !== data4[0].name
+      || data3[0].name !== data5[0].name
+      || data4[0].name !== data5[0].name,
       ).to.equal(true);
     });
   });

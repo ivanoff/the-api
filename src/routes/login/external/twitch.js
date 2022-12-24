@@ -1,20 +1,21 @@
-const { Strategy } = require('passport-slack');
+const { Strategy } = require('passport-twitch-new');
 const c = require('../controller');
 
-const service = 'slack';
+const service = 'twitch';
 
 const {
-  AUTH_SLACK_CLIENT_ID: clientID,
-  AUTH_SLACK_CLIENT_SECRET: clientSecret,
+  AUTH_TWITCH_CLIENT_ID: clientID,
+  AUTH_TWITCH_CLIENT_SECRET: clientSecret,
+  AUTH_TWITCH_CALLBACK_URL: callbackURL,
 } = process.env;
 
 module.exports = async (api) => {
-  if (!clientID || !clientSecret) return;
+  if (!clientID || !clientSecret || !callbackURL) return;
 
   api.passport.use(
     new Strategy(
       {
-        clientID, clientSecret,
+        clientID, clientSecret, callbackURL, scope: 'user_read',
       },
       (token, refresh, profile, done) => done(null, { token, refresh, profile }),
     ),
@@ -29,16 +30,14 @@ module.exports = async (api) => {
         const { profile } = await new Promise((resolve, reject) => {
           api.passport.authenticate(service, (err, res) => (err ? reject(err) : resolve(res)))(ctx);
         });
-
         const {
           id: external_id,
-          given_name: first_name,
-          family_name: second_name,
+          display_name: first_name,
           email,
-        } = profile._json;
+        } = profile;
 
         await c.externalLogin({
-          ctx, service, profile, external_id, first_name, second_name, email,
+          ctx, service, profile, external_id, first_name, email,
         });
       },
     );

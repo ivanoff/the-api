@@ -1,6 +1,6 @@
 {
   "name": "the-api",
-  "version": "14.4.12",
+  "version": "15.1.1",
   "description": "The API - build your own API",
   "license": "MIT",
   "main": "src/index.js",
@@ -43,6 +43,7 @@
     "passport-microsoft": "^1.0.0",
     "passport-slack": "^0.0.7",
     "passport-steam": "^1.0.17",
+    "passport-twitch-new": "^0.0.2",
     "pg": "^8.7.3",
     "sqlite3": "^5.0.11",
     "the-log": "^3.0.1",

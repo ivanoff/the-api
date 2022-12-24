@@ -66,31 +66,42 @@ async function deleteExternal(ctx) {
 }
 
 async function externalLogin({
-  ctx, service, profile, external_id, first_name, second_name, email,
+  ctx, service, profile, external_id, first_name, second_name, email: e,
 }) {
+  const email = e?.toLowerCase();
   if (!service || !external_id) return ctx.throw('EXTERNALS_REQUIRED');
 
   const { db, jwtSecret, token } = ctx.state;
   const { JWT_EXPIRES_IN: expiresIn } = process.env;
 
-  const refresh = uuidv4();
+  const where = token?.id ? { id: token?.id } : email ? { email } : '';
+  if (!where) return ctx.throw('USER_NOT_FOUND');
 
-  const dbUsers = db('users').where({ email });
-  if (token?.id) dbUsers.orWhere({ id: token?.id });
-  let user = await dbUsers.first();
+  let user = await db('users').where(where).first();
 
   const _id = `${external_id}`;
   const { rows: userByServiceArr } = await db.raw(`SELECT * FROM users WHERE external_profiles @> '[{"provider":??,"_id":??}]'`, [service, _id]);
-
   const userByService = userByServiceArr[0];
 
-  if (!user && userByService) user = userByService;
+  // remove user by service record if we have user by token/email record
+  if (user && userByService) await db.raw(`DELETE FROM users WHERE id != ?? AND external_profiles @> '[{"provider":??,"_id":??}]'`, [user.id, service, _id]);
 
-  if (!user) {
+  // add new user
+  if (!user && !userByService) {
     const salt = uuidv4();
+    const refresh = uuidv4();
+
+    let login = email.replace(/(@.+)$/, '');
+    const loginsRaw = await db('users').select(['login']).whereRaw('login ILIKE ?', [`${login}%`]);
+    const logins = loginsRaw.map((item) => item.login);
+    let i = 1;
+    while (logins.includes(login)) {
+      i += Math.floor(Math.random() * 100);
+      login += i;
+    }
 
     [user] = await db('users').insert({
-      login: email,
+      login,
       password: sha256(uuidv4() + salt),
       salt,
       email,
@@ -101,12 +112,15 @@ async function externalLogin({
       external_profiles: JSON.stringify([{ ...profile, _id }]),
     }).returning('*');
   } else if (!userByService) {
-    await db('users').where({ email }).update({
+    // add external profie to exists user
+    await db('users').where(where).update({
       external_profiles: JSON.stringify(
         [].concat(user.external_profiles, { ...profile, _id }).filter(Boolean),
       ),
     });
   }
+
+  if (!user && userByService) user = userByService;
 
   const result = {
     id: user.id,
@@ -141,8 +155,9 @@ async function loginHandler(ctx) {
 
 async function register(ctx) {
   const {
-    login, password, email, first_name, second_name,
+    login, password, email: e, first_name, second_name,
   } = ctx.request.body;
+  const email = e?.toLowerCase();
 
   if (!login) return ctx.throw('LOGIN_REQUIRED');
 
@@ -173,7 +188,9 @@ async function register(ctx) {
       user_id, login, code, recover, time: new Date(),
     });
 
-    mail.register({ code, ...ctx.request.body });
+    mail.register({
+      code, login, password, email, first_name, second_name,
+    });
   }
 }
 
@@ -200,7 +217,8 @@ async function check(ctx) {
 }
 
 async function restore(ctx) {
-  const { login, email } = ctx.request.body;
+  const { login, email: e } = ctx.request.body;
+  const email = e?.toLowerCase();
   const { db } = ctx.state;
 
   ctx.body = { ok: 1 };
@@ -215,9 +233,9 @@ async function restore(ctx) {
   const code = uuidv4();
 
   await db('code').del().where({ login: l });
-  await db('code').insert({ login, recover: code });
+  await db('code').insert({ login: l, recover: code });
 
-  mail.recover({ email: to, code });
+  mail.recover({ email: to, code, login: l });
 }
 
 async function setPassword(ctx) {
@@ -234,7 +252,10 @@ async function setPassword(ctx) {
 
   const salt = uuidv4();
 
-  await db('users').update({ password: sha256(password + salt), salt }).where({ login });
+  const { statuses = [] } = await db('users').where({ login }).first();
+  if (!statuses.includes('registered')) statuses.push('registered');
+
+  await db('users').update({ password: sha256(password + salt), salt, statuses }).where({ login });
 
   ctx.body = { ok: 1 };
 }
@@ -242,8 +263,9 @@ async function setPassword(ctx) {
 async function updateUser(ctx) {
   const { token, db } = ctx.state;
   const {
-    email, first_name, password, new_password,
+    email: e, first_name, password, new_password,
   } = ctx.request.body;
+  const email = e?.toLowerCase();
 
   if (!token) return ctx.throw('NO_TOKEN');
   if (!token.id) return ctx.throw('TOKEN_INVALID');

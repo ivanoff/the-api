@@ -12,6 +12,7 @@ const microsoft = require('./login/external/microsoft');
 const slack = require('./login/external/slack');
 const steam = require('./login/external/steam');
 const twitter = require('./login/external/twitter');
+const twitch = require('./login/external/twitch');
 
 module.exports = {
   check,
@@ -28,4 +29,5 @@ module.exports = {
   slack,
   steam,
   twitter,
+  twitch,
 };

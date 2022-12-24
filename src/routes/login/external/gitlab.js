@@ -10,6 +10,8 @@ const {
 } = process.env;
 
 module.exports = async (api) => {
+  if (!clientID || !clientSecret || !callbackURL) return;
+
   api.passport.use(
     new Strategy(
       {

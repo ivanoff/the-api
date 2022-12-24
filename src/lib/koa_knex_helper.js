@@ -7,7 +7,9 @@ class KoaKnexHelper {
   constructor({
     ctx,
     table,
+    aliases,
     join,
+    leftJoin,
     hiddenFieldsByStatus,
     forbiddenFieldsToAdd,
     required,
@@ -21,7 +23,9 @@ class KoaKnexHelper {
   } = {}) {
     this.ctx = ctx;
     this.table = table;
+    this.aliases = aliases || {};
     this.join = join || [];
+    this.leftJoin = leftJoin || [];
     this.hiddenFieldsByStatus = hiddenFieldsByStatus || {};
     this.forbiddenFieldsToAdd = forbiddenFieldsToAdd || ['id', 'created_at', 'updated_at', 'deleted_at', 'deleted'];
     this.required = required || {};
@@ -64,6 +68,12 @@ class KoaKnexHelper {
       if (key.match(/~$/)) {
         // iLike
         this.res.where(key.replace(/~$/, ''), 'ilike', value);
+      } else if (key.match(/^_null_/)) {
+        const m = key.match(/^_null_(.+)$/);
+        this.res.whereNull(m[1]);
+      } else if (key.match(/^_not_null_/)) {
+        const m = key.match(/^_not_null_(.+)$/);
+        this.res.whereNotNull(m[1]);
       } else if (key.match(/_(from|to)_/)) {
         if (value !== '') {
           const m = key.match(/_(from|to)_(.+)$/);
@@ -83,6 +93,8 @@ class KoaKnexHelper {
       } else if (this.coaliseWhere[`${key}`]) {
         const coaliseWhere = this.coaliseWhere[`${key}`];
         this.res.whereRaw(`${coaliseWhere} = ?`, [value]);
+      } else if (this.leftJoin && !key.includes('.')) {
+        this.res.where({ [`${this.table}.${key}`]: value });
       } else {
         this.res.where(key, value);
       }
@@ -90,21 +102,37 @@ class KoaKnexHelper {
   }
 
   updateHiddenColumns() {
-    const hideByStatus = Array.isArray(this.token?.statuses)
-      && [].concat(this.token.statuses.map((status) => this.hiddenFieldsByStatus[`${status}`]));
+    const defaultStatus = 'default';
+    let statusesInHidden;
+    const { statuses } = this.token || {};
+    if (Array.isArray(statuses)) {
+      statusesInHidden = statuses.filter((s) => this.hiddenFieldsByStatus[`${s}`]);
+      if (!statusesInHidden.length && this.hiddenFieldsByStatus[`${defaultStatus}`]) statusesInHidden = [defaultStatus];
+    }
+    const hideByStatus = statusesInHidden && statusesInHidden.reduce((acc, status) => [...acc, ...this.hiddenFieldsByStatus[`${status}`]], []);
     const hideForOwner = this.isOwner && this.hiddenFieldsByStatus.owner;
-    this.hiddenColumns = hideForOwner || hideByStatus || this.hiddenFieldsByStatus.default || [];
+
+    this.hiddenColumns = hideForOwner || hideByStatus || this.hiddenFieldsByStatus[`${defaultStatus}`] || [];
+    this.hiddenColumns = this.hiddenColumns.concat(this.hiddenColumns.map((item) => `${this.table}.${item}`));
   }
 
   fields({ ctx, _fields, db }) {
     this.updateHiddenColumns();
 
+    if (this.leftJoin.length) {
+      this.leftJoin.map((item) => this.res.leftJoin(...item));
+    }
+
     const f = _fields && _fields.split(',');
     const joinCoaleise = (f || Object.keys(this.rows)).filter((name) => !this.hiddenColumns.includes(name)).map((l) => `${this.table}.${l}`);
 
+    for (const field of Object.keys(this.aliases).filter((l) => joinCoaleise.includes(`${this.table}.${l}`))) {
+      joinCoaleise.push(`${this.table}.${field} AS ${this.aliases[`${field}`]}`);
+    }
+
     const join = f ? this.join.filter(({ table }) => f.includes(table)) : this.join;
     for (const {
-      table, as, where, whereBindings, alias, fields, field, limit, orderBy,
+      table, as, where, whereBindings, alias, fields, field, limit, orderBy, byIndex,
     } of join) {
       const orderByStr = orderBy ? `ORDER BY ${orderBy}` : '';
       const limitStr = limit ? `LIMIT ${limit}` : '';
@@ -123,12 +151,14 @@ class KoaKnexHelper {
         for (const [k, v] of Object.entries(whereBindings)) wb[`${k}`] = dd[`${v}`];
       }
 
+      const index = typeof byIndex === 'number' ? `[${byIndex}]` : '';
+
       const coaliseWhere = `COALESCE( ( SELECT ${f3} FROM (
         SELECT * FROM "${table}" AS "${as || table}"
         WHERE ${where} ${lang}
         ${orderByStr}
         ${limitStr}
-      ) ${as || table}), NULL)`;
+      ) ${as || table})${index}, NULL)`;
 
       this.coaliseWhere = { ...this.coaliseWhere, [`${alias || table}`]: coaliseWhere };
 
@@ -183,9 +213,14 @@ class KoaKnexHelper {
     const fields = {};
     const fieldsSearchLike = {};
     const fieldsFromTo = {};
+    const fieldsNull = {};
     for (const [key, data] of Object.entries(this.tableInfo || {})) {
       fields[`${key}`] = data.data_type;
       if (data.data_type === 'string') fieldsSearchLike[`${key}~`] = data.data_type;
+      if (data.is_nullable === 'YES') {
+        fieldsNull[`_null_${key}`] = 'string';
+        fieldsNull[`_not_null_${key}`] = 'string';
+      }
       if (data.data_type !== 'boolean' && data.data_type !== 'file') {
         fieldsFromTo[`_from_${key}`] = data.data_type;
         fieldsFromTo[`_to_${key}`] = data.data_type;
@@ -195,6 +230,7 @@ class KoaKnexHelper {
     const queryParameters = {
       ...fields,
       ...fieldsSearchLike,
+      ...fieldsNull,
       ...fieldsFromTo,
       _fields: {
         type: 'string',
@@ -276,9 +312,18 @@ class KoaKnexHelper {
 
     const { db, tablesInfo, token } = ctx.state;
     const { id } = ctx.params;
+
     const {
-      _fields, _lang, _or, ...where
+      _fields, _lang, _or, ...whereWithParams
     } = ctx.request.query;
+    const where = Object.keys(whereWithParams).reduce(
+      (acc, key) => {
+        if (key[0] !== '_') acc[`${key}`] = whereWithParams[`${key}`];
+        return acc;
+      },
+      {},
+    );
+
     this.token = token;
     this.lang = _lang;
 

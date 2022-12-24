@@ -21,31 +21,34 @@ module.exports = async (params) => {
     table, prefix, tag, relations, responseSchema, forbiddenActions = [],
   } = params;
 
-  const helper = new KoaKnexHelper(params);
-
   const add = async (ctx) => {
-    ctx.body = await helper.add({ ctx });
+    const h = new KoaKnexHelper(params);
+    ctx.body = await h.add({ ctx });
     if (relations) await buildRelations({ ctx, relations });
   };
 
   const getAll = async (ctx) => {
-    ctx.body = await helper.get({ ctx });
+    const h = new KoaKnexHelper(params);
+    ctx.body = await h.get({ ctx });
     if (relations) await buildRelations({ ctx, relations });
   };
 
   const getOne = async (ctx) => {
-    ctx.body = await helper.getById({ ctx });
+    const h = new KoaKnexHelper(params);
+    ctx.body = await h.getById({ ctx });
     if (relations) await buildRelations({ ctx, relations });
     return ctx.body || ctx.throw('NOT_FOUND');
   };
 
   const update = async (ctx) => {
-    ctx.body = await helper.update({ ctx });
+    const h = new KoaKnexHelper(params);
+    ctx.body = await h.update({ ctx });
     if (relations) await buildRelations({ ctx, relations });
   };
 
   const remove = async (ctx) => {
-    ctx.body = await helper.delete({ ctx });
+    const h = new KoaKnexHelper(params);
+    ctx.body = await h.delete({ ctx });
   };
 
   const router = new Router();
@@ -56,6 +59,7 @@ module.exports = async (params) => {
     .tag(tag || table)
     .responseSchema(responseSchema || table);
 
+  const helper = new KoaKnexHelper(params);
   if (!forbiddenActions.includes('create')) router.post('/', add, helper.optionsAdd());
   if (!forbiddenActions.includes('read')) router.get('/', getAll, helper.optionsGet()).get('/:id', getOne, helper.optionsGetById());
   if (!forbiddenActions.includes('update')) router.put('/:id', update, helper.optionsUpdate());
