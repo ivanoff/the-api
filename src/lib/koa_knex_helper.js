@@ -14,12 +14,16 @@ class KoaKnexHelper {
     forbiddenFieldsToAdd,
     required,
     defaultWhere,
+    defaultSort,
     tokenRequired,
     ownerRequired,
     rootRequired,
     access,
     accessByStatuses,
     tableInfo,
+    deletedReplacements,
+    includeDeleted,
+    cache,
   } = {}) {
     this.ctx = ctx;
     this.table = table;
@@ -30,6 +34,7 @@ class KoaKnexHelper {
     this.forbiddenFieldsToAdd = forbiddenFieldsToAdd || ['id', 'created_at', 'updated_at', 'deleted_at', 'deleted'];
     this.required = required || {};
     this.defaultWhere = defaultWhere || {};
+    this.defaultSort = defaultSort;
     this.tokenRequired = tokenRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
     this.ownerRequired = ownerRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
     this.rootRequired = rootRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
@@ -37,12 +42,16 @@ class KoaKnexHelper {
     this.accessByStatuses = accessByStatuses || {};
     this.hiddenColumns = [];
     this.tableInfo = tableInfo || {};
+    this.deletedReplacements = deletedReplacements;
+    this.includeDeleted = typeof includeDeleted === 'boolean' ? includeDeleted : !!this.deletedReplacements;
     this.updateHiddenColumns();
     this.hiddenColumns.map((item) => delete this.tableInfo[`${item}`]);
     this.coaliseWhere = {};
+    this.cache = cache;
   }
 
-  sort(_sort, db) {
+  sort(sort, db) {
+    const _sort = sort || this.defaultSort;
     if (!_sort) return;
 
     _sort.split(',').forEach((item) => {
@@ -124,7 +133,16 @@ class KoaKnexHelper {
     }
 
     const f = _fields && _fields.split(',');
-    const joinCoaleise = (f || Object.keys(this.rows)).filter((name) => !this.hiddenColumns.includes(name)).map((l) => `${this.table}.${l}`);
+    let joinCoaleise = (f || Object.keys(this.rows)).filter((name) => !this.hiddenColumns.includes(name)).map((l) => `${this.table}.${l}`);
+
+    if (this.includeDeleted && this.deletedReplacements) {
+      joinCoaleise = joinCoaleise.map((item) => {
+        const fieldName = item.split('.').pop();
+        const replaceWith = this.deletedReplacements[`${fieldName}`];
+        if (typeof replaceWith === 'undefined') return item;
+        return db.raw(`CASE WHEN ${this.table}.deleted THEN :replaceWith ELSE ${item} END AS ${fieldName}`, { replaceWith });
+      });
+    }
 
     for (const field of Object.keys(this.aliases).filter((l) => joinCoaleise.includes(`${this.table}.${l}`))) {
       joinCoaleise.push(`${this.table}.${field} AS ${this.aliases[`${field}`]}`);
@@ -162,14 +180,23 @@ class KoaKnexHelper {
 
       this.coaliseWhere = { ...this.coaliseWhere, [`${alias || table}`]: coaliseWhere };
 
-      joinCoaleise.push(db.raw(`${coaliseWhere} AS "${alias || table}"`, wb));
+      let sqlToJoin = `${coaliseWhere} AS "${alias || table}"`;
+      if (this.includeDeleted && this.deletedReplacements) {
+        const replaceWith = this.deletedReplacements[`${table}`] || this.deletedReplacements[`${as}`] || this.deletedReplacements[`${alias}`];
+        if (typeof replaceWith !== 'undefined') {
+          sqlToJoin = `CASE WHEN ${this.table}.deleted THEN ${replaceWith} ELSE ${coaliseWhere} END AS "${alias || table}"`;
+        }
+      }
+
+      joinCoaleise.push(db.raw(sqlToJoin, wb));
     }
 
     this.res.column(joinCoaleise);
   }
 
   checkDeleted() {
-    if (this.rows.deleted) this.res.where({ [`${this.table}.deleted`]: false });
+    if (this.includeDeleted || !this.rows.deleted) return;
+    this.res.where({ [`${this.table}.deleted`]: false });
   }
 
   async isFullAccess({ ctx, where, method }) {
@@ -238,7 +265,7 @@ class KoaKnexHelper {
       },
       _sort: {
         type: 'string',
-        example: '-created_at,name,random()',
+        example: '-time_created,name,random()',
       },
       _limit: 'integer',
       _page: 'integer',
@@ -249,6 +276,7 @@ class KoaKnexHelper {
       ownerRequired: this.ownerRequired.get,
       rootRequired: this.rootRequired.get,
       joinFields: this.getJoinFields(),
+      cache: this.cache,
       queryParameters,
     };
   }
@@ -289,8 +317,9 @@ class KoaKnexHelper {
     this.sort(_sort, db);
     this.pagination({ _page, _skip, _limit });
     // if (_or) console.log(this.res.toSQL())
+    const data = await this.res;
     return {
-      total, page: _page, limit: _limit, skip: _skip, data: await this.res,
+      total, page: _page, limit: _limit, skip: _skip, data,
     };
   }
 
@@ -300,6 +329,7 @@ class KoaKnexHelper {
       ownerRequired: this.ownerRequired.get,
       rootRequired: this.rootRequired.get,
       joinFields: this.getJoinFields(),
+      cache: this.cache,
     };
   }
 
