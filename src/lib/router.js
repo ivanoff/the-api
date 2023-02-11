@@ -5,11 +5,14 @@ const redis = {};
 const getWithCache = (cb, timeoutOrigin = 5) => {
   const timeout = +timeoutOrigin * 1000;
   return async (ctx, next, ...other) => {
-    const { method, url, request } = ctx;
+    const {
+      method, url, request, state,
+    } = ctx;
 
     const params = JSON.stringify(await ctx.params);
     const query = JSON.stringify(request.query);
-    const md5sum = crypto.createHash('md5').update(method + url + params + query);
+    const token = state?.token?.id || '';
+    const md5sum = crypto.createHash('md5').update(method + url + params + query + token);
     const key = md5sum.digest('hex');
 
     if (redis[`${key}`]) {
