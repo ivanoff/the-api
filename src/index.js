@@ -59,22 +59,7 @@ class TheAPI {
     };
     this.log(`${name} v${version}`);
 
-    const knexDefaultParams = { client: 'sqlite3', connection: ':memory:' };
     this.migrationDirs = [`${__dirname}/migrations`].concat(migrationDirs);
-
-    const {
-      DB_CLIENT: client,
-      DB_HOST: host, DB_PORT: dbPort, DB_USER: user, DB_PASSWORD: password, DB_NAME: database,
-      DB_FILENAME: filename,
-    } = process.env;
-
-    const connection = client === 'sqlite3' && filename ? { filename } : {
-      host, user, password, database, port: dbPort,
-    };
-
-    const knexParams = client ? { client, connection } : knexDefaultParams;
-    this.db = knex({ ...knexParams, useNullAsDefault: true });
-    this.waitDb = this.connectDb();
   }
 
   // generate new random JWT_SECRET
@@ -227,6 +212,21 @@ class TheAPI {
   }
 
   async up(flow = []) {
+    const {
+      DB_CLIENT: client,
+      DB_HOST: host, DB_PORT: dbPort, DB_USER: user, DB_PASSWORD: password, DB_NAME: database,
+      DB_FILENAME: filename,
+    } = process.env;
+
+    const connection = client === 'sqlite3' && filename ? { filename } : {
+      host, user, password, database, port: dbPort,
+    };
+
+    const knexDefaultParams = { client: 'sqlite3', connection: ':memory:' };
+    const knexParams = client ? { client, connection } : knexDefaultParams;
+    this.db = knex({ ...knexParams, useNullAsDefault: true });
+    this.waitDb = this.connectDb();
+
     await this.waitDb;
     await this.initServer(flow);
   }
@@ -257,7 +257,7 @@ class TheAPI {
 
   async down() {
     if (this.connection) await this.connection.close();
-    await this.db.destroy();
+    if (this.db) await this.db.destroy();
     this.extensions.limits.destructor();
     for (const cj of this.cronJobs) cj.stop();
 

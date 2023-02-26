@@ -8,6 +8,13 @@ const Mail = require('./mail');
 const relations = require('./relations');
 const Router = require('./router');
 
+const updateRouterPath = (ctx) => {
+  Object.entries(ctx.params).forEach(([key, value]) => {
+    ctx.routerPath = ctx.routerPath.replace(`/:${key}`, `/${value}`);
+    ctx.request.query[`${key}`] = value;
+  });
+};
+
 const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
 
 module.exports = {
@@ -21,4 +28,5 @@ module.exports = {
   sleep,
   relations,
   Router,
+  updateRouterPath,
 };

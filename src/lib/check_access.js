@@ -1,5 +1,5 @@
 function checkToken(ctx) {
-  if (!ctx?.state?.token) ctx.throw('NO_TOKEN');
+  if (!ctx?.state?.token) return ctx.throw('NO_TOKEN');
 }
 
 async function tokenRequired(ctx, next) {
@@ -9,8 +9,8 @@ async function tokenRequired(ctx, next) {
 
 function checkOwnerToken(ctx) {
   checkToken(ctx);
-  if (!ctx.params?.user_id) ctx.throw('USER_NOT_FOUND');
-  if (ctx.state.token.id !== +ctx.params.user_id) ctx.throw('OWNER_REQUIRED');
+  if (!ctx.params?.user_id) return ctx.throw('USER_NOT_FOUND');
+  if (ctx.state.token.id !== +ctx.params.user_id) return ctx.throw('OWNER_REQUIRED');
 }
 
 async function ownerRequired(ctx, next) {
@@ -21,7 +21,7 @@ async function ownerRequired(ctx, next) {
 function checkRootToken(ctx) {
   const { login, statuses } = ctx.state.token || {};
   const rootMode = login === 'root' && statuses?.includes('root');
-  if (!rootMode) ctx.throw('TOKEN_INVALID');
+  if (!rootMode) return ctx.throw('TOKEN_INVALID');
 }
 
 async function rootRequired(ctx, next) {
@@ -36,7 +36,7 @@ function statusRequired(statuses = [], ...restStatuses) {
     const { statuses: tokenStatuses } = ctx.state.token || {};
     const s = [].concat(statuses, restStatuses).filter(Boolean);
 
-    if (s.length && !s.some((item) => tokenStatuses.includes(item))) ctx.throw('STATUS_INVALID');
+    if (s.length && !s.some((item) => tokenStatuses.includes(item))) return ctx.throw('STATUS_INVALID');
 
     await next();
   };
@@ -55,7 +55,7 @@ async function userAccess({
   if (statusesToCheck.includes('owner') && (isOwner || paramsOwner)) access = true;
   if (statusesToCheck.includes('*')) access = true;
 
-  if (!access) ctx.throw('USER_ACCESS_DENIED');
+  if (!access) return ctx.throw('USER_ACCESS_DENIED');
 }
 
 module.exports = {
