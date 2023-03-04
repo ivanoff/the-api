@@ -133,6 +133,18 @@ DB_PASSWORD | DB password | password |
 DB_NAME | database name | the_api_db
 DB_FILENAME | sqlite3 DB filename | ./sqlite.db
 
+DB write instance options for knex
+
+name | description | example | default value
+-----|-------------|---------|--------------
+DB_WRITE_CLIENT | client | postgres, mysql, sqlite3 | sqlite3
+DB_WRITE_HOST | DB host | db.server |
+DB_WRITE_PORT | DB port |
+DB_WRITE_USER | DB user | login |
+DB_WRITE_PASSWORD | DB password | password |
+DB_WRITE_NAME | database name | the_api_db
+DB_WRITE_FILENAME | sqlite3 DB filename | ./sqlite.db
+
 ### Login Module
 
 name | description | example | default value

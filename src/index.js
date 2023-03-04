@@ -92,7 +92,7 @@ class TheAPI {
     if (migrationDirs.length) {
       try {
         const migrationSource = new FsMigrations(this.migrationDirs.concat(migrationDirs), false);
-        await this.db.migrate.latest({ migrationSource });
+        await this.dbWrite.migrate.latest({ migrationSource });
       } catch (err) {
         this.log(err);
       }
@@ -158,7 +158,7 @@ class TheAPI {
       .map(({ methods, path, regexp }) => ({ methods, path, regexp }));
 
     await this.migrations(flow);
-    this.tablesInfo = { ...await getTablesInfo(this.db) };
+    this.tablesInfo = { ...await getTablesInfo(this.dbWrite) };
 
     if (this.swaggerOptions.version) {
       const swaggerData = getSwaggerData({
@@ -214,17 +214,39 @@ class TheAPI {
   async up(flow = []) {
     const {
       DB_CLIENT: client,
-      DB_HOST: host, DB_PORT: dbPort, DB_USER: user, DB_PASSWORD: password, DB_NAME: database,
+      DB_HOST: host,
+      DB_PORT: dbPort,
+      DB_USER: user,
+      DB_PASSWORD: password,
+      DB_NAME: database,
       DB_FILENAME: filename,
+      DB_WRITE_CLIENT: clientWrite,
+      DB_WRITE_HOST: hostWrite,
+      DB_WRITE_PORT: dbPortWrite,
+      DB_WRITE_USER: userWrite,
+      DB_WRITE_PASSWORD: passwordWrite,
+      DB_WRITE_NAME: databaseWrite,
+      DB_WRITE_FILENAME: filenameWrite,
     } = process.env;
 
     const connection = client === 'sqlite3' && filename ? { filename } : {
       host, user, password, database, port: dbPort,
     };
 
+    const connectionWrite = clientWrite === 'sqlite3' && filenameWrite ? { filename: filenameWrite } : {
+      host: hostWrite,
+      user: userWrite,
+      password: passwordWrite,
+      database: databaseWrite,
+      port: dbPortWrite,
+    };
+
     const knexDefaultParams = { client: 'sqlite3', connection: ':memory:' };
     const knexParams = client ? { client, connection } : knexDefaultParams;
     this.db = knex({ ...knexParams, useNullAsDefault: true });
+    this.dbWrite = !hostWrite ? this.db : knex({
+      client: clientWrite, connection: connectionWrite, useNullAsDefault: true,
+    });
     this.waitDb = this.connectDb();
 
     await this.waitDb;
@@ -241,14 +263,15 @@ class TheAPI {
   async checkDb() {
     try {
       await this.db.raw('select 1+1 as result');
+      await this.dbWrite.raw('select 1+1 as result');
       clearInterval(this.intervalDbCheck);
       this.log('DB connected');
 
       const migrationSource = new FsMigrations(this.migrationDirs, false);
-      await this.db.migrate.latest({ migrationSource });
+      await this.dbWrite.migrate.latest({ migrationSource });
       this.log('Migration done');
 
-      this.tablesInfo = { ...await getTablesInfo(this.db) };
+      this.tablesInfo = { ...await getTablesInfo(this.dbWrite) };
       this.log(`Tables found: ${Object.keys(this.tablesInfo)}`);
     } catch (err) {
       this.log('DB connection error:', err, 'waiting for 5 seconds...');
@@ -258,6 +281,7 @@ class TheAPI {
   async down() {
     if (this.connection) await this.connection.close();
     if (this.db) await this.db.destroy();
+    if (this.dbWrite) await this.dbWrite.destroy();
     this.extensions.limits.destructor();
     for (const cj of this.cronJobs) cj.stop();
 
