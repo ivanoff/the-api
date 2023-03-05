@@ -152,12 +152,12 @@ class KoaKnexHelper {
       joinCoaleise.push(`${this.table}.${field} AS ${this.aliases[`${field}`]}`);
     }
 
-    if (this.lang !== 'en') {
+    if (this.lang && this.lang !== 'en') {
       for (const field of this.translate) {
-        joinCoaleise.push(db.raw(`(
+        joinCoaleise.push(db.raw(`COALESCE( (
           select text from langs where lang=:lang and text_key = any(
             select text_key from langs where lang='en' and text = ${this.table}.${field} 
-          ) limit 1) AS ${field}`, { lang: this.lang }));
+          ) limit 1), name ) AS ${field}`, { lang: this.lang }));
       }
     }
 
