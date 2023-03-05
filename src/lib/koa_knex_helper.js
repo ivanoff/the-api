@@ -310,7 +310,7 @@ class KoaKnexHelper {
       _fields, _sort, _page, _skip, _limit, _lang, _isNull, _or, ...where
     } = ctx.request.query;
 
-    this.lang = _lang;
+    if (_lang) this.lang = _lang;
     this.rows = tablesInfo[this.table] || {};
     this.res = db(this.table);
 
