@@ -10,6 +10,7 @@ class KoaKnexHelper {
     aliases,
     join,
     leftJoin,
+    lang,
     translate,
     hiddenFieldsByStatus,
     forbiddenFieldsToAdd,
@@ -31,6 +32,7 @@ class KoaKnexHelper {
     this.aliases = aliases || {};
     this.join = join || [];
     this.leftJoin = leftJoin || [];
+    this.lang = lang || 'en';
     this.translate = translate || [];
     this.hiddenFieldsByStatus = hiddenFieldsByStatus || {};
     this.forbiddenFieldsToAdd = forbiddenFieldsToAdd || ['id', 'created_at', 'updated_at', 'deleted_at', 'deleted'];
@@ -150,11 +152,13 @@ class KoaKnexHelper {
       joinCoaleise.push(`${this.table}.${field} AS ${this.aliases[`${field}`]}`);
     }
 
-    for (const field of this.translate) {
-      joinCoaleise.push(db.raw(`(
-        select text from langs where lang='ru' and text_key = any(
-          select text_key from langs where lang='en' and text = ${this.table}.${field} 
-        ) limit 1) AS ${field}`));
+    if (this.lang !== 'en') {
+      for (const field of this.translate) {
+        joinCoaleise.push(db.raw(`(
+          select text from langs where lang=:lang and text_key = any(
+            select text_key from langs where lang='en' and text = ${this.table}.${field} 
+          ) limit 1) AS ${field}`, { lang: this.lang }));
+      }
     }
 
     const join = f ? this.join.filter(({ table }) => f.includes(table)) : this.join;
