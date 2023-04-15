@@ -1,6 +1,5 @@
 const check = require('./check');
 const login = require('./login');
-const langs = require('./langs');
 const notes = require('./notes');
 const discord = require('./login/external/discord');
 const facebook = require('./login/external/facebook');
@@ -18,7 +17,6 @@ const twitch = require('./login/external/twitch');
 module.exports = {
   check,
   login,
-  langs,
   notes,
   discord,
   facebook,

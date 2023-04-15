@@ -101,12 +101,16 @@ class TheAPI {
 
   async crud(params = {}) {
     await this.waitDb;
-    return crud({ tableInfo: this.tablesInfo && this.tablesInfo[`${params.table}`], ...params });
+    const t = `${params.schema || 'public'}.${params.table}`;
+    const tableInfo = params.table && this.tablesInfo?.[`${t}`];
+    return crud({ ...(tableInfo && { tableInfo }), ...params });
   }
 
   async koaKnexHelper(params = {}) {
     await this.waitDb;
-    return new KoaKnexHelper({ tableInfo: this.tablesInfo && this.tablesInfo[`${params.table}`], ...params });
+    const t = `${params.schema || 'public'}.${params.table}`;
+    const tableInfo = params.table && this.tablesInfo?.[`${t}`];
+    return new KoaKnexHelper({ ...(tableInfo && { tableInfo }), ...params });
   }
 
   cron(jobs = {}) {
@@ -143,7 +147,11 @@ class TheAPI {
     this.checkToken(jwtSecret);
 
     const flowSynced = await Promise.all(flowOrigin);
-    const flowArray = flowSynced.reduce((acc, cur) => (acc.concat(cur)), []).filter(Boolean);
+    const flowArray = flowSynced.reduce((acc, cur) => {
+      if (!cur) return acc;
+      const fns = [].concat(cur).map((c) => (c.toString().match(/^(async )?\(api\) =>/) ? c(this) : c));
+      return acc.concat(...fns);
+    }, []).filter(Boolean);
     const flow = await Promise.all(flowArray);
 
     const routeErrors = flow.reduce((acc, item) => ({ ...acc, ...item.errors }), {});
@@ -174,8 +182,13 @@ class TheAPI {
       this.app.use(swaggerRoute);
     }
 
-    const accessRaw = await this.db('user_access').select();
-    const userAccess = accessRaw.reduce((cur, acc) => ({ ...cur, [acc.name]: acc.statuses }), {});
+    let userAccess = {};
+    try {
+      const accessRaw = await this.db('user_access').select();
+      userAccess = accessRaw.reduce((cur, acc) => ({ ...cur, [acc.name]: acc.statuses }), {});
+    } catch (err) {
+      this.log(err);
+    }
 
     this.app.use(async (ctx, next) => {
       const { db } = this;
@@ -219,6 +232,7 @@ class TheAPI {
       DB_USER: user,
       DB_PASSWORD: password,
       DB_NAME: database,
+      DB_SCHEMA: schema,
       DB_FILENAME: filename,
       DB_WRITE_CLIENT: clientWrite,
       DB_WRITE_HOST: hostWrite,
@@ -226,11 +240,12 @@ class TheAPI {
       DB_WRITE_USER: userWrite,
       DB_WRITE_PASSWORD: passwordWrite,
       DB_WRITE_NAME: databaseWrite,
+      DB_WRITE_SCHEMA: schemaWrite,
       DB_WRITE_FILENAME: filenameWrite,
     } = process.env;
 
     const connection = client === 'sqlite3' && filename ? { filename } : {
-      host, user, password, database, port: dbPort,
+      host, user, password, database, port: dbPort, ...(schema && { schema }),
     };
 
     const connectionWrite = clientWrite === 'sqlite3' && filenameWrite ? { filename: filenameWrite } : {
@@ -239,6 +254,7 @@ class TheAPI {
       password: passwordWrite,
       database: databaseWrite,
       port: dbPortWrite,
+      ...(schemaWrite && { schema: schemaWrite }),
     };
 
     const knexDefaultParams = { client: 'sqlite3', connection: ':memory:' };
@@ -270,6 +286,10 @@ class TheAPI {
       const migrationSource = new FsMigrations(this.migrationDirs, false);
       await this.dbWrite.migrate.latest({ migrationSource });
       this.log('Migration done');
+
+      const similarityThreshold = process.env.DB_TRGM_SIMILARITY_THRESHOLD || 0.1;
+      await this.db.raw(`SET pg_trgm.similarity_threshold = ${+similarityThreshold}`);
+      await this.dbWrite.raw(`SET pg_trgm.similarity_threshold = ${+similarityThreshold}`);
 
       this.tablesInfo = { ...await getTablesInfo(this.dbWrite) };
       this.log(`Tables found: ${Object.keys(this.tablesInfo)}`);

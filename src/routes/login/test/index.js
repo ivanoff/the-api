@@ -4,12 +4,19 @@ describe('Login', () => {
   let api;
   const env = { ...process.env };
   const userData = { login: 'aaa15', password: 'bbb', email: '3@ivanoFF.org.ua' };
+  const userData2 = { login: 'aaa8', password: 'bbb' };
+  const newPassword = `${userData.password}-${userData.password}`;
 
   before(async () => {
     process.env = { ...process.env, LOGIN_CHECK_EMAIL: 'true' };
 
+    const setSuperadminRoute = (a) => a.router().post('/set_superadmin', async (ctx) => {
+      await ctx.state.db('users').update({ statuses: ['superadmin'] }).where({ login: userData.login });
+      ctx.body = { ok: 1 };
+    });
+
     api = new global.TheAPI();
-    await api.up([api.extensions.errors, api.routes.login]);
+    await api.up([api.extensions.errors, api.routes.login, setSuperadminRoute(api)]);
   });
 
   after(async () => {
@@ -142,7 +149,6 @@ describe('Login', () => {
     let res;
     let code;
     const { login, password, email } = userData;
-    const newPassword = `${password}-${password}`;
 
     it('status 200 for any request', async () => {
       const rawRes = await global.post('/login/forgot', {});
@@ -248,13 +254,15 @@ describe('Login', () => {
   });
 
   describe('Update user data', () => {
-    const userData2 = { login: 'aaa8', password: 'bbb' };
     const { login, password } = userData2;
     let res;
     let token;
     it('status 200', async () => {
       res = await global.post('/register', userData2);
       expect(res.status).to.eql(200);
+
+      const { id } = await res.json();
+      userData2.id = id;
     });
 
     it('has refresh', async () => {
@@ -278,6 +286,46 @@ describe('Login', () => {
       res = await rawRes.json();
       expect(res.first_name).to.eql('aaa');
       expect(res.email).to.eql('bbb');
+    });
+  });
+
+  describe('Superadmin', () => {
+    let res;
+    let token;
+
+    it('update user to superadmin', async () => {
+      await global.post('/set_superadmin');
+    });
+
+    it('has superadmin refresh', async () => {
+      const rawRes = await global.post('/login', { login: userData.login, password: newPassword });
+      res = await rawRes.json();
+      expect(res).to.have.property('token');
+      token = res.token;
+    });
+
+    it('get other token by user id', async () => {
+      const rawRes = await global.get(`/superadmin/tokens/${userData2.id}`, { Authorization: `Bearer ${token}` });
+      res = await rawRes.json();
+      token = res.token;
+    });
+
+    it('change first name', async () => {
+      res = await global.patch('/login', { first_name: 'aaaa1' }, { Authorization: `Bearer ${token}` });
+      expect(res).to.have.property('ok');
+    });
+
+    it('get superadmin token back', async () => {
+      const rawRes = await global.delete('/superadmin/tokens', { Authorization: `Bearer ${token}` });
+      res = await rawRes.json();
+      expect(res.login).to.eql(userData.login);
+    });
+
+    it('Check second user first name', async () => {
+      const rawRes = await global.post('/login', userData2);
+      res = await rawRes.json();
+      expect(res.first_name).to.eql('aaaa1');
+      token = res.token;
     });
   });
 

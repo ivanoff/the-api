@@ -131,6 +131,7 @@ DB_PORT | DB port |
 DB_USER | DB user | login |
 DB_PASSWORD | DB password | password |
 DB_NAME | database name | the_api_db
+DB_SCHEMA | database schema, optional | public
 DB_FILENAME | sqlite3 DB filename | ./sqlite.db
 
 DB write instance options for knex
@@ -143,6 +144,7 @@ DB_WRITE_PORT | DB port |
 DB_WRITE_USER | DB user | login |
 DB_WRITE_PASSWORD | DB password | password |
 DB_WRITE_NAME | database name | the_api_db
+DB_WRITE_SCHEMA | database schema, optional | public
 DB_WRITE_FILENAME | sqlite3 DB filename | ./sqlite.db
 
 ### Login Module
@@ -158,6 +160,11 @@ EMAIL_HOST | email server | smtp.server |
 EMAIL_PORT | email port | 587 |
 EMAIL_SECURE | nodemailer secure option | true, false |
 EMAIL_TLS_REJECTUNAUTH | nodemailer rejectUnauthorized option | true, false |
+
+### Sentry DSN
+name | description | example | default value
+-----|-------------|---------|--------------
+ERRORS_SENTRY_DSN | dsn of Sentry | https://b94116e6a9e24065bd8353e42e8a885a@o4504812935243920.ingest.sentry.io/4504812938299040 |
 
 ## Helpers
 
@@ -198,6 +205,7 @@ Implement REST endpoinds for KOA and Knex. Main features:
 - .get return selected fields (GET /ship?_fields=id,name)
 - .get searching (GET /ship?name=Item%20name&category_id=3)
 - .get searching by from/to (GET /ship?_from_date=2001&_to_date=2011)
+- .get where not searching: /ships?_fields=title&title!=main
 - .get ilike searching (GET /ship?name~=%25Item%25)
 - .get searching by array (GET /ship?category_id[]=3&category_id[]=5)
 - .get null searching (GET /ship?category_id[]=null)

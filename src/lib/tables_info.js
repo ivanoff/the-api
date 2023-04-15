@@ -4,23 +4,23 @@ module.exports = async (db) => {
 
   switch (db.client.constructor.name) {
     case 'Client_MSSQL':
-      query = 'SELECT table_name FROM information_schema.tables WHERE table_schema = \'public\' AND table_catalog = ?';
+      query = 'SELECT table_schema, table_name FROM information_schema.tables WHERE table_schema = \'public\' AND table_catalog = ?';
       break;
     case 'Client_MySQL':
     case 'Client_MySQL2':
-      query = 'SELECT table_name FROM information_schema.tables WHERE table_schema = ?';
+      query = 'SELECT table_schema, table_name FROM information_schema.tables WHERE table_schema = ?';
       break;
     case 'Client_Oracle':
     case 'Client_Oracledb':
-      query = 'SELECT table_name FROM user_tables';
+      query = 'SELECT table_schema, table_name FROM user_tables';
       bindings = undefined;
       break;
     case 'Client_PG':
-      query = 'SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema()';
+      query = `SELECT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema')`;
       bindings = undefined;
       break;
     case 'Client_SQLite3':
-      query = `SELECT name AS table_name FROM sqlite_master WHERE type='table'`;
+      query = `SELECT '' as table_schema, name AS table_name FROM sqlite_master WHERE type='table'`;
       bindings = undefined;
       break;
     default:
@@ -71,16 +71,17 @@ module.exports = async (db) => {
   }
 
   const result = {};
-  await Promise.all(tables.map(async ({ table_name }) => {
+  await Promise.all(tables.map(async ({ table_schema, table_name }) => {
+    const tableWithSchema = `${table_schema}.${table_name}`;
     if (db.client.constructor.name === 'Client_PG') {
-      const columnInfo = await db.raw('select * from information_schema.columns where table_name = ? and table_schema = current_schema()', table_name);
-      result[`${table_name}`] = columnInfo.rows.reduce((acc, cur) => ({ ...acc, [cur.column_name]: cur }), {});
+      const columnInfo = await db.raw('select * from information_schema.columns where table_name = :table_name and table_schema = :table_schema', { table_name, table_schema });
+      result[`${tableWithSchema}`] = columnInfo.rows.reduce((acc, cur) => ({ ...acc, [cur.column_name]: cur }), {});
 
-      for (const key of Object.keys(result[`${table_name}`])) {
-        result[`${table_name}`][`${key}`].references = references.find((item) => item.table_name === table_name && item.column_name === key);
+      for (const key of Object.keys(result[`${tableWithSchema}`])) {
+        result[`${tableWithSchema}`][`${key}`].references = references.find((item) => item.table_name === table_name && item.column_name === key);
       }
     } else {
-      result[`${table_name}`] = await db(table_name).columnInfo();
+      result[`${tableWithSchema}`] = await db(table_name).withSchema(table_schema).columnInfo();
     }
   }));
   return result;

@@ -14,6 +14,8 @@ describe('CRUD', () => {
 
     const flags = await api.crud({
       table: 'flags',
+      searchFields: ['name', 'country'],
+      defaultSort: '-name',
     });
 
     const securedFlags = await api.crud({
@@ -68,7 +70,7 @@ describe('CRUD', () => {
       await global.post('/flags', { name: 'flag3' }, { Authorization: `Bearer ${token}` });
       await global.post('/flags', { name: 'flag2' }, { Authorization: `Bearer ${token}` });
       await global.post('/flags', { name: 'flag4' }, { Authorization: `Bearer ${token}` });
-      await global.post('/flags', { name: 'xflag' }, { Authorization: `Bearer ${token}` });
+      await global.post('/flags', { name: 'xflag', country: 'France' }, { Authorization: `Bearer ${token}` });
     });
   });
 
@@ -85,10 +87,34 @@ describe('CRUD', () => {
       expect(data).to.deep.equal([{ name: 'flag3' }, { name: 'flag2' }]);
     });
 
+    it('notWhere search, sort, fields and offset', async () => {
+      res = await global.get('/flags?name!=xflag&_sort=name&_fields=name&_limit=2');
+      const { data } = await res.json();
+      expect(data).to.deep.equal([{ name: 'flag1' }, { name: 'flag2' }]);
+    });
+
     it('iLike search, sort, fields, pagination and offset', async () => {
       res = await global.get('/flags?name~=FLAG%25&_sort=-name&_fields=name&_skip=1&_page=2&_limit=2');
       const { data } = await res.json();
       expect(data).to.deep.equal([{ name: 'flag1' }]);
+    });
+
+    it('search for flug3', async () => {
+      res = await global.get('/flags?_search=flug3');
+      const { data } = await res.json();
+      expect(data[0].name).to.equal('flag3');
+    });
+
+    it('search for flg1, sort overriding', async () => {
+      res = await global.get('/flags?_search=flg1&_sort=-name');
+      const { data } = await res.json();
+      expect(data[0].name).to.equal('flag4');
+    });
+
+    it('search for france', async () => {
+      res = await global.get('/flags?_search=franse');
+      const { data } = await res.json();
+      expect(data[0].name).to.equal('xflag');
     });
 
     it('random sort', async () => {

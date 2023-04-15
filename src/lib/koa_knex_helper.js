@@ -7,6 +7,7 @@ class KoaKnexHelper {
   constructor({
     ctx,
     table,
+    schema,
     aliases,
     join,
     leftJoin,
@@ -14,6 +15,7 @@ class KoaKnexHelper {
     translate,
     hiddenFieldsByStatus,
     forbiddenFieldsToAdd,
+    searchFields,
     required,
     defaultWhere,
     defaultSort,
@@ -29,6 +31,7 @@ class KoaKnexHelper {
   } = {}) {
     this.ctx = ctx;
     this.table = table;
+    this.schema = schema || 'public';
     this.aliases = aliases || {};
     this.join = join || [];
     this.leftJoin = leftJoin || [];
@@ -45,6 +48,7 @@ class KoaKnexHelper {
     this.access = access || {};
     this.accessByStatuses = accessByStatuses || {};
     this.hiddenColumns = [];
+    this.searchFields = searchFields || [];
     this.tableInfo = tableInfo || {};
     this.deletedReplacements = deletedReplacements;
     this.includeDeleted = typeof includeDeleted === 'boolean' ? includeDeleted : !!this.deletedReplacements;
@@ -52,6 +56,17 @@ class KoaKnexHelper {
     this.hiddenColumns.map((item) => delete this.tableInfo[`${item}`]);
     this.coaliseWhere = {};
     this.cache = cache;
+  }
+
+  getDbWithSchema(ctx) {
+    const result = ctx.state.db(this.table);
+    if (this.schema) result.withSchema(this.schema);
+    return result;
+  }
+
+  getTableRows(ctx) {
+    const { tablesInfo } = ctx.state;
+    return tablesInfo[`${this.schema}.${this.table}`] || {};
   }
 
   sort(sort, db) {
@@ -81,6 +96,8 @@ class KoaKnexHelper {
       if (key.match(/~$/)) {
         // iLike
         this.res.where(key.replace(/~$/, ''), 'ilike', value);
+      } else if (key.match(/!$/)) {
+        this.res.whereNot(key.replace(/!$/, ''), value);
       } else if (key.match(/^_null_/)) {
         const m = key.match(/^_null_(.+)$/);
         this.res.whereNull(m[1]);
@@ -163,7 +180,7 @@ class KoaKnexHelper {
 
     const join = f ? this.join.filter(({ table }) => f.includes(table)) : this.join;
     for (const {
-      table, as, where, whereBindings, alias, fields, field, limit, orderBy, byIndex,
+      table, schema, as, where, whereBindings, alias, fields, field, limit, orderBy, byIndex,
     } of join) {
       const orderByStr = orderBy ? `ORDER BY ${orderBy}` : '';
       const limitStr = limit ? `LIMIT ${limit}` : '';
@@ -183,9 +200,10 @@ class KoaKnexHelper {
       }
 
       const index = typeof byIndex === 'number' ? `[${byIndex}]` : '';
+      const schemaStr = !schema ? '' : `"${schema}".`;
 
       const coaliseWhere = `COALESCE( ( SELECT ${f3} FROM (
-        SELECT * FROM "${table}" AS "${as || table}"
+        SELECT * FROM ${schemaStr}"${table}" AS "${as || table}"
         WHERE ${where} ${lang}
         ${orderByStr}
         ${limitStr}
@@ -204,6 +222,11 @@ class KoaKnexHelper {
       joinCoaleise.push(db.raw(sqlToJoin, wb));
     }
 
+    if (ctx.request.query._search && this.searchFields.length) {
+      const searchColumnsStr = this.searchFields.map((name) => `COALESCE(${name} <-> :_search, 1)`).join(' + ');
+      joinCoaleise.push(db.raw(`(${searchColumnsStr})/${this.searchFields.length} as _search_distance`, ctx.request.query));
+    }
+
     this.res.column(joinCoaleise);
   }
 
@@ -214,11 +237,11 @@ class KoaKnexHelper {
 
   async isFullAccess({ ctx, where, method }) {
     if (!this.access[`${method}`] && !this.accessByStatuses[`${method}`]) return;
-    const { db, tablesInfo, token } = ctx.state;
-    const rows = tablesInfo[this.table] || {};
+    const { token } = ctx.state;
+    const rows = this.getTableRows(ctx);
     let isOwner = false;
     if (where && rows.user_id) {
-      isOwner = await db(this.table).where({ ...where, user_id: token.id }).first();
+      isOwner = await this.getDbWithSchema(ctx).where({ ...where, user_id: token.id }).first();
     }
     await userAccess({
       ctx, isOwner, name: this.access[`${method}`], statuses: this.accessByStatuses[`${method}`],
@@ -245,6 +268,7 @@ class KoaKnexHelper {
  * - skip 100 records, get next 10 records: /ships?_skip=100&_limit=10
  * - search by id and title: /ships?_fields=title&id=2&title=second data
  * - search by multiply ids: /ships?_fields=id&id=1&id=3
+ * - search where not: /ships?_fields=title&title!=_e%25 d_ta
  * - search by 'like' mask: /ships?_fields=title&title~=_e%25 d_ta
  * - search from-to: /ships?_from_year=2010&_to_year=2020
  */
@@ -283,6 +307,7 @@ class KoaKnexHelper {
       _limit: 'integer',
       _page: 'integer',
       _skip: 'integer',
+      ...(this.searchFields.length && { _search: 'string' }),
     };
     return {
       tokenRequired: this.tokenRequired.get || this.access.read || this.accessByStatuses.read,
@@ -301,18 +326,16 @@ class KoaKnexHelper {
 
     await this.isFullAccess({ ctx, method: 'read' });
 
-    const {
-      db, tablesInfo, token,
-    } = ctx.state;
+    const { db, token } = ctx.state;
     this.token = token;
 
     const {
-      _fields, _sort, _page, _skip, _limit, _lang, _isNull, _or, ...where
+      _fields, _sort, _page, _skip, _limit, _lang, _isNull, _or, _search, ...where
     } = ctx.request.query;
 
     if (_lang) this.lang = _lang;
-    this.rows = tablesInfo[this.table] || {};
-    this.res = db(this.table);
+    this.rows = this.getTableRows(ctx);
+    this.res = this.getDbWithSchema(ctx);
 
     const { user_id } = await this.res.clone().first() || {};
     this.isOwner = token?.id && token.id === user_id;
@@ -323,6 +346,15 @@ class KoaKnexHelper {
     this.fields({ ctx, _fields, db });
 
     this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => ({ ...acc, [`${cur}`]: val }), {}));
+
+    if (_search && this.searchFields.length) {
+      const whereStr = this.searchFields.map((name) => `${name} % :_search`).join(' OR ');
+      this.res.andWhere(function () {
+        this.whereRaw(whereStr, { _search });
+      });
+      if (!_sort) this.res.orderBy('_search_distance', 'ASC');
+    }
+
     this.checkDeleted();
 
     const total = +(await db.from({ w: this.res }).count('*'))[0].count;
@@ -353,7 +385,7 @@ class KoaKnexHelper {
 
     await this.isFullAccess({ ctx, method: 'read' });
 
-    const { db, tablesInfo, token } = ctx.state;
+    const { db, token } = ctx.state;
     const { id } = ctx.params;
 
     const {
@@ -370,8 +402,8 @@ class KoaKnexHelper {
     this.token = token;
     this.lang = _lang;
 
-    this.rows = tablesInfo[this.table] || {};
-    this.res = db(this.table);
+    this.rows = this.getTableRows(ctx);
+    this.res = this.getDbWithSchema(ctx);
 
     if (_or) this.res.where(function () { [].concat(_or).map((key) => this.orWhere(key)); });
     this.where({ ...where, [`${this.table}.id`]: id });
@@ -392,9 +424,9 @@ class KoaKnexHelper {
   }
 
   updateData(ctx, data) {
-    const { tablesInfo, token } = ctx.state;
+    const { token } = ctx.state;
     let result = { ...data };
-    const rows = tablesInfo[this.table] || {};
+    const rows = this.getTableRows(ctx);
 
     for (const [key, error_code] of Object.entries(this.required)) {
       if (!result[`${key}`]) throw new Error(error_code);
@@ -407,7 +439,7 @@ class KoaKnexHelper {
     result = { ...ctx.params, ...result };
 
     for (const r of Object.keys(result)) {
-      if (rows[`${r}`] && result[`${r}`]) continue;
+      if (rows[`${r}`] && typeof result[`${r}`] !== 'undefined') continue;
       delete result[`${r}`];
     }
 
@@ -439,8 +471,6 @@ class KoaKnexHelper {
 
     await this.isFullAccess({ ctx, method: 'create' });
 
-    const { db } = ctx.state;
-
     const bodyKeys = Object.keys(ctx.request.body);
     const looksLikeArray = bodyKeys.length && bodyKeys.every((j, i) => i === +j);
     const body = looksLikeArray ? Object.values(ctx.request.body) : ctx.request.body;
@@ -449,10 +479,10 @@ class KoaKnexHelper {
 
     Object.keys(data).map((key) => (data[`${key}`] = data[`${key}`] ?? null));
 
-    let result = await db(this.table).insert(data).returning('*');
+    let result = await this.getDbWithSchema(ctx).insert(data).returning('*');
 
     // SQLite fix
-    if (Number.isInteger(result[0])) result = db(this.table).where({ id: result[0] });
+    if (Number.isInteger(result[0])) result = this.getDbWithSchema(ctx).where({ id: result[0] });
 
     return result[0];
   }
@@ -478,9 +508,9 @@ class KoaKnexHelper {
     if (this.ownerRequired.update) await checkOwnerToken(ctx);
     if (this.rootRequired.update) await checkRootToken(ctx);
 
-    const { db, tablesInfo, token } = ctx.state;
+    const { db, token } = ctx.state;
     const where = { ...ctx.params };
-    const rows = tablesInfo[this.table] || {};
+    const rows = this.getTableRows(ctx);
 
     let needToCheckUserId = rows.user_id && token.id !== -1;
     if (await this.isFullAccess({ ctx, where, method: 'update' })) needToCheckUserId = false;
@@ -497,7 +527,7 @@ class KoaKnexHelper {
 
     if (rows.time_updated) data.time_updated = db.fn.now();
 
-    await db(this.table).update(data).where(where);
+    await this.getDbWithSchema(ctx).update(data).where(where);
     return this.getById({ ctx });
   }
 
@@ -516,9 +546,9 @@ class KoaKnexHelper {
     if (this.ownerRequired.delete) await checkOwnerToken(ctx);
     if (this.rootRequired.delete) await checkRootToken(ctx);
 
-    const { db, tablesInfo, token } = ctx.state;
+    const { token } = ctx.state;
     const where = { ...ctx.params };
-    const rows = tablesInfo[this.table] || {};
+    const rows = this.getTableRows(ctx);
 
     let needToCheckUserId = rows.user_id && token.id !== -1;
     if (await this.isFullAccess({ ctx, where, method: 'delete' })) needToCheckUserId = false;
@@ -527,7 +557,7 @@ class KoaKnexHelper {
     if (needToCheckUserId) where.user_id = token.id;
     else delete where.user_id;
 
-    const t = db(this.table).where(where);
+    const t = this.getDbWithSchema(ctx).where(where);
     return rows.deleted ? t.update({ deleted: true }) : t.delete();
   }
 }

@@ -1,8 +1,24 @@
+const Sentry = require('@sentry/node');
 const errors = require('./list');
 
 const url = 'https://server/api/errors';
 
+const { ERRORS_SENTRY_DSN } = process.env;
+const hasSentry = !!ERRORS_SENTRY_DSN;
+
+if (hasSentry) {
+  Sentry.init({
+    dsn: ERRORS_SENTRY_DSN,
+    tracesSampleRate: 1.0,
+  });
+}
+
 module.exports = async (ctx, next) => {
+  const sentryTransaction = hasSentry && Sentry.startTransaction({
+    op: 'request',
+    name: ctx.url,
+  });
+
   try {
     ctx.throw = (err, ...arr) => {
       ctx.state.additionalErrors = arr;
@@ -34,5 +50,9 @@ module.exports = async (ctx, next) => {
     };
 
     ctx.state.log(error);
+
+    if (hasSentry) Sentry.captureException(errorObj);
+  } finally {
+    if (sentryTransaction) sentryTransaction.finish();
   }
 };

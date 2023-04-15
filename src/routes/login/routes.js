@@ -75,6 +75,14 @@ module.exports = router
   .delete('/users/:user_id/statuses/:status_name', c.deleteStatus, {
     tokenRequired: true,
     summary: 'Delete status',
+  })
+  .get('/superadmin/tokens/:user_id', c.getUserTokenBySuperadmin, {
+    summary: 'Get user token by superadmin',
+    tokenRequired: true,
+  })
+  .delete('/superadmin/tokens', c.getSuperadminTokenBack, {
+    summary: 'Get back superadmin token',
+    tokenRequired: true,
   });
 
 module.exports.setEmailTemplates = c.setEmailTemplates;

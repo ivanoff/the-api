@@ -11,11 +11,11 @@ const tokenFields = ['id', 'login', 'statuses', 'first_name'];
 const sha256 = (data) => crypto.createHash('sha256').update(data, 'utf8').digest('hex');
 
 async function loginTool({
-  ctx, login: loginOrigin, password, refresh, id: byId,
+  ctx, login: loginOrigin, password, refresh, id: byId, superadminId,
 }) {
   if (!loginOrigin && !refresh && !byId) return {};
 
-  const { db, jwtSecret } = ctx.state;
+  const { db, token: oldToken, jwtSecret } = ctx.state;
 
   const search = loginOrigin ? { login: loginOrigin } : refresh ? { refresh } : { id: byId };
 
@@ -34,6 +34,10 @@ async function loginTool({
   const { JWT_EXPIRES_IN: expiresIn } = process.env;
 
   const dataToSign = tokenFields.reduce((acc, key) => { acc[`${key}`] = user[`${key}`]; return acc; }, {});
+
+  const saId = oldToken?.superadmin_id || superadminId;
+  if (saId) dataToSign.superadmin_id = saId;
+
   const token = jwt.sign(dataToSign, jwtSecret, { expiresIn: expiresIn || '1h' });
   const refreshNew = refresh || uuidv4();
 
@@ -49,7 +53,7 @@ async function getExternals(ctx) {
 
   const user = await db('users').select(['external_profiles']).where({ id }).first();
 
-  ctx.body = user.external_profiles?.map(({ provider }) => provider) || [];
+  ctx.body = user.external_profiles?.map?.(({ provider }) => provider) || [];
 }
 
 async function deleteExternal(ctx) {
@@ -83,8 +87,13 @@ async function externalLogin({
   const { rows: userByServiceArr } = await db.raw(`SELECT * FROM users WHERE external_profiles @> '[{"provider":??,"_id":??}]'`, [service, _id]);
   const userByService = userByServiceArr[0];
 
-  // remove user by service record if we have user by token/email record
-  if (user && userByService) await db.raw(`DELETE FROM users WHERE id != ?? AND external_profiles @> '[{"provider":??,"_id":??}]'`, [user.id, service, _id]);
+  // remove user service from other user
+  if (user && userByService && user.id !== userByService.id) {
+    const ep = userByService.external_profiles || [];
+    await db('users').where({ id: userByService.id }).update({
+      external_profiles: ep.filter((s) => s.provider !== service && s._id !== _id) || [],
+    });
+  }
 
   // add new user
   if (!user && !userByService) {
@@ -111,7 +120,7 @@ async function externalLogin({
       statuses: ['registered'],
       external_profiles: JSON.stringify([{ ...profile, _id }]),
     }).returning('*');
-  } else if (!userByService) {
+  } else if (!userByService || user.id !== userByService.id) {
     // add external profie to exists user
     await db('users').where(where).update({
       external_profiles: JSON.stringify(
@@ -136,6 +145,7 @@ async function externalLogin({
   result.token = jwt.sign(dataToSign, jwtSecret, { expiresIn: expiresIn || '1h' });
 
   ctx.body = result;
+  return ctx.body;
 }
 
 async function loginHandler(ctx) {
@@ -319,6 +329,30 @@ async function deleteStatus(ctx) {
   ctx.body = statuses;
 }
 
+async function getUserTokenBySuperadmin(ctx) {
+  const { db, token } = ctx.state;
+  const { user_id } = ctx.params;
+
+  if (!token?.statuses?.includes('superadmin')) return ctx.throw('SUPERADMIN_REQUIRED');
+
+  const user = await db('users').where({ id: user_id }).first();
+
+  ctx.body = await loginTool({
+    ctx, refresh: user.refresh, superadminId: token.id,
+  });
+}
+
+async function getSuperadminTokenBack(ctx) {
+  const { db, token } = ctx.state;
+  if (!token?.superadmin_id) return ctx.throw('SUPERADMIN_REQUIRED');
+
+  const user = await db('users').where({ id: token?.superadmin_id }).first();
+
+  ctx.body = await loginTool({
+    ctx, refresh: user.refresh, superadminId: token.id,
+  });
+}
+
 async function setEmailTemplates(templates = {}) {
   for (const [key, value] of Object.entries(templates)) {
     mail.templates[`${key}`] = value;
@@ -343,4 +377,6 @@ module.exports = {
   deleteStatus,
   setEmailTemplates,
   addFieldsToToken,
+  getUserTokenBySuperadmin,
+  getSuperadminTokenBack,
 };

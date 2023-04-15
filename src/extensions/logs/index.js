@@ -6,10 +6,12 @@ const {
 } = process.env;
 
 module.exports = async (ctx, next) => {
+  const { method, url: u } = ctx;
+  const url = u.replace(/\?.*$/, '');
   const id = Math.random().toString(36).substring(2, 10);
 
   ctx.state = {
-    ...ctx.state, id, name, version,
+    ...ctx.state, id, name, version, method, url,
   };
 
   ctx.state.log = simpleLog(ctx);
@@ -20,6 +22,12 @@ module.exports = async (ctx, next) => {
     ip, query, files, body: bodyOrigin,
   } = ctx.request;
 
+  const { state: { token } } = ctx;
+  const user = token && {
+    id: token.id,
+    login: token.login,
+  };
+
   const body = { ...bodyOrigin };
   if (body.password) body.password = '<hidden>';
 
@@ -27,7 +35,7 @@ module.exports = async (ctx, next) => {
   if (headers.authorization) headers.authorization = '<hidden>';
 
   ctx.state.log('start', {
-    ip, params, query, headers, body, files,
+    ip, user, params, query, headers, body, files,
   });
 
   await next();

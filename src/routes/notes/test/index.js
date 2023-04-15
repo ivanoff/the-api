@@ -169,7 +169,7 @@ describe('Notes', () => {
     let res;
     let data;
 
-    it('status 200', async () => {
+    it('filter, status 200', async () => {
       res = await global.get('/notes/1/data?body=Hi2');
       expect(res.status).to.eql(200);
     });

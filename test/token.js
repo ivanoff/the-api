@@ -9,10 +9,13 @@ describe('Token and Cron', () => {
   before(async () => {
     api = new global.TheAPI();
     process.env = { ...process.env, JWT_EXPIRES_IN: '1300ms' };
-    const { logs, errors, access } = api.extensions;
+    const {
+      logs, errors, access, sluggish,
+    } = api.extensions;
     const { login, check } = api.routes;
 
     await api.up([
+      sluggish,
       logs,
       errors,
       login,
