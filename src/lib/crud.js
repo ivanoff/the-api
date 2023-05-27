@@ -18,7 +18,7 @@ const buildRelations = require('./relations');
 
 module.exports = async (params) => {
   const {
-    table, prefix, tag, relations, responseSchema, forbiddenActions = [],
+    table, schema, prefix, tag, relations, responseSchema, forbiddenActions = [],
   } = params;
 
   const add = async (ctx) => {
@@ -57,7 +57,7 @@ module.exports = async (params) => {
 
   router.prefix(p)
     .tag(tag || table)
-    .responseSchema(responseSchema || table);
+    .responseSchema(responseSchema || `${schema || 'public'}.${table}`);
 
   const helper = new KoaKnexHelper(params);
   if (!forbiddenActions.includes('create')) router.post('/', add, helper.optionsAdd());

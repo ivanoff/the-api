@@ -52,8 +52,8 @@ class RouterHandler extends Router {
     return this;
   }
 
-  responseSchema(schemaName) {
-    this.currentSchema = schemaName;
+  responseSchema(tabbleName) {
+    this.currentTableName = tabbleName;
     return this;
   }
 
@@ -63,7 +63,7 @@ class RouterHandler extends Router {
       let o = hasMiddleware ? options : middleWare;
       const cb = (t === 'get' && o?.cache) ? getWithCache(cbOrigin, o?.cache) : cbOrigin;
       if (!o?.tag) o = { ...o, tag: this.currentTag };
-      if (this.currentSchema) o = { ...o, currentSchema: this.currentSchema };
+      if (this.currentTableName) o = { ...o, currentTableName: this.currentTableName };
       if (this._tokenRequired) o = { ...o, tokenRequired: this._tokenRequired };
       const p = `${this._prefix}${path}`.replace(/\/+$/, '') || '/';
       const current = this.swagger[`${p}`] || {};

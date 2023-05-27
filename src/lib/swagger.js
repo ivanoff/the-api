@@ -37,8 +37,8 @@ module.exports = ({
 
     paths += `  ${p}:\n`;
     for (const [r1, r2 = {}] of Object.entries(r)) {
-      if (r2.currentSchema) {
-        tablesInfo[`${r2.currentSchema}`] = { ...tablesInfo[`${r2.currentSchema}`], ...r2.joinFields };
+      if (r2.currentTableName) {
+        tablesInfo[`${r2.currentTableName}`] = { ...tablesInfo[`${r2.currentTableName}`], ...r2.joinFields };
       }
 
       const hasFileType = Object.values(r2?.schema || {}).some((type) => type === 'file' || type.data_type === 'file');
@@ -88,11 +88,11 @@ module.exports = ({
         }
       }
       paths += '      responses:\n        "200":\n          description: "Ok"\n';
-      if (r2.currentSchema && p !== 'delete') {
+      if (r2.currentTableName && p !== 'delete') {
         paths += '          schema:\n';
         if (p === 'get' && !pathParameters.length) paths += '            type: "array"\n';
         paths += '            items:\n';
-        paths += `              $ref: "#/definitions/${r2.currentSchema}"\n`;
+        paths += `              $ref: "#/definitions/${r2.currentTableName}"\n`;
       }
       const uniqueStatuses = { 200: true };
       for (const resp of (r2.responses || [])) {
@@ -107,7 +107,7 @@ module.exports = ({
 
   let definitions = `definitions:\n`;
   for (const [tableName, t] of Object.entries({ ...tablesInfo, ...tablesInfoAdditional })) {
-    if (tableName.match(/^knex_/)) continue;
+    if (tableName.match(/^public\.knex_/)) continue;
 
     definitions += `  ${tableName}:\n    type: "object"\n    properties:\n`;
 
