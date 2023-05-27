@@ -182,6 +182,10 @@ class KoaKnexHelper {
     for (const {
       table, schema, as, where, whereBindings, alias, fields, field, limit, orderBy, byIndex,
     } of join) {
+      if (!table && field) {
+        joinCoaleise.push(db.raw(`${field} AS ${alias || field}`));
+        continue;
+      }
       const orderByStr = orderBy ? `ORDER BY ${orderBy}` : '';
       const limitStr = limit ? `LIMIT ${limit}` : '';
       const lang = table === 'lang' && this.lang && this.lang.match(/^\w{2}$/) ? `AND lang='${this.lang}'` : '';
