@@ -44,5 +44,7 @@ module.exports = async (ctx, next) => {
   if (result.token) result.token = '<hidden>';
   if (result.refresh) result.refresh = '<hidden>';
 
-  ctx.state.log(ctx.response, result, 'end');
+  const r = process.env.LOGS_SHOW_RESPONSE_SIZE_ONLY ? `${JSON.stringify(result).length}b` : result;
+
+  ctx.state.log(ctx.response, r, 'end');
 };
