@@ -89,7 +89,8 @@ async function externalLogin({
 
   // remove user service from other user
   if (user && userByService && user.id !== userByService.id) {
-    const ep = userByService.external_profiles || [];
+    const extProfiles = userByService.external_profiles;
+    const ep = Array.isArray(extProfiles) ? extProfiles : [];
     await db('users').where({ id: userByService.id }).update({
       external_profiles: ep.filter((s) => s.provider !== service && s._id !== _id) || [],
     });
@@ -120,7 +121,7 @@ async function externalLogin({
       statuses: ['registered'],
       external_profiles: JSON.stringify([{ ...profile, _id }]),
     }).returning('*');
-  } else if (!userByService || user.id !== userByService.id) {
+  } else if (!userByService || (user && user.id !== userByService.id)) {
     // add external profie to exists user
     await db('users').where(where).update({
       external_profiles: JSON.stringify(
