@@ -18,7 +18,7 @@ module.exports = async ({ ctx, relations }) => {
     const name = definition.relation_field_name || 'id';
     ctx.request.query = { [name]: id };
     const { data } = await helper.get({
-      ctx: { ...ctx, request: { ...ctx.request, query: { id } } },
+      ctx: { ...ctx, request: { ...ctx.request, query: { [name]: id } } },
     });
     ctx.request.query = query;
 
