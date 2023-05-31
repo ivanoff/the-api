@@ -48,4 +48,11 @@ module.exports = {
     name: 'Wrong password',
     description: 'Password is wrong. Please check it or restore your password',
   },
+
+  SUPERADMIN_REQUIRED: {
+    code: 1037,
+    status: 409,
+    name: 'Login required',
+    description: 'Superadmin Login required',
+  },
 };

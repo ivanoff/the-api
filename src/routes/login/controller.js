@@ -338,6 +338,11 @@ async function getUserTokenBySuperadmin(ctx) {
 
   const user = await db('users').where({ id: user_id }).first();
 
+  if (!user.refresh) {
+    user.refresh = uuidv4();
+    await db('users').update({ refresh: user.refresh }).where({ id: user_id });
+  }
+
   ctx.body = await loginTool({
     ctx, refresh: user.refresh, superadminId: token.id,
   });
