@@ -15,7 +15,8 @@ module.exports = async ({ ctx, relations }) => {
     const id = [...new Set(Object.entries(flatData).map(matchPath).filter(Boolean))];
     if (!id.length) return;
 
-    ctx.request.query = { id };
+    const name = definition.relation_field_name || 'id';
+    ctx.request.query = { [name]: id };
     const { data } = await helper.get({
       ctx: { ...ctx, request: { ...ctx.request, query: { id } } },
     });
