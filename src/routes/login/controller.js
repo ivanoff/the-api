@@ -92,7 +92,9 @@ async function externalLogin({
     const extProfiles = userByService.external_profiles;
     const ep = Array.isArray(extProfiles) ? extProfiles : [];
     await db('users').where({ id: userByService.id }).update({
-      external_profiles: ep.filter((s) => s.provider !== service && s._id !== _id) || [],
+      external_profiles: JSON.stringify(
+        ep.filter((s) => s.provider !== service && s._id !== _id) || [],
+      ),
     });
   }
 
