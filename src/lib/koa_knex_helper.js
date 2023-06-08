@@ -55,6 +55,7 @@ class KoaKnexHelper {
     this.updateHiddenColumns();
     this.hiddenColumns.map((item) => delete this.tableInfo[`${item}`]);
     this.coaliseWhere = {};
+    this.coaliseWhereReplacements = {};
     this.cache = cache;
   }
 
@@ -122,7 +123,7 @@ class KoaKnexHelper {
         this.res.whereNull(key);
       } else if (this.coaliseWhere[`${key}`]) {
         const coaliseWhere = this.coaliseWhere[`${key}`];
-        this.res.whereRaw(`${coaliseWhere} = ?`, [value]);
+        this.res.whereRaw(`${coaliseWhere} = :_value`, { ...this.coaliseWhereReplacements, _value: value });
       } else if (this.leftJoin && !key.includes('.')) {
         this.res.where({ [`${this.table}.${key}`]: value });
       } else {
@@ -214,6 +215,7 @@ class KoaKnexHelper {
       ) ${as || table})${index}, NULL)`;
 
       this.coaliseWhere = { ...this.coaliseWhere, [`${alias || table}`]: coaliseWhere };
+      this.coaliseWhereReplacements = { ...this.coaliseWhereReplacements, ...wb };
 
       let sqlToJoin = `${coaliseWhere} AS "${alias || table}"`;
       if (this.includeDeleted && this.deletedReplacements) {
