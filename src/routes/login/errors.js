@@ -55,4 +55,40 @@ module.exports = {
     name: 'Login required',
     description: 'Superadmin Login required',
   },
+
+  OAUTH2_CLIENT_NOT_FOUND: {
+    code: 1041,
+    status: 404,
+    name: 'Client not found',
+  },
+
+  OAUTH2_INVALID_REDIRECT_URI: {
+    code: 1043,
+    status: 409,
+    name: 'Redirect URI not found',
+  },
+
+  OAUTH2_INVALID_SCOPE: {
+    code: 1044,
+    status: 409,
+    name: 'Invalid scope',
+  },
+
+  OAUTH2_INVALID_TOKEN: {
+    code: 1045,
+    status: 409,
+    name: 'Invalid token',
+  },
+
+  OAUTH2_CODE_REQUIRED: {
+    code: 1047,
+    status: 409,
+    name: 'Code required',
+  },
+
+  OAUTH2_GET_TOKEN_ERROR: {
+    code: 1049,
+    status: 409,
+    name: 'Getting token error',
+  },
 };
