@@ -62,6 +62,12 @@ module.exports = {
     name: 'Client not found',
   },
 
+  OAUTH2_INVALID_CLIENT_ID: {
+    code: 1042,
+    status: 404,
+    name: 'Client Id is required',
+  },
+
   OAUTH2_INVALID_REDIRECT_URI: {
     code: 1043,
     status: 409,

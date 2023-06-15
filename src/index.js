@@ -70,6 +70,9 @@ class TheAPI {
 
   checkToken(jwtSecret) {
     this.app.use(async (ctx, next) => {
+      // skip in case of oauth2 autorization
+      if (ctx.path === '/oauth2/me') return next();
+
       const { authorization } = ctx.headers;
       if (!authorization) return next();
 

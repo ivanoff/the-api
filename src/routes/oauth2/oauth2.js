@@ -11,6 +11,8 @@ class Oauth2 {
   }
 
   async checkClient({ client_id, redirect_uri, scope }) {
+    if (!client_id) return this.ctx.throw('OAUTH2_INVALID_CLIENT_ID');
+
     const client = await this.db('oauth2_clients').where({ client_id }).first();
 
     if (!client) return this.ctx.throw('OAUTH2_CLIENT_NOT_FOUND');
@@ -29,47 +31,49 @@ class Oauth2 {
   }
 
   async getCode() {
-    await this.checkClient(this.ctx.request.query);
+    const { id: oauth2_client_id } = await this.checkClient(this.ctx.request.query);
 
     if (!this.user.id) return this.ctx.throw('LOGIN_REQUIRED');
     const user = await this.db('users').where({ id: this.user.id }).first();
     if (!user) return this.ctx.throw('USER_NOT_FOUND');
 
     const code = uuidv4();
-    const { client_id, scope } = this.ctx.request.query;
-    this.db('oauth2_tokens').insert({ client_id, scope, code });
+    const { scope } = this.ctx.request.query;
+    await this.db('oauth2_tokens').insert({
+      oauth2_client_id, scope: JSON.stringify(scope.split(' ')), code, user_id: this.user.id,
+    });
 
     return { code };
   }
 
   async getCodeAndRedirect() {
-    const { code } = this.getCode();
+    const { code } = await this.getCode();
     if (code) this.ctx.redirect(`${this.ctx.request.query.redirect_uri}?code=${code}`);
   }
 
   async getToken() {
-    const { code, client_id, secret } = this.ctx.request.query;
+    const { code, client_id, client_secret } = this.ctx.request.body;
 
     if (!code) return this.ctx.throw('OAUTH2_CODE_REQUIRED');
 
-    const [clientOk, secretOk, tokensOk] = await Promise.all([
-      this.checkClient(client_id),
-      this.db('oauth2_clients').where({ client_id, secret }).first(),
+    const [clientOk, tokensOk] = await Promise.all([
+      this.db('oauth2_clients').where({ client_id, secret: client_secret }).first(),
       this.db('oauth2_tokens').where({ code }).first(),
     ]);
 
-    if (!clientOk || !secretOk || !tokensOk) return this.ctx.throw('OAUTH2_GET_TOKEN_ERROR');
+    if (!clientOk || !tokensOk) return this.ctx.throw('OAUTH2_GET_TOKEN_ERROR');
 
     const access_token = uuidv4();
     const refresh_token = uuidv4();
 
-    this.db('oauth2_tokens').update({ access_token, refresh_token, code: null }).where({ code });
+    await this.db('oauth2_tokens').update({ access_token, refresh_token, code: null }).where({ code });
 
     return { access_token, refresh_token };
   }
 
   async getUserInfo() {
-    const { authorization: access_token } = this.ctx.headers;
+    const { authorization } = this.ctx.headers;
+    const access_token = authorization.replace(/^Bearer /, '');
     const { user_id: id, scope } = (await this.db('oauth2_tokens').where({ access_token }).first()) || {};
 
     if (!id) return this.ctx.throw('OAUTH2_INVALID_TOKEN');

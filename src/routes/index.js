@@ -13,6 +13,7 @@ const slack = require('./login/external/slack');
 const steam = require('./login/external/steam');
 const twitter = require('./login/external/twitter');
 const twitch = require('./login/external/twitch');
+const oauth2 = require('./oauth2');
 
 module.exports = {
   check,
@@ -30,4 +31,5 @@ module.exports = {
   steam,
   twitter,
   twitch,
+  oauth2,
 };
