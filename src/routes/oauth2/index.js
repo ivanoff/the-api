@@ -1,9 +1,9 @@
 const Oauth2 = require('./oauth2');
 
 module.exports = async (api) => api.router()
-  .get('/oauth2/info', async (ctx) => {
+  .get('/oauth2/code', async (ctx) => {
     const oauth2 = new Oauth2(ctx);
-    ctx.body = await oauth2.getClientInfo();
+    ctx.body = await oauth2.getCodeAndInfo();
   })
   .get('/oauth2/authorize', async (ctx) => {
     const oauth2 = new Oauth2(ctx);

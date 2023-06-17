@@ -22,12 +22,7 @@ class Oauth2 {
     const unknownScopes = scope.split(' ').find((s) => !this.scopes.includes(s));
     if (unknownScopes?.length) return this.ctx.throw('OAUTH2_INVALID_SCOPE', { unknownScopes });
 
-    return client;
-  }
-
-  async getClientInfo() {
-    const { name } = await this.checkClient(this.ctx.request.query);
-    return { name };
+    return { redirect_uri, ...client };
   }
 
   async getCode() {
@@ -37,13 +32,26 @@ class Oauth2 {
     const user = await this.db('users').where({ id: this.user.id }).first();
     if (!user) return this.ctx.throw('USER_NOT_FOUND');
 
-    const code = uuidv4();
-    const { scope } = this.ctx.request.query;
-    await this.db('oauth2_tokens').insert({
-      oauth2_client_id, scope: JSON.stringify(scope.split(' ')), code, user_id: this.user.id,
-    });
+    const { scope: s } = this.ctx.request.query;
+    const scope = JSON.stringify(s.split(' '));
+
+    const tokenRecord = await this.db('oauth2_tokens').where({ oauth2_client_id, scope, user_id: this.user.id }).first();
+    let { code } = tokenRecord || {};
+
+    if (!code) {
+      code = uuidv4();
+      await this.db('oauth2_tokens').insert({
+        oauth2_client_id, scope, code, user_id: this.user.id,
+      });
+    }
 
     return { code };
+  }
+
+  async getCodeAndInfo() {
+    const { name, redirect_uri } = await this.checkClient(this.ctx.request.query);
+    const { code } = await this.getCode();
+    return { name, redirect_uri, code };
   }
 
   async getCodeAndRedirect() {
