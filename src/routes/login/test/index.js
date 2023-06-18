@@ -272,7 +272,7 @@ describe('Login', () => {
     });
 
     it('change first name', async () => {
-      res = await global.patch('/login', { first_name: 'aaa' }, { Authorization: `Bearer ${token}` });
+      res = await global.patch('/login', { firstName: 'aaa' }, { Authorization: `Bearer ${token}` });
       expect(res).to.have.property('ok');
     });
 
@@ -284,7 +284,7 @@ describe('Login', () => {
     it('has refresh', async () => {
       const rawRes = await global.post('/login', { login, password });
       res = await rawRes.json();
-      expect(res.first_name).to.eql('aaa');
+      expect(res.firstName).to.eql('aaa');
       expect(res.email).to.eql('bbb');
     });
   });
@@ -311,7 +311,7 @@ describe('Login', () => {
     });
 
     it('change first name', async () => {
-      res = await global.patch('/login', { first_name: 'aaaa1' }, { Authorization: `Bearer ${token}` });
+      res = await global.patch('/login', { firstName: 'aaaa1' }, { Authorization: `Bearer ${token}` });
       expect(res).to.have.property('ok');
     });
 
@@ -324,7 +324,7 @@ describe('Login', () => {
     it('Check second user first name', async () => {
       const rawRes = await global.post('/login', userData2);
       res = await rawRes.json();
-      expect(res.first_name).to.eql('aaaa1');
+      expect(res.firstName).to.eql('aaaa1');
       token = res.token;
     });
   });

@@ -32,14 +32,14 @@ module.exports = async (api) => {
         });
 
         const {
-          id: external_id,
-          givenName: first_name,
-          surname: second_name,
+          id: externalId,
+          givenName: firstName,
+          surname: secondName,
           userPrincipalName: email,
         } = profile._json;
 
         await c.externalLogin({
-          ctx, service, profile, external_id, first_name, second_name, email,
+          ctx, service, profile, externalId, firstName, secondName, email,
         });
       },
     );

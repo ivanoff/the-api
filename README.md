@@ -242,7 +242,7 @@ const apiHelper = new koaKnexHelper({
   required: {
     category_id: 'CATEGORY_ID_IS_REQUIRED',
   },
-  forbiddenFieldsToAdd: ['id', 'user_id', 'time_created', 'time_updated', 'deleted', 'status', 'has_pdf', 'has_rtf'],
+  forbiddenFieldsToAdd: ['id', 'user_id', 'timeCreated', 'timeUpdated', 'deleted', 'status', 'has_pdf', 'has_rtf'],
   defaultWhere: { sold: false },
 });
 

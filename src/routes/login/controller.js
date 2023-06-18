@@ -6,7 +6,7 @@ const { checkAccess } = require('../../lib');
 
 const mail = new Mail();
 
-const tokenFields = ['id', 'login', 'statuses', 'first_name'];
+const tokenFields = ['id', 'login', 'statuses', 'firstName'];
 
 const sha256 = (data) => crypto.createHash('sha256').update(data, 'utf8').digest('hex');
 
@@ -24,7 +24,7 @@ async function loginTool({
   if (!user) return {};
 
   const {
-    id, login, password: passDb, salt, statuses, first_name, second_name, email, options,
+    id, login, password: passDb, salt, statuses, firstName, secondName, email, options,
   } = user;
   if (loginOrigin && passDb !== sha256(password + salt)) return {};
 
@@ -44,36 +44,36 @@ async function loginTool({
   if (!refresh) await db('users').update({ refresh: refreshNew }).where({ id });
 
   return {
-    id, login, statuses, token, first_name, second_name, email, options, refresh: refreshNew,
+    id, login, statuses, token, firstName, secondName, email, options, refresh: refreshNew,
   };
 }
 
 async function getExternals(ctx) {
   const { token: { id }, db } = ctx.state;
 
-  const user = await db('users').select(['external_profiles']).where({ id }).first();
+  const user = await db('users').select(['externalProfiles']).where({ id }).first();
 
-  ctx.body = user.external_profiles?.map?.(({ provider }) => provider) || [];
+  ctx.body = user.externalProfiles?.map?.(({ provider }) => provider) || [];
 }
 
 async function deleteExternal(ctx) {
   const { external_name } = ctx.params;
   const { token: { id }, db } = ctx.state;
 
-  const user = await db('users').select(['external_profiles']).where({ id }).first();
+  const user = await db('users').select(['externalProfiles']).where({ id }).first();
 
-  const profiles = user.external_profiles?.filter(({ provider: p }) => p !== external_name) || [];
+  const profiles = user.externalProfiles?.filter(({ provider: p }) => p !== external_name) || [];
 
-  await db('users').where({ id }).update({ external_profiles: JSON.stringify(profiles) });
+  await db('users').where({ id }).update({ externalProfiles: JSON.stringify(profiles) });
 
   ctx.body = { ok: 1 };
 }
 
 async function externalLogin({
-  ctx, service, profile, external_id, first_name, second_name, email: e,
+  ctx, service, profile, externalId, firstName, secondName, email: e,
 }) {
   const email = e?.toLowerCase();
-  if (!service || !external_id) return ctx.throw('EXTERNALS_REQUIRED');
+  if (!service || !externalId) return ctx.throw('EXTERNALS_REQUIRED');
 
   const { db, jwtSecret, token } = ctx.state;
   const { JWT_EXPIRES_IN: expiresIn } = process.env;
@@ -83,16 +83,16 @@ async function externalLogin({
 
   let user = await db('users').where(where).first();
 
-  const _id = `${external_id}`;
-  const { rows: userByServiceArr } = await db.raw(`SELECT * FROM users WHERE external_profiles @> '[{"provider":??,"_id":??}]'`, [service, _id]);
+  const _id = `${externalId}`;
+  const { rows: userByServiceArr } = await db.raw(`SELECT * FROM users WHERE "externalProfiles" @> '[{"provider":??,"_id":??}]'`, [service, _id]);
   const userByService = userByServiceArr[0];
 
   // remove user service from other user
   if (user && userByService && user.id !== userByService.id) {
-    const extProfiles = userByService.external_profiles;
+    const extProfiles = userByService.externalProfiles;
     const ep = Array.isArray(extProfiles) ? extProfiles : [];
     await db('users').where({ id: userByService.id }).update({
-      external_profiles: JSON.stringify(
+      externalProfiles: JSON.stringify(
         ep.filter((s) => s.provider !== service && s._id !== _id) || [],
       ),
     });
@@ -117,17 +117,17 @@ async function externalLogin({
       password: sha256(uuidv4() + salt),
       salt,
       email,
-      first_name,
-      second_name,
+      firstName,
+      secondName,
       refresh,
       statuses: ['registered'],
-      external_profiles: JSON.stringify([{ ...profile, _id }]),
+      externalProfiles: JSON.stringify([{ ...profile, _id }]),
     }).returning('*');
   } else if (!userByService || (user && user.id !== userByService.id)) {
     // add external profie to exists user
     await db('users').where(where).update({
-      external_profiles: JSON.stringify(
-        [].concat(user.external_profiles, { ...profile, _id }).filter(Boolean),
+      externalProfiles: JSON.stringify(
+        [].concat(user.externalProfiles, { ...profile, _id }).filter(Boolean),
       ),
     });
   }
@@ -140,8 +140,8 @@ async function externalLogin({
     refresh: user.refresh,
     login: user.login,
     email: user.email,
-    first_name,
-    second_name,
+    firstName,
+    secondName,
   };
 
   const dataToSign = tokenFields.reduce((acc, key) => { acc[`${key}`] = user[`${key}`]; return acc; }, {});
@@ -168,7 +168,7 @@ async function loginHandler(ctx) {
 
 async function register(ctx) {
   const {
-    login, password, email: e, first_name, second_name,
+    login, password, email: e, firstName, secondName,
   } = ctx.request.body;
   const email = e?.toLowerCase();
 
@@ -189,7 +189,7 @@ async function register(ctx) {
   const statuses = email && checkEmail ? ['unconfirmed'] : ['registered'];
 
   const [{ id: user_id }] = await db('users').insert({
-    login, password: sha256(password + salt), salt, email, first_name, second_name, refresh: '', statuses, options,
+    login, password: sha256(password + salt), salt, email, firstName, secondName, refresh: '', statuses, options,
   }).returning('*');
 
   ctx.body = await loginTool({ ctx, login, password });
@@ -202,7 +202,7 @@ async function register(ctx) {
     });
 
     mail.register({
-      code, login, password, email, first_name, second_name,
+      code, login, password, email, firstName, secondName,
     });
   }
 }
@@ -276,7 +276,7 @@ async function setPassword(ctx) {
 async function updateUser(ctx) {
   const { token, db } = ctx.state;
   const {
-    email: e, first_name, password, new_password,
+    email: e, firstName, password, new_password,
   } = ctx.request.body;
   const email = e?.toLowerCase();
 
@@ -293,7 +293,7 @@ async function updateUser(ctx) {
     if (!result) return ctx.throw('WRONG_PASSWORD');
   }
 
-  ctx.body = await db('users').update({ email, first_name }).where({ id: token.id });
+  ctx.body = await db('users').update({ email, firstName }).where({ id: token.id });
 }
 
 async function addStatus(ctx) {

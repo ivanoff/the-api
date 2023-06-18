@@ -21,6 +21,7 @@ module.exports = {
     "no-throw-literal": "off",
     "consistent-return": "off",
     "no-nested-ternary": "off",
+    // Depricated
     "camelcase": "off",
     "security/detect-non-literal-regexp": "off",
     "no-console": "off",

@@ -43,13 +43,13 @@ module.exports = async (api) => api.router()
       profile.provider = service;
 
       const {
-        id: external_id,
-        name: first_name,
+        id: externalId,
+        name: firstName,
         screen_name: userName,
       } = profile;
 
       await c.externalLogin({
-        ctx, service, profile, external_id, first_name, email: `${userName}@${service}`,
+        ctx, service, profile, externalId, firstName, email: `${userName}@${service}`,
       });
     },
   );

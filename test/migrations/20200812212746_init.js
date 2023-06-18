@@ -1,4 +1,4 @@
-exports.up = (knex) => knex.schema
+exports.up = (knex) => knex.schema.withSchema('public')
   .createTable('flags', (table) => {
     table.increments('id');
     table.string('name');
@@ -6,5 +6,5 @@ exports.up = (knex) => knex.schema
     table.boolean('deleted').defaultTo(false);
   });
 
-exports.down = (knex) => knex.schema
+exports.down = (knex) => knex.schema.withSchema('public')
   .dropTable('flags');

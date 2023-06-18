@@ -31,13 +31,13 @@ module.exports = async (api) => {
           api.passport.authenticate(service, (err, res) => (err ? reject(err) : resolve(res)))(ctx);
         });
         const {
-          id: external_id,
-          display_name: first_name,
+          id: externalId,
+          display_name: firstName,
           email,
         } = profile;
 
         await c.externalLogin({
-          ctx, service, profile, external_id, first_name, email,
+          ctx, service, profile, externalId, firstName, email,
         });
       },
     );

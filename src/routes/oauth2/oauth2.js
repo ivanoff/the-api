@@ -10,23 +10,23 @@ class Oauth2 {
     this.ctx = ctx;
   }
 
-  async checkClient({ client_id, redirect_uri, scope }) {
-    if (!client_id) return this.ctx.throw('OAUTH2_INVALID_CLIENT_ID');
+  async checkClient({ client_id: clientId, redirect_uri: redirectUri, scope }) {
+    if (!clientId) return this.ctx.throw('OAUTH2_INVALID_CLIENT_ID');
 
-    const client = await this.db('oauth2_clients').where({ client_id }).first();
+    const client = await this.db('oauth2_clients').where({ clientId }).first();
 
     if (!client) return this.ctx.throw('OAUTH2_CLIENT_NOT_FOUND');
 
-    if (!client.redirect_uris.includes(redirect_uri)) return this.ctx.throw('OAUTH2_INVALID_REDIRECT_URI');
+    if (!client.redirectUris.includes(redirectUri)) return this.ctx.throw('OAUTH2_INVALID_REDIRECT_URI');
 
     const unknownScopes = scope.split(' ').find((s) => !this.scopes.includes(s));
     if (unknownScopes?.length) return this.ctx.throw('OAUTH2_INVALID_SCOPE', { unknownScopes });
 
-    return { redirect_uri, ...client };
+    return { redirectUri, ...client };
   }
 
   async getCode() {
-    const { id: oauth2_client_id } = await this.checkClient(this.ctx.request.query);
+    const { id: oauth2ClientId } = await this.checkClient(this.ctx.request.query);
 
     if (!this.user.id) return this.ctx.throw('LOGIN_REQUIRED');
     const user = await this.db('users').where({ id: this.user.id }).first();
@@ -35,13 +35,13 @@ class Oauth2 {
     const { scope: s } = this.ctx.request.query;
     const scope = JSON.stringify(s.split(' '));
 
-    const tokenRecord = await this.db('oauth2_tokens').where({ oauth2_client_id, scope, user_id: this.user.id }).first();
+    const tokenRecord = await this.db('oauth2_tokens').where({ oauth2ClientId, scope, userId: this.user.id }).first();
     let { code } = tokenRecord || {};
 
     if (!code) {
       code = uuidv4();
       await this.db('oauth2_tokens').insert({
-        oauth2_client_id, scope, code, user_id: this.user.id,
+        oauth2ClientId, scope, code, userId: this.user.id,
       });
     }
 
@@ -49,9 +49,9 @@ class Oauth2 {
   }
 
   async getCodeAndInfo() {
-    const { name, redirect_uri } = await this.checkClient(this.ctx.request.query);
+    const { name, redirectUri } = await this.checkClient(this.ctx.request.query);
     const { code } = await this.getCode();
-    return { name, redirect_uri, code };
+    return { name, redirectUri, code };
   }
 
   async getCodeAndRedirect() {
@@ -60,39 +60,39 @@ class Oauth2 {
   }
 
   async getToken() {
-    const { code, client_id, client_secret } = this.ctx.request.body;
+    const { code, client_id: clientId, client_secret: clientSecret } = this.ctx.request.body;
 
     if (!code) return this.ctx.throw('OAUTH2_CODE_REQUIRED');
 
     const [clientOk, tokensOk] = await Promise.all([
-      this.db('oauth2_clients').where({ client_id, secret: client_secret }).first(),
+      this.db('oauth2_clients').where({ clientId, secret: clientSecret }).first(),
       this.db('oauth2_tokens').where({ code }).first(),
     ]);
 
     if (!clientOk || !tokensOk) return this.ctx.throw('OAUTH2_GET_TOKEN_ERROR');
 
-    const access_token = uuidv4();
-    const refresh_token = uuidv4();
+    const accessToken = uuidv4();
+    const refreshToken = uuidv4();
 
-    await this.db('oauth2_tokens').update({ access_token, refresh_token, code: null }).where({ code });
+    await this.db('oauth2_tokens').update({ accessToken, refreshToken, code: null }).where({ code });
 
-    return { access_token, refresh_token };
+    return { access_token: accessToken, refresh_token: refreshToken };
   }
 
   async getUserInfo() {
     const { authorization } = this.ctx.headers;
-    const access_token = authorization.replace(/^Bearer /, '');
-    const { user_id: id, scope } = (await this.db('oauth2_tokens').where({ access_token }).first()) || {};
+    const accessToken = authorization.replace(/^Bearer /, '');
+    const { userId: id, scope } = (await this.db('oauth2_tokens').where({ accessToken }).first()) || {};
 
     if (!id) return this.ctx.throw('OAUTH2_INVALID_TOKEN');
 
     const {
-      login, first_name, second_name, email,
+      login, firstName, secondName, email,
     } = (await this.db('users').where({ id }).first()) || {};
 
     return {
       id,
-      ...(scope.includes('identify') && { login, first_name, second_name }),
+      ...(scope.includes('identify') && { login, firstName, secondName }),
       ...(scope.includes('email') && { email }),
     };
   }

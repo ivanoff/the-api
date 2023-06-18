@@ -173,8 +173,8 @@ class KoaKnexHelper {
     if (this.lang && this.lang !== 'en') {
       for (const field of this.translate) {
         joinCoaleise.push(db.raw(`COALESCE( (
-          select text from langs where lang=:lang and text_key = any(
-            select text_key from langs where lang='en' and text = ${this.table}.${field} 
+          select text from langs where lang=:lang and "textKey" = any(
+            select "textKey" from langs where lang='en' and text = ${this.table}.${field} 
           ) limit 1), name ) AS ${field}`, { lang: this.lang }));
       }
     }
@@ -308,7 +308,7 @@ class KoaKnexHelper {
       },
       _sort: {
         type: 'string',
-        example: '-time_created,name,random()',
+        example: '-timeCreated,name,random()',
       },
       _limit: 'integer',
       _page: 'integer',
@@ -531,6 +531,8 @@ class KoaKnexHelper {
       delete data[`${key}`];
     }
 
+    if (rows.timeUpdated) data.timeUpdated = db.fn.now();
+    // Depricated
     if (rows.time_updated) data.time_updated = db.fn.now();
 
     await this.getDbWithSchema(ctx).update(data).where(where);
