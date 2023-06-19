@@ -10,6 +10,66 @@ class Oauth2 {
     this.ctx = ctx;
   }
 
+  async checkUser() {
+    if (!this.user.id) return this.ctx.throw('LOGIN_REQUIRED');
+    const user = await this.db('users').where({ id: this.user.id }).first();
+    if (!user) return this.ctx.throw('USER_NOT_FOUND');
+  }
+
+  async addApplication() {
+    await this.checkUser();
+
+    const { name, redirectUris = [] } = this.ctx.request.body;
+
+    const existsName = await this.db('oauth2_clients').where({ name }).first();
+    if (existsName) return this.ctx.throw('OAUTH2_NAME_EXISTS', { name });
+
+    const clientId = uuidv4();
+    const secret = uuidv4();
+
+    const [result] = await this.db('oauth2_clients').insert({
+      name,
+      clientId,
+      secret,
+      userId: this.user.id,
+      redirectUris: JSON.stringify(redirectUris),
+    }).returning('*');
+
+    return result;
+  }
+
+  async updateApplication() {
+    await this.checkUser();
+
+    const { clientId } = this.ctx.params;
+    const { name, redirect_uris = [] } = this.ctx.request.body;
+    const userId = this.user.id;
+
+    const client = await this.db('oauth2_clients').where({ userId, clientId }).first();
+    if (!client) return this.ctx.throw('OAUTH2_APPLICATION_NOT_FOUND', { userId, clientId });
+
+    await this.db('oauth2_clients').where({ userId, clientId }).update({
+      name,
+      redirect_uris: JSON.stringify(redirect_uris),
+    });
+
+    return { ok: 1 };
+  }
+
+  async removeApplication() {
+    await this.checkUser();
+
+    const { clientId } = this.ctx.params;
+    const userId = this.user.id;
+
+    const client = await this.db('oauth2_clients').where({ userId, clientId }).first();
+    if (!client) return this.ctx.throw('OAUTH2_APPLICATION_NOT_FOUND', { userId, clientId });
+
+    await this.db('oauth2_clients').where({ userId, clientId }).del();
+
+    return { ok: 1 };
+  }
+
   async checkClient({ client_id: clientId, redirect_uri: redirectUri, scope }) {
     if (!clientId) return this.ctx.throw('OAUTH2_INVALID_CLIENT_ID');
 
@@ -28,9 +88,7 @@ class Oauth2 {
   async getCode() {
     const { id: oauth2ClientId } = await this.checkClient(this.ctx.request.query);
 
-    if (!this.user.id) return this.ctx.throw('LOGIN_REQUIRED');
-    const user = await this.db('users').where({ id: this.user.id }).first();
-    if (!user) return this.ctx.throw('USER_NOT_FOUND');
+    await this.checkUser();
 
     const { scope: s } = this.ctx.request.query;
     const scope = JSON.stringify(s.split(' '));

@@ -57,9 +57,15 @@ module.exports = {
   },
 
   OAUTH2_CLIENT_NOT_FOUND: {
-    code: 1041,
+    code: 1040,
     status: 404,
     name: 'Client not found',
+  },
+
+  OAUTH2_APPLICATION_NOT_FOUND: {
+    code: 1041,
+    status: 404,
+    name: 'Application not found',
   },
 
   OAUTH2_INVALID_CLIENT_ID: {
@@ -90,6 +96,12 @@ module.exports = {
     code: 1047,
     status: 409,
     name: 'Code required',
+  },
+
+  OAUTH2_NAME_EXISTS: {
+    code: 1048,
+    status: 409,
+    name: 'Name already exists',
   },
 
   OAUTH2_GET_TOKEN_ERROR: {
