@@ -159,10 +159,10 @@ class KoaKnexHelper {
 
     if (this.includeDeleted && this.deletedReplacements) {
       joinCoaleise = joinCoaleise.map((item) => {
-        const fieldName = item.split('.').pop();
+        const [tableName, fieldName] = item.split('.');
         const replaceWith = this.deletedReplacements[`${fieldName}`];
         if (typeof replaceWith === 'undefined') return item;
-        return db.raw(`CASE WHEN ${this.table}.deleted THEN :replaceWith ELSE ${item} END AS ${fieldName}`, { replaceWith });
+        return db.raw(`CASE WHEN ${this.table}.deleted THEN :replaceWith ELSE "${tableName}"."${fieldName}" END AS ${fieldName}`, { replaceWith });
       });
     }
 
@@ -191,7 +191,7 @@ class KoaKnexHelper {
       const limitStr = limit ? `LIMIT ${limit}` : '';
       const lang = table === 'lang' && this.lang && this.lang.match(/^\w{2}$/) ? `AND lang='${this.lang}'` : '';
       const ff = fields?.map((item) => (typeof item === 'string'
-        ? `'${item}', "${as || table}".${item}`
+        ? `'${item}', "${as || table}"."${item}"`
         : `'${Object.keys(item)[0]}', ${Object.values(item)[0]}`));
       const f2 = ff ? `json_build_object(${ff.join(', ')})` : `"${as || table}".*`;
       const f3 = field || `jsonb_agg(${f2})`;
@@ -229,7 +229,7 @@ class KoaKnexHelper {
     }
 
     if (ctx.request.query._search && this.searchFields.length) {
-      const searchColumnsStr = this.searchFields.map((name) => `COALESCE(${name} <-> :_search, 1)`).join(' + ');
+      const searchColumnsStr = this.searchFields.map((name) => `COALESCE("${name}" <-> :_search, 1)`).join(' + ');
       joinCoaleise.push(db.raw(`(${searchColumnsStr})/${this.searchFields.length} as _search_distance`, ctx.request.query));
     }
 
@@ -354,7 +354,7 @@ class KoaKnexHelper {
     this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => ({ ...acc, [`${cur}`]: val }), {}));
 
     if (_search && this.searchFields.length) {
-      const whereStr = this.searchFields.map((name) => `${name} % :_search`).join(' OR ');
+      const whereStr = this.searchFields.map((name) => `"${name}" % :_search`).join(' OR ');
       this.res.andWhere(function () {
         this.whereRaw(whereStr, { _search });
       });
