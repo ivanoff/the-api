@@ -374,8 +374,14 @@ class KoaKnexHelper {
     });
     // if (_or) console.log(this.res.toSQL())
     const data = await this.res;
+    const limit = +_limit;
     return {
-      total, page: _page, limit: _limit, skip: _skip, data,
+      total,
+      limit,
+      skip: +_skip,
+      page: +_page,
+      pages: !limit ? 1 : Math.ceil(total / limit),
+      data,
     };
   }
 
