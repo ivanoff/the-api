@@ -82,8 +82,11 @@ class KoaKnexHelper {
     });
   }
 
-  pagination({ _page, _skip = 0, _limit }) {
-    if (!_limit) return;
+  pagination({
+    _page, _skip = 0, _limit, _unlimited,
+  }) {
+    const isUnlimited = _unlimited === 'true';
+    if (!_limit || isUnlimited) return;
 
     this.res.limit(_limit);
     const offset = _page ? (_page - 1) * _limit : 0;
@@ -336,7 +339,7 @@ class KoaKnexHelper {
     this.token = token;
 
     const {
-      _fields, _sort, _page, _skip, _limit, _lang, _isNull, _or, _search, ...where
+      _fields, _sort, _page, _skip, _limit, _unlimited, _lang, _isNull, _or, _search, ...where
     } = ctx.request.query;
 
     if (_lang) this.lang = _lang;
@@ -366,7 +369,9 @@ class KoaKnexHelper {
     const total = +(await db.from({ w: this.res }).count('*'))[0].count;
 
     this.sort(_sort, db);
-    this.pagination({ _page, _skip, _limit });
+    this.pagination({
+      _page, _skip, _limit, _unlimited,
+    });
     // if (_or) console.log(this.res.toSQL())
     const data = await this.res;
     return {
