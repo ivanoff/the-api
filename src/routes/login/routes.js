@@ -57,7 +57,7 @@ module.exports = router
       email: 'string',
       firstName: 'string',
       password: 'string',
-      new_password: 'string',
+      newPassword: 'string',
     },
   })
   .get('/login/externals', c.getExternals, {

@@ -11,13 +11,15 @@ const tokenFields = ['id', 'login', 'statuses', 'firstName'];
 const sha256 = (data) => crypto.createHash('sha256').update(data, 'utf8').digest('hex');
 
 async function loginTool({
-  ctx, login: loginOrigin, password, refresh, id: byId, superadminId,
+  ctx, login: loginOrigin, email: emailOrigin, password, refresh, id: byId, superadminId,
 }) {
-  if (!loginOrigin && !refresh && !byId) return {};
+  if (!loginOrigin && !emailOrigin && !refresh && !byId) return {};
 
   const { db, token: oldToken, jwtSecret } = ctx.state;
 
-  const search = loginOrigin ? { login: loginOrigin } : refresh ? { refresh } : { id: byId };
+  const search = loginOrigin ? { login: loginOrigin }
+    : emailOrigin ? { email: emailOrigin }
+      : refresh ? { refresh } : { id: byId };
 
   const user = (await db('users').where({ ...search, deleted: false }).first());
 
@@ -152,10 +154,12 @@ async function externalLogin({
 }
 
 async function loginHandler(ctx) {
-  const { login, password, refresh } = ctx.request.body;
+  const {
+    login, email, password, refresh,
+  } = ctx.request.body;
 
   const loginResult = await loginTool({
-    ctx, login, password, refresh,
+    ctx, login, email, password, refresh,
   });
 
   const { statuses } = loginResult;
@@ -276,18 +280,18 @@ async function setPassword(ctx) {
 async function updateUser(ctx) {
   const { token, db } = ctx.state;
   const {
-    email: e, firstName, password, new_password,
+    email: e, firstName, password, newPassword,
   } = ctx.request.body;
   const email = e?.toLowerCase();
 
   if (!token) return ctx.throw('NO_TOKEN');
   if (!token.id) return ctx.throw('TOKEN_INVALID');
 
-  if (password && new_password) {
+  if (password && newPassword) {
     const { salt } = await db('users').where({ id: token.id }).first();
 
     const result = await db('users')
-      .update({ password: sha256(new_password + salt) })
+      .update({ password: sha256(newPassword + salt) })
       .where({ id: token.id, password: sha256(password + salt) });
 
     if (!result) return ctx.throw('WRONG_PASSWORD');

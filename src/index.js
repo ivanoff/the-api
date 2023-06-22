@@ -52,9 +52,10 @@ class TheAPI {
     };
     this.log = (...toLog) => {
       for (const line of toLog) {
-        const l = typeof line === 'object' ? JSON.stringify(line) : line;
+        const noStringify = line instanceof Error || typeof line !== 'object';
+        const l = noStringify ? line : JSON.stringify(line);
         // eslint-disable-next-line no-console
-        console.log(`[${(new Date()).toISOString()}] ${l}`);
+        console.log(`[${(new Date()).toISOString()}]`, l);
       }
     };
     this.log(`${name} v${version}`);
