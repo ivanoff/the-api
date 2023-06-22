@@ -85,7 +85,7 @@ class KoaKnexHelper {
   pagination({
     _page, _skip = 0, _limit, _unlimited,
   }) {
-    const isUnlimited = _unlimited === 'true';
+    const isUnlimited = _unlimited === 'true' || _unlimited === true;
     if (!_limit || isUnlimited) return;
 
     this.res.limit(_limit);
