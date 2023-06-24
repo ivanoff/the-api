@@ -270,7 +270,8 @@ class TheAPI {
     this.waitDb = this.connectDb();
 
     await this.waitDb;
-    await this.initServer(flow);
+    const flow2 = typeof flow === 'function' ? Object.values(flow(this)) : flow;
+    await this.initServer(Array.isArray(flow2) ? flow2 : Object.values(flow2));
   }
 
   async connectDb() {
