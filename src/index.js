@@ -58,6 +58,47 @@ class TheAPI {
         console.log(`[${(new Date()).toISOString()}]`, l);
       }
     };
+
+    const {
+      DB_CLIENT: client,
+      DB_HOST: host,
+      DB_PORT: dbPort,
+      DB_USER: user,
+      DB_PASSWORD: password,
+      DB_NAME: database,
+      DB_SCHEMA: schema,
+      DB_FILENAME: filename,
+      DB_WRITE_CLIENT: clientWrite,
+      DB_WRITE_HOST: hostWrite,
+      DB_WRITE_PORT: dbPortWrite,
+      DB_WRITE_USER: userWrite,
+      DB_WRITE_PASSWORD: passwordWrite,
+      DB_WRITE_NAME: databaseWrite,
+      DB_WRITE_SCHEMA: schemaWrite,
+      DB_WRITE_FILENAME: filenameWrite,
+    } = process.env;
+
+    const connection = client === 'sqlite3' && filename ? { filename } : {
+      host, user, password, database, port: dbPort, ...(schema && { schema }),
+    };
+
+    const connectionWrite = clientWrite === 'sqlite3' && filenameWrite ? { filename: filenameWrite } : {
+      host: hostWrite,
+      user: userWrite,
+      password: passwordWrite,
+      database: databaseWrite,
+      port: dbPortWrite,
+      ...(schemaWrite && { schema: schemaWrite }),
+    };
+
+    const knexDefaultParams = { client: 'sqlite3', connection: ':memory:' };
+    const knexParams = client ? { client, connection } : knexDefaultParams;
+    this.db = knex({ ...knexParams, useNullAsDefault: true });
+    this.dbWrite = !hostWrite ? this.db : knex({
+      client: clientWrite, connection: connectionWrite, useNullAsDefault: true,
+    });
+    this.waitDb = this.connectDb();
+
     this.log(`${name} v${version}`);
 
     this.migrationDirs = [`${__dirname}/migrations`].concat(migrationDirs);
@@ -143,14 +184,17 @@ class TheAPI {
     }
   }
 
-  async initServer(flowOrigin) {
+  async initRoutes(flowOrigin) {
+    await this.waitDb;
+
     const startTime = new Date();
     const requests = { total: 0 };
 
     const jwtSecret = JWT_SECRET || this.generateJwtSecret();
     this.checkToken(jwtSecret);
 
-    const flowSynced = await Promise.all(flowOrigin);
+    const flowArr = typeof flowOrigin === 'function' ? flowOrigin(this) : flowOrigin;
+    const flowSynced = await Promise.all(Object.values(flowArr));
     const flowArray = flowSynced.reduce((acc, cur) => {
       if (!cur) return acc;
       const fns = [].concat(cur).map((c) => (c.toString().match(/^(async )?\(api\) =>/) ? c(this) : c));
@@ -223,55 +267,16 @@ class TheAPI {
 
     const routesList = flow.map((item) => (typeof item.routes === 'function' ? item.routes() : typeof item === 'function' && item)).filter(Boolean);
     routesList.map((item) => this.app.use(item));
+  }
 
+  async startServer() {
     this.connection = await this.app.listen(this.port);
     this.log(`Started on port ${this.port}`);
   }
 
   async up(flow = []) {
-    const {
-      DB_CLIENT: client,
-      DB_HOST: host,
-      DB_PORT: dbPort,
-      DB_USER: user,
-      DB_PASSWORD: password,
-      DB_NAME: database,
-      DB_SCHEMA: schema,
-      DB_FILENAME: filename,
-      DB_WRITE_CLIENT: clientWrite,
-      DB_WRITE_HOST: hostWrite,
-      DB_WRITE_PORT: dbPortWrite,
-      DB_WRITE_USER: userWrite,
-      DB_WRITE_PASSWORD: passwordWrite,
-      DB_WRITE_NAME: databaseWrite,
-      DB_WRITE_SCHEMA: schemaWrite,
-      DB_WRITE_FILENAME: filenameWrite,
-    } = process.env;
-
-    const connection = client === 'sqlite3' && filename ? { filename } : {
-      host, user, password, database, port: dbPort, ...(schema && { schema }),
-    };
-
-    const connectionWrite = clientWrite === 'sqlite3' && filenameWrite ? { filename: filenameWrite } : {
-      host: hostWrite,
-      user: userWrite,
-      password: passwordWrite,
-      database: databaseWrite,
-      port: dbPortWrite,
-      ...(schemaWrite && { schema: schemaWrite }),
-    };
-
-    const knexDefaultParams = { client: 'sqlite3', connection: ':memory:' };
-    const knexParams = client ? { client, connection } : knexDefaultParams;
-    this.db = knex({ ...knexParams, useNullAsDefault: true });
-    this.dbWrite = !hostWrite ? this.db : knex({
-      client: clientWrite, connection: connectionWrite, useNullAsDefault: true,
-    });
-    this.waitDb = this.connectDb();
-
-    await this.waitDb;
-    const flow2 = typeof flow === 'function' ? Object.values(flow(this)) : flow;
-    await this.initServer(Array.isArray(flow2) ? flow2 : Object.values(flow2));
+    await this.initRoutes(flow);
+    await this.startServer();
   }
 
   async connectDb() {

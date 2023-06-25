@@ -252,6 +252,9 @@ app.get('/ships', ctx => {
 
 ```
 
+## Changelog
+
+History of commits is [here](./CHANGELOG.md)
 
 ## Created by
 
