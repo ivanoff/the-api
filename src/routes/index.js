@@ -14,6 +14,7 @@ const steam = require('./login/external/steam');
 const twitter = require('./login/external/twitter');
 const twitch = require('./login/external/twitch');
 const oauth2 = require('./oauth2');
+const drawio = require('./drawio');
 
 module.exports = {
   check,
@@ -32,4 +33,5 @@ module.exports = {
   twitter,
   twitch,
   oauth2,
+  drawio,
 };
