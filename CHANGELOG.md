@@ -2,7 +2,7 @@
 
 ## [19.4.1] (2023-06-25)
 
-* Add the `/drawio` endpoint to retrieve a `CSV` file that can be imported into draw.io.
+* Add the `/drawio` endpoint to retrieve the database schema as a `CSV` file that can be imported into draw.io.
 
 ## [19.3.1] (2023-06-25)
 
