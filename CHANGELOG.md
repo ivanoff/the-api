@@ -1,6 +1,6 @@
 # Changelog
 
-## [19.4.3] (2023-06-26)
+## [19.4.4] (2023-06-26)
 
 * The new parameter `joinOnDemand` has been added to the definitions. It allows you to select which table to join using the _join parameter in queries. Here's an example of how to use it:
 ```javascript
