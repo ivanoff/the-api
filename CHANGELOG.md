@@ -1,5 +1,9 @@
 # Changelog
 
+## [19.4.2] (2023-06-26)
+
+* add `encodeURIComponent` posibility to email templates. Example of usage: '{{{email}}}'
+
 ## [19.4.1] (2023-06-25)
 
 * Add the `/drawio` endpoint to retrieve the database schema as a `CSV` file that can be imported into draw.io.
