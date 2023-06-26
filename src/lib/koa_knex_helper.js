@@ -10,6 +10,7 @@ class KoaKnexHelper {
     schema,
     aliases,
     join,
+    joinOnDemand,
     leftJoin,
     lang,
     translate,
@@ -34,6 +35,7 @@ class KoaKnexHelper {
     this.schema = schema || 'public';
     this.aliases = aliases || {};
     this.join = join || [];
+    this.joinOnDemand = joinOnDemand || [];
     this.leftJoin = leftJoin || [];
     this.lang = lang || 'en';
     this.translate = translate || [];
@@ -150,7 +152,9 @@ class KoaKnexHelper {
     this.hiddenColumns = this.hiddenColumns.concat(this.hiddenColumns.map((item) => `${this.table}.${item}`));
   }
 
-  fields({ ctx, _fields, db }) {
+  fields({
+    ctx, _fields, _join, db,
+  }) {
     this.updateHiddenColumns();
 
     if (this.leftJoin.length) {
@@ -182,7 +186,17 @@ class KoaKnexHelper {
       }
     }
 
-    const join = f ? this.join.filter(({ table }) => f.includes(table)) : this.join;
+    const join = f ? this.join.filter(({ table }) => f.includes(table)) : [...this.join];
+
+    if (_join) {
+      const joinNames = Array.isArray(_join) ? _join : _join.split(',');
+      for (const joinName of joinNames) {
+        let toJoin = this.joinOnDemand.find(({ alias }) => joinName === alias);
+        if (!toJoin) toJoin = this.joinOnDemand.find(({ table }) => joinName === table);
+        if (toJoin) join.push(toJoin);
+      }
+    }
+
     for (const {
       table, schema, as, where, whereBindings, alias, fields, field, limit, orderBy, byIndex,
     } of join) {
@@ -313,9 +327,14 @@ class KoaKnexHelper {
         type: 'string',
         example: '-timeCreated,name,random()',
       },
+      _join: {
+        type: 'string',
+        example: 'table1,alias1',
+      },
       _limit: 'integer',
       _page: 'integer',
       _skip: 'integer',
+      _lang: 'string',
       ...(this.searchFields.length && { _search: 'string' }),
     };
     return {
@@ -339,7 +358,8 @@ class KoaKnexHelper {
     this.token = token;
 
     const {
-      _fields, _sort, _page, _skip, _limit, _unlimited, _lang, _isNull, _or, _search, ...where
+      _fields, _sort, _page, _skip, _limit, _unlimited,
+      _lang, _isNull, _or, _search, _join, ...where
     } = ctx.request.query;
 
     if (_lang) this.lang = _lang;
@@ -352,7 +372,9 @@ class KoaKnexHelper {
     if (_or) this.res.where(function () { [].concat(_or).map((key) => this.orWhere(key)); });
     if (_isNull) [].concat(_isNull).map((key) => this.res.andWhereNull(key));
 
-    this.fields({ ctx, _fields, db });
+    this.fields({
+      ctx, _fields, _join, db,
+    });
 
     this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => ({ ...acc, [`${cur}`]: val }), {}));
 
