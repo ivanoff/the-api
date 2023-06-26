@@ -24,7 +24,7 @@ class LoginMail extends Mail {
       for (const [name, replace] of Object.entries(params)) {
         const rEnc = new RegExp(`\\{\\{\\{${name}\\}\\}\\}`, 'g');
         result[`${key}`] = result[`${key}`].replace(rEnc, encodeURIComponent(replace));
-        const r = new RegExp(`\\{\\{\\{${name}\\}\\}\\}`, 'g');
+        const r = new RegExp(`\\{\\{${name}\\}\\}`, 'g');
         result[`${key}`] = result[`${key}`].replace(r, replace);
       }
     }
