@@ -14,6 +14,11 @@ class LoginMail extends Mail {
         text: 'Hello, use your recover {{code}}</b> and new password to POST /login/restore',
         html: 'Hello, use your <b>recover {{code}}</b> and new <b>password<b> to POST <b>/register/restore</b>',
       },
+      setEmail: {
+        subject: 'Set new e-mail',
+        text: 'Hello, use your recover {{code}}</b> to POST /login/email',
+        html: 'Hello, use your <b>recover {{code}}</b> to POST <b>/register/email</b>',
+      },
     };
   }
 
@@ -43,7 +48,16 @@ class LoginMail extends Mail {
   async recover(params) {
     const { email } = params;
     try {
-      await this.send({ email, ...this.getPreparedData('recover', params) });
+      await this.send({ email, ...this.getPreparedData('recover', params), checkUnsubscribe: false });
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async setEmail(params) {
+    const { email } = params;
+    try {
+      await this.send({ email, ...this.getPreparedData('setEmail', params), checkUnsubscribe: false });
     } catch (err) {
       console.error(err);
     }

@@ -50,6 +50,12 @@ module.exports = router
       password: 'string',
     },
   })
+  .post('/login/email', c.setEmail, {
+    summary: 'Set new email by restore code',
+    schema: {
+      code: 'string',
+    },
+  })
   .patch('/login', c.updateUser, {
     summary: 'Update user',
     tokenRequired: true,
@@ -82,6 +88,14 @@ module.exports = router
   })
   .delete('/superadmin/tokens', c.getSuperadminTokenBack, {
     summary: 'Get back superadmin token',
+    tokenRequired: true,
+  })
+  .post('/emails/subscribe', c.subscribeUser, {
+    summary: 'Allow the user to receive all emails',
+    tokenRequired: true,
+  })
+  .delete('/emails/subscribe', c.unsubscribeUser, {
+    summary: 'Unsubscribe the user from receiving incoming emails, except for the restore password email',
     tokenRequired: true,
   });
 

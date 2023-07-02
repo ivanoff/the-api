@@ -1,5 +1,14 @@
 # Changelog
 
+## [19.5.1] (2023-07-02)
+
+* Added a new unsubscribe route `DELETE /emails/subscribe` and subscribe route `POST /emails/subscribe`
+* Changing email requires confirmation using `POST /login/email` with the `code` parameter
+
+## [19.4.5] (2023-07-02)
+
+* Update the relations by setting the `relation_field_name` as an optional key in the results.
+
 ## [19.4.4] (2023-06-26)
 
 * The new parameter `joinOnDemand` has been added to the definitions. It allows you to select which table to join using the _join parameter in queries. Here's an example of how to use it:

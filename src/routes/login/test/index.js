@@ -241,7 +241,7 @@ describe('Login', () => {
 
     it('email `text` contains code', async () => {
       const match = global.message.text.match(/\b([\da-f-]{36})\b/);
-      [, code] = match;
+      ([, code] = match);
       expect(!!code).to.eql(true);
     });
 
@@ -257,6 +257,7 @@ describe('Login', () => {
     const { login, password } = userData2;
     let res;
     let token;
+    let code;
     it('status 200', async () => {
       res = await global.post('/register', userData2);
       expect(res.status).to.eql(200);
@@ -277,15 +278,28 @@ describe('Login', () => {
     });
 
     it('change email', async () => {
-      res = await global.patch('/login', { email: 'BBB' }, { Authorization: `Bearer ${token}` });
+      res = await global.patch('/login', { email: 'BBBB' }, { Authorization: `Bearer ${token}` });
       expect(res).to.have.property('ok');
+    });
+
+    it('email `text` contains code', async () => {
+      const match = global.message.text.match(/\b([\da-f-]{36})\b/);
+      ([, code] = match);
+      expect(!!code).to.eql(true);
+    });
+
+    it('try to restore with old code', async () => {
+      const rawRes = await global.post('/login/email', { code });
+      res = await rawRes.json();
+      const rawRes2 = await global.post('/login/email', { code });
+      expect(rawRes2.status).to.eql(409);
     });
 
     it('has refresh', async () => {
       const rawRes = await global.post('/login', { login, password });
       res = await rawRes.json();
       expect(res.firstName).to.eql('aaa');
-      expect(res.email).to.eql('bbb');
+      expect(res.email).to.eql('bbbb');
     });
   });
 

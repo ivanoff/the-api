@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const knex = require('knex');
 
 require('dotenv').config();
 
@@ -26,13 +27,36 @@ class Mail {
       from: from || this.config.auth.user,
     };
     this.defaultParams = options?.defaultParams || {};
+    this.connectDb();
+  }
+
+  connectDb() {
+    const {
+      DB_CLIENT: client,
+      DB_HOST: dbHost,
+      DB_PORT: dbPort,
+      DB_USER: dbUser,
+      DB_PASSWORD: password,
+      DB_NAME: database,
+      DB_SCHEMA: schema,
+    } = process.env;
+
+    const connection = {
+      host: dbHost, user: dbUser, password, database, port: dbPort, ...(schema && { schema }),
+    };
+
+    this.db = knex({ client, connection });
   }
 
   async send({
-    email: to, subject, text, html,
+    email, subject, text, html, checkUnsubscribe = true,
   }) {
+    if (checkUnsubscribe) {
+      const isUnsubscribed = await this.db('users').where({ email, isUnsubscribed: true }).first();
+      if (isUnsubscribed) return;
+    }
     const message = {
-      ...this.message, to, subject, text, html,
+      ...this.message, to: email, subject, text, html,
     };
     return new Promise((resolve, reject) => {
       this.transport.sendMail(message, (err, info) => (err ? reject(err) : resolve(info)));

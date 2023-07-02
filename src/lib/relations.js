@@ -15,17 +15,18 @@ module.exports = async ({ ctx, relations }) => {
     const id = [...new Set(Object.entries(flatData).map(matchPath).filter(Boolean))];
     if (!id.length) return;
 
-    const name = definition.relation_field_name || 'id';
-    ctx.request.query = { [name]: id };
+    const idName = definition.relation_field_name || 'id';
+    ctx.request.query = { [idName]: id };
     const { data } = await helper.get({
-      ctx: { ...ctx, request: { ...ctx.request, query: { [name]: id } } },
+      ctx: { ...ctx, request: { ...ctx.request, query: { [idName]: id } } },
     });
     ctx.request.query = query;
 
     const t = definition.table;
     if (!result[`${t}`]) result[`${t}`] = {};
     for (const d of data) {
-      result[`${t}`][`${d.id}`] = d;
+      const idKey = d[`${idName}`];
+      result[`${t}`][`${idKey}`] = d;
     }
   };
   await Promise.all(Object.entries(relations).map(findRelations));

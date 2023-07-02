@@ -277,6 +277,28 @@ async function setPassword(ctx) {
   ctx.body = { ok: 1 };
 }
 
+async function setEmail(ctx) {
+  const { code } = ctx.request.body;
+  const { db } = ctx.state;
+
+  const expireIn = +process.env.LOGIN_CHECK_EMAIL_DELAY || 60;
+  const expireTime = new Date((new Date()).getTime() - 1000 * 60 * expireIn);
+  const { login } = await db('code').where({ recover: code }).where('time', '>', expireTime).first() || {};
+
+  if (!login) return ctx.throw('WRONG_CODE');
+
+  await db('code').del().where({ recover: code });
+
+  const { emailToChange } = await db('users').where({ login }).first();
+  const hasEmail = await db('users').where({ email: emailToChange }).first();
+
+  if (hasEmail) return ctx.throw('EMAIL_EXISTS');
+
+  await db('users').update({ email: emailToChange }).where({ login });
+
+  ctx.body = { ok: 1 };
+}
+
 async function updateUser(ctx) {
   const { token, db } = ctx.state;
   const {
@@ -297,7 +319,20 @@ async function updateUser(ctx) {
     if (!result) return ctx.throw('WRONG_PASSWORD');
   }
 
-  ctx.body = await db('users').update({ email, firstName }).where({ id: token.id });
+  if (email) {
+    const code = uuidv4();
+    const hasEmail = await db('users').whereNot({ id: token.id }).andWhere({ email }).first();
+    if (hasEmail) return ctx.throw('EMAIL_EXISTS');
+
+    const { login } = await db('users').where({ id: token.id }).first();
+
+    await db('code').del().where({ login });
+    await db('code').insert({ login, recover: code });
+    await db('users').update({ emailToChange: email }).where({ id: token.id });
+    mail.setEmail({ email, code, login });
+  }
+
+  ctx.body = !firstName ? { ok: 1 } : await db('users').update({ firstName }).where({ id: token.id });
 }
 
 async function addStatus(ctx) {
@@ -334,6 +369,32 @@ async function deleteStatus(ctx) {
     ctx.body = await db('users').update({ statuses }).where({ id: user_id });
   }
   ctx.body = statuses;
+}
+
+async function _getUserId(ctx) {
+  const { token } = ctx.state;
+
+  if (!token?.id) {
+    if (!token) ctx.throw('NO_TOKEN');
+    ctx.throw('TOKEN_INVALID');
+    return;
+  }
+
+  ctx.body = { ok: 1 };
+
+  return token.id;
+}
+
+async function subscribeUser(ctx) {
+  const { db } = ctx.state;
+  const id = _getUserId(ctx);
+  await db('users').update({ isUnsubscribed: false }).where({ id });
+}
+
+async function unsubscribeUser(ctx) {
+  const { db } = ctx.state;
+  const id = _getUserId(ctx);
+  await db('users').update({ isUnsubscribed: true }).where({ id });
 }
 
 async function getUserTokenBySuperadmin(ctx) {
@@ -384,11 +445,14 @@ module.exports = {
   check,
   restore,
   setPassword,
+  setEmail,
   updateUser,
   addStatus,
   deleteStatus,
   setEmailTemplates,
   addFieldsToToken,
+  subscribeUser,
+  unsubscribeUser,
   getUserTokenBySuperadmin,
   getSuperadminTokenBack,
 };
