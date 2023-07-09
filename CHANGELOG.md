@@ -1,5 +1,13 @@
 # Changelog
 
+## [19.5.3] (2023-07-09)
+
+* Added `_join` query for `joinOnDemand` flow in `getById` method
+
+## [19.5.2] (2023-07-09)
+
+* Await for the e-mail send method
+
 ## [19.5.1] (2023-07-02)
 
 * Added a new unsubscribe route `DELETE /emails/subscribe` and subscribe route `POST /emails/subscribe`

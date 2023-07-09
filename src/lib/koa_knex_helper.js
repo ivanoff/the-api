@@ -428,7 +428,7 @@ class KoaKnexHelper {
     const { id } = ctx.params;
 
     const {
-      _fields, _lang, _or, ...whereWithParams
+      _fields, _lang, _or, _join, ...whereWithParams
     } = ctx.request.query;
     const where = Object.keys(whereWithParams).reduce(
       (acc, key) => {
@@ -453,7 +453,9 @@ class KoaKnexHelper {
     const { user_id } = await this.res.clone().first() || {};
     this.isOwner = tokenId && tokenId === user_id;
 
-    this.fields({ ctx, _fields, db });
+    this.fields({
+      ctx, _fields, _join, db,
+    });
     return this.res.first();
   }
 

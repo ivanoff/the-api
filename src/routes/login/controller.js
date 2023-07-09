@@ -205,7 +205,7 @@ async function register(ctx) {
       user_id, login, code, recover, time: new Date(),
     });
 
-    mail.register({
+    await mail.register({
       code, login, password, email, firstName, secondName,
     });
   }
@@ -252,7 +252,7 @@ async function restore(ctx) {
   await db('code').del().where({ login: l });
   await db('code').insert({ login: l, recover: code });
 
-  mail.recover({ email: to, code, login: l });
+  await mail.recover({ email: to, code, login: l });
 }
 
 async function setPassword(ctx) {
@@ -329,7 +329,7 @@ async function updateUser(ctx) {
     await db('code').del().where({ login });
     await db('code').insert({ login, recover: code });
     await db('users').update({ emailToChange: email }).where({ id: token.id });
-    mail.setEmail({ email, code, login });
+    await mail.setEmail({ email, code, login });
   }
 
   ctx.body = !firstName ? { ok: 1 } : await db('users').update({ firstName }).where({ id: token.id });
