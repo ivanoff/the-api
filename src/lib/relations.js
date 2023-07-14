@@ -22,7 +22,7 @@ module.exports = async ({ ctx, relations }) => {
     });
     ctx.request.query = query;
 
-    const t = definition.table;
+    const t = definition.alias || definition.table;
     if (!result[`${t}`]) result[`${t}`] = {};
     for (const d of data) {
       const idKey = d[`${idName}`];
