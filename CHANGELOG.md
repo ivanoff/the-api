@@ -1,5 +1,35 @@
 # Changelog
 
+## [19.5.8] (2023-07-15)
+
+* Added `leftJoin` to `join`/`joinByDemand` section:
+
+```javascript
+  join: [
+    {
+      table: 'coffee_groups',
+      where: 'coffee.id = coffee_groups.coffee_id',
+      leftJoin: 'groups ON groups.id = coffee_groups.group_id',
+    },
+  ],
+  joinOnDemand: [
+    {
+      table: 'tea_groups',
+      alias: 'groups',
+      where: 'tea.id = tea_groups.tea_id',
+      leftJoin: ['groups', 'groups.id', 'tea_groups.group_id'],
+    },
+  ],
+```
+
+## [19.5.7] (2023-07-15)
+
+* Added `alias` as a key in relations
+
+## [19.5.5] (2023-07-09)
+
+* Added the `SOFT_DELETE_USERS` parameter to allow password restoration for deleted accounts
+
 ## [19.5.3] (2023-07-09)
 
 * Added `_join` query for `joinOnDemand` flow in `getById` method

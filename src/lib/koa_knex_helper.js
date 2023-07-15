@@ -198,7 +198,8 @@ class KoaKnexHelper {
     }
 
     for (const {
-      table, schema, as, where, whereBindings, alias, fields, field, limit, orderBy, byIndex,
+      table, schema, as, where, whereBindings, alias, fields,
+      field, limit, orderBy, byIndex, leftJoin,
     } of join) {
       if (!table && field) {
         joinCoaleise.push(db.raw(`${field} AS ${alias || field}`));
@@ -221,11 +222,16 @@ class KoaKnexHelper {
         for (const [k, v] of Object.entries(whereBindings)) wb[`${k}`] = dd[`${v}`];
       }
 
+      const leftJoinStr = !leftJoin ? ''
+        : typeof leftJoin === 'string' ? `LEFT JOIN ${leftJoin}`
+          : `LEFT JOIN ${leftJoin[0]} ON ${leftJoin[1]} = ${leftJoin[2]}`;
+
       const index = typeof byIndex === 'number' ? `[${byIndex}]` : '';
       const schemaStr = !schema ? '' : `"${schema}".`;
 
       const coaliseWhere = `COALESCE( ( SELECT ${f3} FROM (
         SELECT * FROM ${schemaStr}"${table}" AS "${as || table}"
+        ${leftJoinStr}
         WHERE ${where} ${lang}
         ${orderByStr}
         ${limitStr}
