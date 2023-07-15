@@ -10,6 +10,9 @@ const tokenFields = ['id', 'login', 'statuses', 'firstName'];
 
 const sha256 = (data) => crypto.createHash('sha256').update(data, 'utf8').digest('hex');
 
+const { SOFT_DELETE_USERS } = process.env;
+const isSoftDelete = SOFT_DELETE_USERS === 'true';
+
 async function loginTool({
   ctx, login: loginOrigin, email: emailOrigin, password, refresh, id: byId, superadminId,
 }) {
@@ -243,7 +246,8 @@ async function restore(ctx) {
   if (!login && !email) return;
 
   const where = login ? { login } : { email };
-  const { email: to, login: l } = await db('users').where({ ...where, deleted: false }).first() || {};
+  if (!isSoftDelete) where.deleted = false;
+  const { email: to, login: l } = await db('users').where(where).first() || {};
 
   if (!to) return;
 
@@ -272,7 +276,9 @@ async function setPassword(ctx) {
   const { statuses = [] } = await db('users').where({ login }).first();
   if (!statuses.includes('registered')) statuses.push('registered');
 
-  await db('users').update({ password: sha256(password + salt), salt, statuses }).where({ login });
+  await db('users').update({
+    password: sha256(password + salt), salt, statuses, deleted: false,
+  }).where({ login });
 
   ctx.body = { ok: 1 };
 }
@@ -371,7 +377,7 @@ async function deleteStatus(ctx) {
   ctx.body = statuses;
 }
 
-async function _getUserId(ctx) {
+function _getUserId(ctx) {
   const { token } = ctx.state;
 
   if (!token?.id) {
