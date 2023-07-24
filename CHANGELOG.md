@@ -1,5 +1,9 @@
 # Changelog
 
+## [19.6.2] (2023-07-23)
+
+* Update `linkedind` login flow
+
 ## [19.5.8] (2023-07-15)
 
 * Added `leftJoin` to `join`/`joinByDemand` section:
