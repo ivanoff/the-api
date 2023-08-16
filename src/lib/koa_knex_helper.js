@@ -153,15 +153,30 @@ class KoaKnexHelper {
   }
 
   fields({
-    ctx, _fields, _join, db,
+    ctx, _fields, _join, db, _sort,
   }) {
     this.updateHiddenColumns();
+    const f = _fields && _fields.split(',');
 
     if (this.leftJoin.length) {
       this.leftJoin.map((item) => this.res.leftJoin(...item));
+      const sort = _sort || this.defaultSort;
+      const filedsToDistinct = [];
+
+      if (sort && f) {
+        sort.split(',').forEach((item) => {
+          const match = item.match(/^(-)?(.*)$/);
+          if (!f.includes(`${match[2]}`)) filedsToDistinct.push(`${this.table}.${match[2]}`);
+        });
+      }
+
+      if (filedsToDistinct.length) {
+        this.res.distinct(filedsToDistinct.join(', '));
+      } else {
+        this.res.distinct();
+      }
     }
 
-    const f = _fields && _fields.split(',');
     let joinCoaleise = (f || Object.keys(this.rows)).filter((name) => !this.hiddenColumns.includes(name)).map((l) => `${this.table}.${l}`);
 
     if (this.includeDeleted && this.deletedReplacements) {
@@ -379,7 +394,7 @@ class KoaKnexHelper {
     if (_isNull) [].concat(_isNull).map((key) => this.res.andWhereNull(key));
 
     this.fields({
-      ctx, _fields, _join, db,
+      ctx, _fields, _join, db, _sort,
     });
 
     this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => ({ ...acc, [`${cur}`]: val }), {}));
