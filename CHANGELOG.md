@@ -1,5 +1,9 @@
 # Changelog
 
+## [19.7.1] (2023-08-17)
+
+* Added `leftJoinDistinct` boolean for avoid duplicates on leftJoin
+
 ## [19.6.2] (2023-07-23)
 
 * Update `linkedind` login flow

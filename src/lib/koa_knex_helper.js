@@ -12,6 +12,7 @@ class KoaKnexHelper {
     join,
     joinOnDemand,
     leftJoin,
+    leftJoinDistinct,
     lang,
     translate,
     hiddenFieldsByStatus,
@@ -37,6 +38,7 @@ class KoaKnexHelper {
     this.join = join || [];
     this.joinOnDemand = joinOnDemand || [];
     this.leftJoin = leftJoin || [];
+    this.leftJoinDistinct = !!leftJoinDistinct;
     this.lang = lang || 'en';
     this.translate = translate || [];
     this.hiddenFieldsByStatus = hiddenFieldsByStatus || {};
@@ -160,20 +162,10 @@ class KoaKnexHelper {
 
     if (this.leftJoin.length) {
       this.leftJoin.map((item) => this.res.leftJoin(...item));
-      const sort = _sort || this.defaultSort;
-      const filedsToDistinct = [];
 
-      if (sort && f) {
-        sort.split(',').forEach((item) => {
-          const match = item.match(/^(-)?(.*)$/);
-          if (!f.includes(`${match[2]}`)) filedsToDistinct.push(`${this.table}.${match[2]}`);
-        });
-      }
-
-      if (filedsToDistinct.length) {
-        this.res.distinct(filedsToDistinct.join(', '));
-      } else {
-        this.res.distinct();
+      if (this.leftJoinDistinct) {
+        const sortArr = (_sort || this.defaultSort || '').replace(/(^|,)-/g, ',').split(',').filter(Boolean);
+        this.res.distinct(!f ? [] : sortArr.map((item) => !f.includes(item) && `${this.table}.${item}`).filter(Boolean));
       }
     }
 
