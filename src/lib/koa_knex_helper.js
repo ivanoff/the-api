@@ -30,6 +30,7 @@ class KoaKnexHelper {
     deletedReplacements,
     includeDeleted,
     cache,
+    userIdFieldName,
   } = {}) {
     this.ctx = ctx;
     this.table = table;
@@ -61,6 +62,7 @@ class KoaKnexHelper {
     this.coaliseWhere = {};
     this.coaliseWhereReplacements = {};
     this.cache = cache;
+    this.userIdFieldName = userIdFieldName || 'user_id';
   }
 
   getDbWithSchema(ctx) {
@@ -379,8 +381,8 @@ class KoaKnexHelper {
     this.rows = this.getTableRows(ctx);
     this.res = this.getDbWithSchema(ctx);
 
-    const { user_id } = await this.res.clone().first() || {};
-    this.isOwner = token?.id && token.id === user_id;
+    const userData = await this.res.clone().first() || {};
+    this.isOwner = token?.id && token.id === userData[`${this.userIdFieldName}`];
 
     if (_or) this.res.where(function () { [].concat(_or).map((key) => this.orWhere(key)); });
     if (_isNull) [].concat(_isNull).map((key) => this.res.andWhereNull(key));
@@ -463,8 +465,8 @@ class KoaKnexHelper {
     this.checkDeleted();
 
     const { id: tokenId } = token || {};
-    const { id: user_id } = await this.res.clone().first() || {};
-    this.isOwner = tokenId && tokenId === user_id;
+    const userData = await this.res.clone().first() || {};
+    this.isOwner = tokenId && tokenId === userData[`${this.userIdFieldName}`];
 
     this.fields({
       ctx, _fields, _join, db,
