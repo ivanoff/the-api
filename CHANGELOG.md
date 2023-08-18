@@ -1,5 +1,9 @@
 # Changelog
 
+## [19.7.2] (2023-08-17)
+
+* Added `userIdFieldName` (default is `user_id`) for redefining the user ID field name in the check owner procedure
+
 ## [19.7.1] (2023-08-17)
 
 * Added `leftJoinDistinct` boolean for avoid duplicates on leftJoin
