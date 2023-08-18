@@ -463,7 +463,7 @@ class KoaKnexHelper {
     this.checkDeleted();
 
     const { id: tokenId } = token || {};
-    const { user_id } = await this.res.clone().first() || {};
+    const { id: user_id } = await this.res.clone().first() || {};
     this.isOwner = tokenId && tokenId === user_id;
 
     this.fields({
