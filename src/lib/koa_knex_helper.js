@@ -99,6 +99,14 @@ class KoaKnexHelper {
     this.res.offset(offset + (+_skip));
   }
 
+  whereNotIn(whereNotInObj) {
+    if (!whereNotInObj) return;
+
+    for (const [key, value] of Object.entries(whereNotInObj)) {
+      this.res.whereNotIn(key, value);
+    }
+  }
+
   where(whereObj) {
     if (!whereObj) return;
 
@@ -374,7 +382,7 @@ class KoaKnexHelper {
 
     const {
       _fields, _sort, _page, _skip, _limit, _unlimited,
-      _lang, _isNull, _or, _search, _join, ...where
+      _lang, _isNull, _or, _search, _join, _whereNotIn, ...where
     } = ctx.request.query;
 
     if (_lang) this.lang = _lang;
@@ -391,6 +399,7 @@ class KoaKnexHelper {
       ctx, _fields, _join, db, _sort,
     });
 
+    this.whereNotIn(_whereNotIn);
     this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => ({ ...acc, [`${cur}`]: val }), {}));
 
     if (_search && this.searchFields.length) {
