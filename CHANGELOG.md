@@ -1,6 +1,6 @@
 # Changelog
 
-## [19.7.4] (2023-10-16)
+## [19.7.5] (2023-10-16)
 
 * Added `sortRaw` and `fieldsRaw`
 
