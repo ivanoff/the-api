@@ -21,6 +21,8 @@ class KoaKnexHelper {
     required,
     defaultWhere,
     defaultSort,
+    sortRaw,
+    fieldsRaw,
     tokenRequired,
     ownerRequired,
     rootRequired,
@@ -47,6 +49,8 @@ class KoaKnexHelper {
     this.required = required || {};
     this.defaultWhere = defaultWhere || {};
     this.defaultSort = defaultSort;
+    this.sortRaw = sortRaw;
+    this.fieldsRaw = fieldsRaw;
     this.tokenRequired = tokenRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
     this.ownerRequired = ownerRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
     this.rootRequired = rootRequired?.reduce((acc, cur) => ({ ...acc, [cur]: true }), {}) || {};
@@ -77,6 +81,8 @@ class KoaKnexHelper {
   }
 
   sort(sort, db) {
+    if (this.sortRaw) this.res.orderByRaw(this.sortRaw);
+
     const _sort = sort || this.defaultSort;
     if (!_sort) return;
 
@@ -179,7 +185,9 @@ class KoaKnexHelper {
       }
     }
 
-    let joinCoaleise = (f || Object.keys(this.rows)).filter((name) => !this.hiddenColumns.includes(name)).map((l) => `${this.table}.${l}`);
+    let joinCoaleise = (f || Object.keys(this.rows))
+      .filter((name) => !this.hiddenColumns.includes(name))
+      .map((l) => `${this.table}.${l}`);
 
     if (this.includeDeleted && this.deletedReplacements) {
       joinCoaleise = joinCoaleise.map((item) => {
@@ -273,7 +281,7 @@ class KoaKnexHelper {
       joinCoaleise.push(db.raw(`(${searchColumnsStr})/${this.searchFields.length} as _search_distance`, ctx.request.query));
     }
 
-    this.res.column(joinCoaleise);
+    this.res.column(joinCoaleise.concat(this.fieldsRaw || []));
   }
 
   checkDeleted() {
@@ -389,8 +397,11 @@ class KoaKnexHelper {
     this.rows = this.getTableRows(ctx);
     this.res = this.getDbWithSchema(ctx);
 
-    const userData = await this.res.clone().first() || {};
-    this.isOwner = token?.id && token.id === userData[`${this.userIdFieldName}`];
+    this.isOwner = false;
+    if (token?.id) {
+      const userData = await this.res.clone().first() || {};
+      this.isOwner = token.id === userData[`${this.userIdFieldName}`];
+    }
 
     if (_or) this.res.where(function () { [].concat(_or).map((key) => this.orWhere(key)); });
     if (_isNull) [].concat(_isNull).map((key) => this.res.andWhereNull(key));
@@ -474,8 +485,11 @@ class KoaKnexHelper {
     this.checkDeleted();
 
     const { id: tokenId } = token || {};
-    const userData = await this.res.clone().first() || {};
-    this.isOwner = tokenId && tokenId === userData[`${this.userIdFieldName}`];
+    this.isOwner = false;
+    if (tokenId) {
+      const userData = await this.res.clone().first() || {};
+      this.isOwner = tokenId === userData[`${this.userIdFieldName}`];
+    }
 
     this.fields({
       ctx, _fields, _join, db,

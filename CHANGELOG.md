@@ -1,5 +1,9 @@
 # Changelog
 
+## [19.7.4] (2023-10-16)
+
+* Added `sortRaw` and `fieldsRaw`
+
 ## [19.7.2] (2023-08-17)
 
 * Added `userIdFieldName` (default is `user_id`) for redefining the user ID field name in the check owner procedure
