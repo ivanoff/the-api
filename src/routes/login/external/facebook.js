@@ -15,7 +15,7 @@ module.exports = async (api) => {
   api.passport.use(
     new Strategy(
       {
-        clientID, clientSecret, callbackURL, scope: ['user.read'],
+        clientID, clientSecret, callbackURL, scope: ['public_profile', 'email'],
       },
       (token, refresh, profile, done) => done(null, { token, refresh, profile }),
     ),
