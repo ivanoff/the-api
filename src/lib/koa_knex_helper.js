@@ -79,11 +79,12 @@ class KoaKnexHelper {
   sort(sort, db) {
     const _sort = sort || this.defaultSort;
     if (!_sort) return;
+
     _sort.split(',').forEach((item) => {
       if (item.match(/^random\(\)$/i)) return this.res.orderBy(db.raw('RANDOM()'));
+
       const match = item.match(/^(-)?(.*)$/);
-      const isUpperCaseField = /[A-Z]/.test(match[2]) && match[2].indexOf('(') === -1;
-      this.res.orderByRaw(`${isUpperCaseField ? `"${match[2]}"` : match[2]} ${match[1] ? 'desc' : 'asc'}`);
+      this.res.orderBy(match[2], match[1] && 'desc');
     });
   }
 
@@ -174,7 +175,7 @@ class KoaKnexHelper {
 
       if (this.leftJoinDistinct) {
         const sortArr = (_sort || this.defaultSort || '').replace(/(^|,)-/g, ',').split(',').filter(Boolean);
-        this.res.distinct(!f ? [] : sortArr.map((item) => !f.includes(item) && (item.startsWith('(') ? db.raw(item) : `${this.table}.${item}`)).filter(Boolean));
+        this.res.distinct(!f ? [] : sortArr.map((item) => !f.includes(item) && `${this.table}.${item}`).filter(Boolean));
       }
     }
 
