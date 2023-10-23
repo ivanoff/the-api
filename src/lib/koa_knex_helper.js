@@ -222,14 +222,22 @@ class KoaKnexHelper {
       }
     }
 
+    const { statuses = [] } = this.token || {};
+    if (this.isOwner) statuses.push('owner');
+
     for (const {
       table, schema, as, where, whereBindings, alias, fields,
-      field, limit, orderBy, byIndex, leftJoin,
+      field, limit, orderBy, byIndex, leftJoin, statuses: statusesFromJoin = [],
     } of join) {
       if (!table && field) {
         joinCoaleise.push(db.raw(`${field} AS ${alias || field}`));
         continue;
       }
+
+      if (statusesFromJoin.length && !statusesFromJoin.some((el) => statuses.includes(el))) {
+        continue;
+      }
+
       const orderByStr = orderBy ? `ORDER BY ${orderBy}` : '';
       const limitStr = limit ? `LIMIT ${limit}` : '';
       const lang = table === 'lang' && this.lang && this.lang.match(/^\w{2}$/) ? `AND lang='${this.lang}'` : '';
