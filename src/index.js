@@ -1,4 +1,5 @@
-const Koa = require('koa');
+const { Hono } = require('hono');
+const { serve } = require('@hono/node-server');
 const bodyParser = require('koa-bodyparser');
 const formidable = require('koa2-formidable');
 const passport = require('koa-passport');
@@ -31,7 +32,10 @@ const {
 class TheAPI {
   constructor({ port, migrationDirs = [] } = {}) {
     this.port = port || PORT || 8877;
-    this.app = new Koa();
+    this.app = new Hono();
+    this.app.onError((err) => {
+      console.log({ err });
+    });
     this.passport = passport;
     if (!UPLOAD_MULTIPLY_DISABLED) {
       this.app.use(formidable({ multiples: true }));
@@ -270,7 +274,8 @@ class TheAPI {
   }
 
   async startServer() {
-    this.connection = await this.app.listen(this.port);
+    // this.connection = await this.app.listen(this.port);
+    this.connection = serve({ fetch: this.app, port: this.port });
     this.log(`Started on port ${this.port}`);
   }
 

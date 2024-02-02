@@ -1,6 +1,7 @@
 const endpoints = {};
 
 module.exports = (ctx, next) => {
+  // return ctx.text('AAAAAAAA');
   ctx.state.requests.total++;
 
   if (ctx.url !== `${process.env.API_PREFIX || ''}/info`) return next();
@@ -11,9 +12,12 @@ module.exports = (ctx, next) => {
 
   const uptime = Math.floor((currentTime.getTime() - startTime.getTime()) / 1000);
 
-  ctx.body = {
+  // ctx.body = {
+  //   currentTime, name, version, uptime, requests, endpoints,
+  // };
+  return ctx.json({
     currentTime, name, version, uptime, requests, endpoints,
-  };
+  });
 };
 
 module.exports.endpointsToShow = (...routes) => {

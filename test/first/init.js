@@ -1,4 +1,4 @@
-require('the-log').silent();
+// require('the-log').silent();
 
 const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
 const sinon = require('sinon');

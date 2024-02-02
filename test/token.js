@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { sleep } = require('../src/lib');
 
-describe('Token and Cron', () => {
+describe.only('Token and Cron', () => {
   let api;
   let cronFlag = false;
   const env = { ...process.env };
@@ -41,7 +41,12 @@ describe('Token and Cron', () => {
     let token;
 
     it('status code 200', async () => {
-      await global.post('/register', { login: 'aaa5', password: 'bbb', email: '2@ivanoff.org.ua' });
+      try {
+        const tt = await global.post('/register', { login: 'aaa5', password: 'bbb', email: '2@ivanoff.org.ua' });
+        console.log(tt);
+      } catch (err) {
+        console.log({ err });
+      }
       const raw = await global.post('/login', { login: 'aaa5', password: 'bbb' });
       res = await raw.json();
       expect(raw.status).to.eql(200);
