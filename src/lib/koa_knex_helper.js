@@ -250,7 +250,18 @@ class KoaKnexHelper {
       if (whereBindings) {
         if (!ctx) continue;
         const { params, query, state } = ctx;
-        const dd = flattening({ params, query, token: state.token });
+        const tinyState = { ...state };
+        [
+          'tablesInfo',
+          'stack',
+          'routeErrors',
+          'db',
+          '_passport',
+          'userAccess',
+        ].map((key) => delete tinyState[`${key}`]);
+
+        const dd = flattening({ ...tinyState, params, query });
+
         if (Object.values(whereBindings).filter((item) => !dd[`${item}`]).length) continue;
         for (const [k, v] of Object.entries(whereBindings)) wb[`${k}`] = dd[`${v}`];
       }
