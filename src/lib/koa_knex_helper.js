@@ -226,7 +226,7 @@ class KoaKnexHelper {
     if (this.isOwner) statuses.push('owner');
 
     for (const {
-      table, schema, as, where, whereBindings, alias, fields,
+      table, schema, as, where, whereBindings, alias, defaultValue, fields,
       field, limit, orderBy, byIndex, leftJoin, statuses: statusesFromJoin = [],
     } of join) {
       if (!table && field) {
@@ -272,6 +272,7 @@ class KoaKnexHelper {
 
       const index = typeof byIndex === 'number' ? `[${byIndex}]` : '';
       const schemaStr = !schema ? '' : `"${schema}".`;
+      const dValue = defaultValue ? `'${defaultValue}'` : 'NULL';
 
       const coaliseWhere = `COALESCE( ( SELECT ${f3} FROM (
         SELECT * FROM ${schemaStr}"${table}" AS "${as || table}"
@@ -279,7 +280,7 @@ class KoaKnexHelper {
         WHERE ${where} ${lang}
         ${orderByStr}
         ${limitStr}
-      ) ${as || table})${index}, NULL)`;
+      ) ${as || table})${index}, ${dValue})`;
 
       this.coaliseWhere = { ...this.coaliseWhere, [`${alias || table}`]: coaliseWhere };
       this.coaliseWhereReplacements = { ...this.coaliseWhereReplacements, ...wb };
