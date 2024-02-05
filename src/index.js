@@ -126,6 +126,8 @@ class TheAPI {
         await next();
       } catch (err) {
         const isExpired = err.toString().match(/jwt expired/);
+        ctx.set('Access-Control-Allow-Credentials', 'true');
+        ctx.set('Access-Control-Allow-Origin', '*');
         ctx.body = isExpired ? errorsList.TOKEN_EXPIRED : errorsList.TOKEN_INVALID;
         ctx.status = ctx.body.status;
       }
