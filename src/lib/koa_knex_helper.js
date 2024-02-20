@@ -113,13 +113,13 @@ class KoaKnexHelper {
     }
   }
 
-  where(whereObj) {
+  where(whereObj, db) {
     if (!whereObj) return;
 
     for (const [key, value] of Object.entries(whereObj)) {
       if (this.coaliseWhere[`${key}`] || this.coaliseWhere[`${key.replace(/!$/, '')}`]) {
         if (Array.isArray(value)) {
-          this.res.whereIn(this.ctx.state.db.raw(this.coaliseWhere[`${key}`]), value);
+          this.res.whereIn(db.raw(this.coaliseWhere[`${key}`]), value);
         } else {
           const key2 = key.replace(/!$/, '');
           const coaliseWhere = this.coaliseWhere[`${key2}`];
@@ -437,7 +437,7 @@ class KoaKnexHelper {
     });
 
     this.whereNotIn(_whereNotIn);
-    this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => ({ ...acc, [`${cur}`]: val }), {}));
+    this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => ({ ...acc, [`${cur}`]: val }), {}), db);
 
     if (_search && this.searchFields.length) {
       const whereStr = this.searchFields.map((name) => `"${name}" % :_search`).join(' OR ');
@@ -506,7 +506,7 @@ class KoaKnexHelper {
     this.res = this.getDbWithSchema(ctx);
 
     if (_or) this.res.where(function () { [].concat(_or).map((key) => this.orWhere(key)); });
-    this.where({ ...where, [`${this.table}.id`]: id });
+    this.where({ ...where, [`${this.table}.id`]: id }, db);
 
     this.checkDeleted();
 
