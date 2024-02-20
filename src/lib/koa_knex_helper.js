@@ -117,7 +117,16 @@ class KoaKnexHelper {
     if (!whereObj) return;
 
     for (const [key, value] of Object.entries(whereObj)) {
-      if (key.match(/~$/)) {
+      if (this.coaliseWhere[`${key}`] || this.coaliseWhere[`${key.replace(/!$/, '')}`]) {
+        if (Array.isArray(value)) {
+          this.res.whereIn(this.ctx.state.db.raw(this.coaliseWhere[`${key}`]), value);
+        } else {
+          const key2 = key.replace(/!$/, '');
+          const coaliseWhere = this.coaliseWhere[`${key2}`];
+          const isNnot = key.match(/!$/) ? 'NOT' : '';
+          this.res.whereRaw(`${isNnot} ${coaliseWhere} = :_value`, { ...this.coaliseWhereReplacements, _value: value });
+        }
+      } else if (key.match(/~$/)) {
         // iLike
         this.res.where(key.replace(/~$/, ''), 'ilike', value);
       } else if (key.match(/!$/)) {
@@ -144,9 +153,6 @@ class KoaKnexHelper {
         this.res.whereIn(key, value);
       } else if (value === null) {
         this.res.whereNull(key);
-      } else if (this.coaliseWhere[`${key}`]) {
-        const coaliseWhere = this.coaliseWhere[`${key}`];
-        this.res.whereRaw(`${coaliseWhere} = :_value`, { ...this.coaliseWhereReplacements, _value: value });
       } else if (this.leftJoin && !key.includes('.')) {
         this.res.where({ [`${this.table}.${key}`]: value });
       } else {
@@ -659,7 +665,9 @@ class KoaKnexHelper {
     else delete where.user_id;
 
     const t = this.getDbWithSchema(ctx).where(where);
-    return rows.deleted ? t.update({ deleted: true }) : t.delete();
+    const result = rows.deleted ? await t.update({ deleted: true }) : await t.delete();
+
+    return { ok: result };
   }
 }
 
