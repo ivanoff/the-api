@@ -33,6 +33,7 @@ class KoaKnexHelper {
     includeDeleted,
     cache,
     userIdFieldName,
+    additionalFields,
   } = {}) {
     this.ctx = ctx;
     this.table = table;
@@ -67,6 +68,7 @@ class KoaKnexHelper {
     this.coaliseWhereReplacements = {};
     this.cache = cache;
     this.userIdFieldName = userIdFieldName || 'user_id';
+    this.additionalFields = additionalFields;
   }
 
   getDbWithSchema(ctx) {
@@ -376,6 +378,7 @@ class KoaKnexHelper {
       ...fieldsSearchLike,
       ...fieldsNull,
       ...fieldsFromTo,
+      ...this.additionalFields?.get,
       _fields: {
         type: 'string',
         example: 'id,name',
@@ -557,7 +560,7 @@ class KoaKnexHelper {
     const schema = Object.entries(this.tableInfo || {}).reduce((acc, [key, data]) => {
       const keyForbiddeen = this.forbiddenFieldsToAdd.includes(key);
       return keyForbiddeen ? acc : { ...acc, [key]: data };
-    }, {});
+    }, this.additionalFields?.add || {});
 
     return {
       tokenRequired: this.tokenRequired.add
@@ -596,7 +599,7 @@ class KoaKnexHelper {
     const schema = Object.entries(this.tableInfo || {}).reduce((acc, [key, data]) => {
       const keyForbiddeen = this.forbiddenFieldsToAdd.includes(key);
       return keyForbiddeen ? acc : { ...acc, [key]: data };
-    }, {});
+    }, this.additionalFields?.update || {});
 
     return {
       tokenRequired: this.tokenRequired.update
