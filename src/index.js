@@ -8,13 +8,25 @@ const { v4: uuidv4 } = require('uuid');
 const { CronJob } = require('cron');
 const { FsMigrations } = require('knex/lib/migrations/migrate/sources/fs-migrations');
 const {
-  Router, getSwaggerData, crud, getTablesInfo, KoaKnexHelper,
+  Router, getSwaggerData, crud, getTablesInfo, KoaKnexHelper, getApiClientData,
 } = require('./lib');
 const extensions = require('./extensions');
 const routes = require('./routes');
 const errorsList = require('./extensions/errors/list');
 
 require('dotenv').config();
+
+////////////////
+console.log('!!!!!!!!!!!!!!!!!!!!!')
+process.env = {
+  ...process.env,
+  DB_CLIENT: 'postgres',
+  DB_HOST: 'localhost',
+  DB_PORT: '6436',
+  DB_USER: 'postgres',
+  DB_PASSWORD: 'ro3dNi4=2dm___Ed',
+  DB_DATABASE: 'postgres',
+};
 
 const {
   PORT,
@@ -240,6 +252,8 @@ class TheAPI {
       this.log(err);
     }
 
+    const apiClient = `${process.env._API_CLIENT}` === 'true';
+
     this.app.use(async (ctx, next) => {
       const { db } = this;
       const { log } = this;
@@ -258,6 +272,7 @@ class TheAPI {
         jwtSecret,
         tablesInfo: this.tablesInfo,
         userAccess,
+        apiClient,
       };
       ctx.throw = this.log;
       await next();
@@ -269,6 +284,15 @@ class TheAPI {
 
     const routesList = flow.map((item) => (typeof item.routes === 'function' ? item.routes() : typeof item === 'function' && item)).filter(Boolean);
     routesList.map((item) => this.app.use(item));
+
+    if (apiClient) {
+      const apiClientRoute = this.router().get('/client.ts', (ctx) => {
+        ctx.set('Access-Control-Allow-Origin', '*');
+        ctx.set('Access-Control-Allow-Methods', 'GET');
+        ctx.body = getApiClientData({ flow });
+      }).routes();
+      this.app.use(apiClientRoute);
+    }
   }
 
   async startServer() {

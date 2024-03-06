@@ -49,6 +49,8 @@ module.exports = async (ctx, next) => {
       code, name: errorName, description, addition,
     };
 
+    ctx.body.error = true;
+
     ctx.state.log(error);
 
     if (hasSentry) Sentry.captureException(errorObj);

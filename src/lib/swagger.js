@@ -119,6 +119,11 @@ module.exports = ({
         continue;
       }
 
+      if (opt === 'array') {
+        definitions += `        type: array\n        items:\n          type: string\n`;
+        continue;
+      }
+
       const o = (typeof opt === 'string') ? { data_type: opt } : opt;
       definitions += `        type: "${updateType(o.data_type)}"\n`;
     }

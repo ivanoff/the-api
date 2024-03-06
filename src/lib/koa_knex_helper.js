@@ -68,7 +68,7 @@ class KoaKnexHelper {
     this.coaliseWhereReplacements = {};
     this.cache = cache;
     this.userIdFieldName = userIdFieldName || 'user_id';
-    this.additionalFields = additionalFields;
+    this.additionalFields = additionalFields || {};
   }
 
   getDbWithSchema(ctx) {
@@ -403,6 +403,9 @@ class KoaKnexHelper {
       rootRequired: this.rootRequired.get,
       joinFields: this.getJoinFields(),
       cache: this.cache,
+      joinOnDemand: this.joinOnDemand,
+      accessByStatuses: this.accessByStatuses.read,
+      additionalFields: this.additionalFields.get,
       queryParameters,
     };
   }
@@ -477,6 +480,9 @@ class KoaKnexHelper {
       ownerRequired: this.ownerRequired.get,
       rootRequired: this.rootRequired.get,
       joinFields: this.getJoinFields(),
+      joinOnDemand: this.joinOnDemand,
+      accessByStatuses: this.accessByStatuses.read,
+      additionalFields: this.additionalFields.get,
       cache: this.cache,
     };
   }
@@ -568,6 +574,9 @@ class KoaKnexHelper {
         || this.accessByStatuses.create,
       ownerRequired: this.ownerRequired.add,
       rootRequired: this.rootRequired.add,
+      forbiddenFieldsToAdd: this.forbiddenFieldsToAdd,
+      required: Object.keys(this.required),
+      accessByStatuses: this.accessByStatuses.add,
       schema,
     };
   }
@@ -607,6 +616,9 @@ class KoaKnexHelper {
         || this.accessByStatuses.update,
       ownerRequired: this.ownerRequired.update,
       rootRequired: this.rootRequired.update,
+      forbiddenFieldsToAdd: this.forbiddenFieldsToAdd,
+      accessByStatuses: this.accessByStatuses.update,
+      additionalFields: this.additionalFields.update,
       schema,
     };
   }
@@ -633,11 +645,14 @@ class KoaKnexHelper {
       delete data[`${key}`];
     }
 
-    if (rows.timeUpdated) data.timeUpdated = db.fn.now();
-    // Depricated
-    if (rows.time_updated) data.time_updated = db.fn.now();
+    if (Object.keys(data).length) {
+      if (rows.timeUpdated) data.timeUpdated = db.fn.now();
+      // Depricated
+      if (rows.time_updated) data.time_updated = db.fn.now();
 
-    await this.getDbWithSchema(ctx).update(data).where(where);
+      await this.getDbWithSchema(ctx).update(data).where(where);
+    }
+
     return this.getById({ ctx });
   }
 
@@ -648,6 +663,7 @@ class KoaKnexHelper {
         || this.accessByStatuses.delete,
       ownerRequired: this.ownerRequired.delete,
       rootRequired: this.rootRequired.delete,
+      accessByStatuses: this.accessByStatuses.delete,
     };
   }
 
