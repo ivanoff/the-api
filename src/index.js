@@ -16,17 +16,17 @@ const errorsList = require('./extensions/errors/list');
 
 require('dotenv').config();
 
-////////////////
-console.log('!!!!!!!!!!!!!!!!!!!!!')
-process.env = {
-  ...process.env,
-  DB_CLIENT: 'postgres',
-  DB_HOST: 'localhost',
-  DB_PORT: '6436',
-  DB_USER: 'postgres',
-  DB_PASSWORD: 'ro3dNi4=2dm___Ed',
-  DB_DATABASE: 'postgres',
-};
+// ////////////////
+// console.log('!!!!!!!!!!!!!!!!!!!!!')
+// process.env = {
+//   ...process.env,
+//   DB_CLIENT: 'postgres',
+//   DB_HOST: 'localhost',
+//   DB_PORT: '6436',
+//   DB_USER: 'postgres',
+//   DB_PASSWORD: 'ro3dNi4=2dm___Ed',
+//   DB_DATABASE: 'postgres',
+// };
 
 const {
   PORT,
