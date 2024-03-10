@@ -37,6 +37,13 @@ module.exports = router
     },
     responses: ['USER_NOT_FOUND', 'EMAIL_NOT_CONFIRMED'],
   })
+  .get('/login/refresh', c.loginHandler, {
+    summary: 'Refresh jwt token',
+    schema: {
+      refresh: 'string',
+    },
+    responses: ['USER_NOT_FOUND', 'EMAIL_NOT_CONFIRMED'],
+  })
   .post('/login/forgot', c.restore, {
     summary: 'Get token to restore password',
     schema: {

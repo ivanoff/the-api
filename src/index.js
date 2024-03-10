@@ -244,6 +244,16 @@ class TheAPI {
       this.app.use(swaggerRoute);
     }
 
+    const apiClient = `${process.env._API_CLIENT}` === 'true';
+    if (apiClient) {
+      const apiClientRoute = this.router().get('/client.ts', (ctx) => {
+        ctx.set('Access-Control-Allow-Origin', '*');
+        ctx.set('Access-Control-Allow-Methods', 'GET');
+        ctx.body = getApiClientData({ flow });
+      }).routes();
+      this.app.use(apiClientRoute);
+    }
+
     let userAccess = {};
     try {
       const accessRaw = await this.db('user_access').select();
@@ -251,8 +261,6 @@ class TheAPI {
     } catch (err) {
       this.log(err);
     }
-
-    const apiClient = `${process.env._API_CLIENT}` === 'true';
 
     this.app.use(async (ctx, next) => {
       const { db } = this;
@@ -284,15 +292,6 @@ class TheAPI {
 
     const routesList = flow.map((item) => (typeof item.routes === 'function' ? item.routes() : typeof item === 'function' && item)).filter(Boolean);
     routesList.map((item) => this.app.use(item));
-
-    if (apiClient) {
-      const apiClientRoute = this.router().get('/client.ts', (ctx) => {
-        ctx.set('Access-Control-Allow-Origin', '*');
-        ctx.set('Access-Control-Allow-Methods', 'GET');
-        ctx.body = getApiClientData({ flow });
-      }).routes();
-      this.app.use(apiClientRoute);
-    }
   }
 
   async startServer() {

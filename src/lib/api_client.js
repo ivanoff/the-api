@@ -65,12 +65,12 @@ export class ApiClient {
         return response?.json();
     }
 
-    async post<T>(endpoint: string, data: any, noToken?: boolean): Promise<T> {
+    async post<T>(endpoint: string, data?: any, noToken?: boolean): Promise<T> {
         const response = await this.fetchWithToken(
             endpoint,
             {
                 method: 'POST',
-                body: JSON.stringify(data),
+                body: JSON.stringify(data || {}),
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -80,10 +80,10 @@ export class ApiClient {
         return response?.json();
     }
 
-    async put<T>(endpoint: string, data: any): Promise<T> {
+    async put<T>(endpoint: string, data?: any): Promise<T> {
         const response = await this.fetchWithToken(endpoint, {
             method: 'PUT',
-            body: JSON.stringify(data),
+            body: JSON.stringify(data || {}),
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -91,10 +91,10 @@ export class ApiClient {
         return response?.json();
     }
 
-    async patch<T>(endpoint: string, data: any): Promise<T> {
+    async patch<T>(endpoint: string, data? : any): Promise<T> {
         const response = await this.fetchWithToken(endpoint, {
             method: 'PATCH',
-            body: JSON.stringify(data),
+            body: JSON.stringify(data || {}),
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -135,7 +135,7 @@ export class ApiClient {
     handleQueryString(query: any) {
         const params = new URLSearchParams();
 
-        for (const key of Object.keys(params) as (keyof UserType)[]) {
+        for (const key of Object.keys(query) as (keyof UserType)[]) {
             if (query[\`\${key}\`]) {
                 params.append(key, query[\`\${key}\`]?.toString() || '');
             }
@@ -145,7 +145,7 @@ export class ApiClient {
     }
 
     async login(body: UserLoginType): Promise<UserLoginResultType> {
-        const res = await this.post<UserLoginResultType>('login', body, true);
+        const res = await this.post<UserLoginResultType>('/login', body, true);
 
         this.token = res?.token;
         this.refreshToken = res?.refresh;
@@ -156,7 +156,7 @@ export class ApiClient {
     }
 
     async createUser(body: UserLoginType): Promise<UserLoginResultType> {
-        const res = await this.post<UserLoginResultType>('register', body, true);
+        const res = await this.post<UserLoginResultType>('/register', body, true);
 
         this.token = res?.token;
         this.refreshToken = res?.refresh;
@@ -164,10 +164,56 @@ export class ApiClient {
         return res;
     }
 
-:methods:
-}
+:methods:}
 
+export type ConstructorType = {
+    url: string;
+    token?: string;
+    refreshToken?: string;
+    onTokenUpdate?: any;
+    onTokenError?: any;
+};
+
+export type ResultType<T> = {
+    total: number;
+    data: T[];
+};
+
+export type MetadataType = {
+    _page?: number;
+    _limit?: number;
+    _sort?: string[];
+    _fields?: string[];
+    _search?: string;
+};
+
+export type UserType = {
+    name?: string;
+};
+
+export type UserLoginType = {
+    login?: string;
+    email: string;
+    password: string;
+    isInit?: string;
+};
+
+export type UserLoginResultType = {
+    id: number;
+    login: string;
+    statuses: string[];
+    token: string;
+    firstName?: string;
+    secondName?: string;
+    email: string;
+    refresh: string;
+};
 :types:
+export type StatusesBodyType = any;
+
+export type StatusesResponseType = any;
+
+export type Tree2ResponseType = any;
 `;
 
 module.exports = ({ flow }) => {
@@ -179,19 +225,18 @@ module.exports = ({ flow }) => {
   const getName = (method, path) => {
     const a = path.split('/').filter(Boolean)
       .map((str) => str.charAt(0).toUpperCase() + str.slice(1))
-      .map((str) => str.replace(/_+(.)/g, (l) => l.replace(/_+/, '').toUpperCase()))
-      .map((str) => str.replace(/:+(.)/g, (l) => l.toUpperCase()));
+      .map((str) => str.replace(/[_-]+(.)/g, (l) => l.replace(/[_-]+/, '').toUpperCase()))
+      .map((str) => str.replace(/:+(.)/g, (l) => l.toUpperCase().replace(':', 'By')));
 
-    const firstName = method === 'get' ? a[0] : a[0].replace(/s$/, '');
+    const pluralName = method === 'get' ? a[0] : a[0].replace(/s$/, '');
 
-    if (a.length === 1) return firstName;
-    if (a.length === 2 && a[1].match(/^:/)) return firstName + a[1].replace(/^:(.*)/, 'By$1');
+    if (a.length === 1) return pluralName;
+    if (a.length === 2 && a[1].match(/^By/)) return pluralName + a[1];
     if (a.length === 2) return `${a[1]}In${a[0]}`;
-    if (a.length === 3 && a[1].match(/^:/)) return `${a[2]}By${firstName}${a[1].replace(/^:/, '')}`;
-    if (a.length === 3 && a[2].match(/^:/)) return `${a[1]}By${a[2].replace(/^:/, '')}In${a[0]}`;
-    if (a.length === 4 && a[1].match(/^:/) && a[3].match(/^:/)) return `${a[2]}By${a[3].replace(/^:/, '')}In${a[0]}By${a[1].replace(/^:/, '')}`;
-
-    return path;
+    if (a.length === 3 && a[1].match(/^By/)) return `${a[2]}For${pluralName}${a[1].replace(/^:/, '')}`;
+    if (a.length === 3 && a[2].match(/^By/)) return `${a[1]}${a[2]}In${a[0]}`;
+    if (a.length >= 4 && a[1].match(/^By/) && a[3].match(/^By/)) return `${a[2]}${a[3]}In${a[0]}${a[1]}`;
+    return a.join('');
   };
 
   let apiClientMethodNamesAll = {};
@@ -226,7 +271,8 @@ module.exports = ({ flow }) => {
 
         const a = path.split('/').filter(Boolean)
           .map((str) => str.charAt(0).toUpperCase() + str.slice(1))
-          .map((str) => str.replace(/_+(.)/g, (l) => l.replace(/_+/, '').toUpperCase()))
+          .map((str) => str.replace(/[_-]+(.)/g, (l) => l.replace(/[_-]+/, '').toUpperCase()))
+          .map((str) => str.replace(/^(\d)/g, 'n$1'))
           .map((str) => str.replace(/:+(.)/g, (l) => l.toUpperCase()));
 
         if (!methodTypes[`${functionName}`]) methodTypes[`${functionName}`] = { method, path };
@@ -296,14 +342,14 @@ module.exports = ({ flow }) => {
 
         const paramsType = a.filter((item) => item.match(/^:/)).reduce((acc, cur) => ({ ...acc, [`${cur.replaceAll(':', '')}`]: 'integer | string' }), {});
         if (Object.keys(paramsType).length) {
-          types[`${a[0]}ParamsType`] = paramsType;
+          types[`${a[0]}ParamsType`] = { ...types[`${a[0]}ParamsType`], ...paramsType };
           methodTypes[`${functionName}`].params = `${a[0]}ParamsType`;
         }
       }
     }
   }
 
-  console.log(methodTypes);
+  // console.log(methodTypes);
   // console.log(types)
 
   const updateTypes = ([key, typeOrigin]) => {
@@ -327,12 +373,16 @@ module.exports = ({ flow }) => {
 
   let typesStr = '';
   for (const [name, data] of Object.entries(types || {})) {
-    const dataStr = Object.entries(data || {}).map(updateTypes).map((item) => `  ${item}`).join('\n');
+    const dataStr = Object.entries(data || {}).map(updateTypes).map((item) => `    ${item}`).join('\n');
     if (dataStr) {
       typesStr += `
 export type ${name} = {
 ${dataStr}
-};    
+};
+`;
+    } else {
+      typesStr += `
+export type ${name} = any;
 `;
     }
   }
@@ -342,9 +392,17 @@ ${dataStr}
     const {
       method: m, path: p2, params: prms, query: q, response: r, body: b,
     } = data || {};
+
+    if (!['get', 'post', 'put', 'patch', 'delete'].includes(m)) continue;
+
     let p = p2;
 
-    if (prms) p = p.replace(/:(.)/g, (l) => l.toUpperCase()).replace(/:([^/]+)/g, `\${params.$1}`);
+    if (prms) {
+      p = p.replace(/_(.)/g, (l) => l.replace('_', '').toUpperCase())
+        .replace(/:(.)/g, (l) => l.toUpperCase())
+        .replace(/^(\d)/g, 'n$1')
+        .replace(/:([^/]+)/g, `\${params.$1}`);
+    }
 
     const resultType = m !== 'get' ? r : `ResultType<${r}>`;
 
@@ -354,14 +412,18 @@ ${dataStr}
     if (hasQuery) params.push(`query: ${q}`);
     if (b) params.push(`body: ${b}`);
 
-    const queryProcess = !hasQuery ? '' : 'const queryString = this.handleQueryString(query)\n        ';
-    const endpoint = !hasQuery ? prms ? `\`${p}\`` : `'${p}'` : `queryString ? \`${p}?\${queryString}\` : '${p}'`;
+    const queryProcess = !hasQuery ? '' : 'const queryString = this.handleQueryString(query);\n        ';
+    const bodyParams = ['post', 'put', 'patch'].includes(m) && b ? ', body' : '';
+    const pQuery = hasQuery ? `${p}?\${queryString}` : p;
+    const pQuoted = pQuery.match(/\$\{/) ? `\`${pQuery}\`` : `'${pQuery}'`;
+    const pQuoted2 = p.match(/\$\{/) ? `\`${p}\`` : `'${p}'`;
+    const endpoint = hasQuery ? `queryString ? ${pQuoted} : ${pQuoted2}` : pQuoted2;
 
     methodsStr += `
-  async ${name}(${params.join(', ')}): Promise<${resultType}> {
-      ${queryProcess}return this.${m}<${resultType}>(${endpoint});
-  }
-    `;
+    async ${name}(${params.join(', ')}): Promise<${resultType}> {
+        ${queryProcess}return this.${m}<${resultType}>(${endpoint}${bodyParams});
+    }
+`;
   }
 
   // console.log(typesStr);
