@@ -24,7 +24,7 @@ export class ApiClient {
         let result;
         for (let i = 1; i < 5; i++) {
             try {
-                result = await fetch(\`\${this.url}/\${endpoint}\`, {
+                result = await fetch(\`\${this.url}/\${endpoint.replace(/\\/+/, '')}\`, {
                     ...options,
                     headers: {
                         ...(options?.headers || {}),
@@ -52,8 +52,8 @@ export class ApiClient {
     ): Promise<Response | undefined> {
         let response = await this.request(endpoint, options, noToken);
 
-        if (!noToken && response?.status === 403) {
-            const a = await this.handle403();
+        if (!noToken && response?.status === 401) {
+            const a = await this.handle401();
             if (a) response = await this.request(endpoint, options, noToken);
         }
 
@@ -109,7 +109,7 @@ export class ApiClient {
         return response?.json();
     }
 
-    private async handle403(): Promise<boolean> {
+    private async handle401(): Promise<boolean> {
         const response = await this.request(
             'login',
             {

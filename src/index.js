@@ -244,7 +244,7 @@ class TheAPI {
       this.app.use(swaggerRoute);
     }
 
-    const apiClient = `${process.env._API_CLIENT}` === 'true';
+    const apiClient = `${process.env.GENERATE_API_CLIENT}` === 'true';
     if (apiClient) {
       const apiClientRoute = this.router().get('/client.ts', (ctx) => {
         ctx.set('Access-Control-Allow-Origin', '*');

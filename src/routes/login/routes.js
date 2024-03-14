@@ -18,8 +18,15 @@ module.exports = router
   .post('/register/check', c.check, {
     summary: 'Check',
     schema: {
+      email: 'string',
       login: 'string',
       code: 'string',
+    },
+  })
+  .post('/register/resend', c.resend, {
+    summary: 'Re-send e-mail with confirmation code',
+    schema: {
+      email: 'string',
     },
   })
   .post('/login', c.loginHandler, {

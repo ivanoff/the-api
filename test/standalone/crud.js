@@ -144,9 +144,9 @@ describe('CRUD', () => {
   });
 
   describe('GET /secured_flags ', () => {
-    it('returns 403 status code', async () => {
+    it('returns 401 status code', async () => {
       res = await global.get('/secured_flags ');
-      expect(res.status).to.eql(403);
+      expect(res.status).to.eql(401);
     });
 
     it('get token', async () => {

@@ -34,6 +34,7 @@ class KoaKnexHelper {
     cache,
     userIdFieldName,
     additionalFields,
+    apiClientMethodNames,
   } = {}) {
     this.ctx = ctx;
     this.table = table;
@@ -69,6 +70,7 @@ class KoaKnexHelper {
     this.cache = cache;
     this.userIdFieldName = userIdFieldName || 'user_id';
     this.additionalFields = additionalFields || {};
+    this.apiClientMethodNames = apiClientMethodNames || {};
   }
 
   getDbWithSchema(ctx) {
@@ -407,6 +409,7 @@ class KoaKnexHelper {
       accessByStatuses: this.accessByStatuses.read,
       additionalFields: this.additionalFields.get,
       queryParameters,
+      apiClientMethodNames: this.apiClientMethodNames,
     };
   }
 
@@ -484,6 +487,7 @@ class KoaKnexHelper {
       accessByStatuses: this.accessByStatuses.read,
       additionalFields: this.additionalFields.get,
       cache: this.cache,
+      apiClientMethodNames: this.apiClientMethodNames,
     };
   }
 
@@ -577,6 +581,7 @@ class KoaKnexHelper {
       forbiddenFieldsToAdd: this.forbiddenFieldsToAdd,
       required: Object.keys(this.required),
       accessByStatuses: this.accessByStatuses.add,
+      apiClientMethodNames: this.apiClientMethodNames,
       schema,
     };
   }
@@ -619,6 +624,7 @@ class KoaKnexHelper {
       forbiddenFieldsToAdd: this.forbiddenFieldsToAdd,
       accessByStatuses: this.accessByStatuses.update,
       additionalFields: this.additionalFields.update,
+      apiClientMethodNames: this.apiClientMethodNames,
       schema,
     };
   }
@@ -664,6 +670,7 @@ class KoaKnexHelper {
       ownerRequired: this.ownerRequired.delete,
       rootRequired: this.rootRequired.delete,
       accessByStatuses: this.accessByStatuses.delete,
+      apiClientMethodNames: this.apiClientMethodNames,
     };
   }
 
