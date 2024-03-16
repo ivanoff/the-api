@@ -20,6 +20,7 @@ class KoaKnexHelper {
     searchFields,
     required,
     defaultWhere,
+    defaultWhereRaw,
     defaultSort,
     sortRaw,
     fieldsRaw,
@@ -50,6 +51,7 @@ class KoaKnexHelper {
     this.forbiddenFieldsToAdd = forbiddenFieldsToAdd || ['id', 'created_at', 'updated_at', 'deleted_at', 'deleted'];
     this.required = required || {};
     this.defaultWhere = defaultWhere || {};
+    this.defaultWhereRaw = defaultWhereRaw;
     this.defaultSort = defaultSort;
     this.sortRaw = sortRaw;
     this.fieldsRaw = fieldsRaw;
@@ -447,6 +449,13 @@ class KoaKnexHelper {
 
     this.whereNotIn(_whereNotIn);
     this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => ({ ...acc, [`${cur}`]: val }), {}), db);
+
+    if (this.defaultWhereRaw) {
+      const whereStr = this.defaultWhereRaw;
+      this.res.andWhere(function () {
+        this.whereRaw(whereStr);
+      });
+    }
 
     if (_search && this.searchFields.length) {
       const whereStr = this.searchFields.map((name) => `"${name}" % :_search`).join(' OR ');

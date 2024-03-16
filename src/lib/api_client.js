@@ -193,7 +193,7 @@ export type UserType = {
 
 export type UserLoginType = {
     login?: string;
-    email: string;
+    email?: string;
     password: string;
     isInit?: string;
 };
@@ -242,6 +242,8 @@ module.exports = ({ flow }) => {
   let apiClientMethodNamesAll = {};
   const types = {};
   const methodTypes = {};
+  const requiredFields = {};
+  const summaries = {};
 
   for (const { swagger } of flow) {
     for (const val of Object.values(swagger || {})) {
@@ -256,24 +258,28 @@ module.exports = ({ flow }) => {
     for (const [path, val] of Object.entries(swagger || {})) {
       for (const [method, params] of Object.entries(val || {})) {
         const {
+          summary,
           queryParameters,
           schema = {},
+          required,
           forbiddenFieldsToAdd = [],
-          additionalFields,
+          // additionalFields,
         } = params || {};
         const functionName = apiClientMethodNamesAll?.[`${method} ${path}`] || (methodNames[`${method}`] || method) + getName(method, path);
-        console.log(functionName, '<<', method, path);
+        // console.log(functionName, '<<', method, path);
 
-        const schemaShort = Object.keys(schema).reduce((acc, key) => { if (forbiddenFieldsToAdd.includes(key)) return acc; acc[`${key}`] = schema[`${key}`].data_type; return acc; }, {});
-        console.log({
-          queryParameters, schemaShort, forbiddenFieldsToAdd, additionalFields,
-        });
+        summaries[`${functionName}`] = summary;
+
+        const schemaShort = Object.keys(schema).reduce((acc, key) => { if (forbiddenFieldsToAdd.includes(key)) return acc; acc[`${key}`] = schema[`${key}`].data_type || schema[`${key}`]; return acc; }, {});
+        // console.log({
+        //   queryParameters, schemaShort, forbiddenFieldsToAdd, additionalFields,
+        // });
 
         const a = path.split('/').filter(Boolean)
           .map((str) => str.charAt(0).toUpperCase() + str.slice(1))
           .map((str) => str.replace(/[_-]+(.)/g, (l) => l.replace(/[_-]+/, '').toUpperCase()))
-          .map((str) => str.replace(/^(\d)/g, 'n$1'))
-          .map((str) => str.replace(/:+(.)/g, (l) => l.toUpperCase()));
+          .map((str) => str.replace(/^(\d)/g, 'n$1'));
+          // .map((str) => str.replace(/:+(.)/g, (l) => l.toUpperCase()));
 
         if (!methodTypes[`${functionName}`]) methodTypes[`${functionName}`] = { method, path };
 
@@ -288,6 +294,12 @@ module.exports = ({ flow }) => {
             types[`${a[0]}BodyType`] = { ...types[`${a[0]}BodyType`], ...schemaShort };
             methodTypes[`${functionName}`].body = `${a[0]}BodyType`;
           }
+
+          if (method === 'post') {
+            requiredFields[`${a[0]}PostBodyType`] = [].concat(requiredFields[`${a[0]}PostBodyType`], required).filter(Boolean);
+            types[`${a[0]}PostBodyType`] = { ...types[`${a[0]}PostBodyType`], ...schemaShort };
+            methodTypes[`${functionName}`].body = `${a[0]}PostBodyType`;
+          }
         }
 
         if (a.length === 2 && !a[1].match(/^:/)) {
@@ -300,6 +312,12 @@ module.exports = ({ flow }) => {
           if (['post', 'put', 'patch'].includes(method)) {
             types[`${a[1]}BodyType`] = { ...types[`${a[1]}BodyType`], ...schemaShort };
             methodTypes[`${functionName}`].body = `${a[1]}BodyType`;
+          }
+
+          if (method === 'post') {
+            requiredFields[`${a[1]}PostBodyType`] = [].concat(requiredFields[`${a[1]}PostBodyType`], required).filter(Boolean);
+            types[`${a[1]}PostBodyType`] = { ...types[`${a[1]}PostBodyType`], ...schemaShort };
+            methodTypes[`${functionName}`].body = `${a[1]}PostBodyType`;
           }
         }
 
@@ -314,29 +332,53 @@ module.exports = ({ flow }) => {
             types[`${a[2]}BodyType`] = { ...types[`${a[2]}BodyType`], ...schemaShort };
             methodTypes[`${functionName}`].body = `${a[2]}BodyType`;
           }
+
+          if (method === 'post') {
+            requiredFields[`${a[2]}PostBodyType`] = [].concat(requiredFields[`${a[2]}PostBodyType`], required).filter(Boolean);
+            types[`${a[2]}PostBodyType`] = { ...types[`${a[2]}PostBodyType`], ...schemaShort };
+            methodTypes[`${functionName}`].body = `${a[2]}PostBodyType`;
+          }
         }
 
         if (a.length === 2 && a[1].match(/^:/)) {
           methodTypes[`${functionName}`].response = `${a[0]}ResponseType`;
 
-          if (['post', 'put', 'patch'].includes(method)) {
+          if (['put', 'patch'].includes(method)) {
+            types[`${a[0]}BodyType`] = { ...types[`${a[0]}BodyType`], ...schemaShort };
             methodTypes[`${functionName}`].body = `${a[0]}BodyType`;
+          }
+
+          if (method === 'post') {
+            types[`${a[0]}PostBodyType`] = { ...types[`${a[0]}PostBodyType`], ...schemaShort };
+            methodTypes[`${functionName}`].body = `${a[0]}PostBodyType`;
           }
         }
 
         if (a.length === 3 && !a[1].match(/^:/) && a[2].match(/^:/)) {
           methodTypes[`${functionName}`].response = `${a[1]}ResponseType`;
 
-          if (['post', 'put', 'patch'].includes(method)) {
+          if (['put', 'patch'].includes(method)) {
+            types[`${a[1]}BodyType`] = { ...types[`${a[1]}BodyType`], ...schemaShort };
             methodTypes[`${functionName}`].body = `${a[1]}BodyType`;
+          }
+
+          if (method === 'post') {
+            types[`${a[1]}PostBodyType`] = { ...types[`${a[1]}PostBodyType`], ...schemaShort };
+            methodTypes[`${functionName}`].body = `${a[1]}PostBodyType`;
           }
         }
 
         if (a.length === 4 && !a[2].match(/^:/) && a[3].match(/^:/)) {
           methodTypes[`${functionName}`].response = `${a[2]}ResponseType`;
 
-          if (['post', 'put', 'patch'].includes(method)) {
+          if (['put', 'patch'].includes(method)) {
+            types[`${a[2]}BodyType`] = { ...types[`${a[2]}BodyType`], ...schemaShort };
             methodTypes[`${functionName}`].body = `${a[2]}BodyType`;
+          }
+
+          if (method === 'post') {
+            types[`${a[2]}PostBodyType`] = { ...types[`${a[2]}PostBodyType`], ...schemaShort };
+            methodTypes[`${functionName}`].body = `${a[2]}PostBodyType`;
           }
         }
 
@@ -352,7 +394,7 @@ module.exports = ({ flow }) => {
   // console.log(methodTypes);
   // console.log(types)
 
-  const updateTypes = ([key, typeOrigin]) => {
+  const updateTypes = (name) => ([key, typeOrigin]) => {
     const typesMatch = {
       integer: 'number',
       real: 'number',
@@ -367,13 +409,13 @@ module.exports = ({ flow }) => {
     let type = typesMatch[`${typeOrigin}`];
     if (!type) type = typesMatch[`${typeOrigin?.type}`];
     if (!type) type = 'string | number | boolean';
-
-    return `${key}?: ${type};`;
+    const opt = requiredFields[`${name}`]?.includes(key) ? '' : '?';
+    return `${key}${opt}: ${type};`;
   };
 
   let typesStr = '';
   for (const [name, data] of Object.entries(types || {})) {
-    const dataStr = Object.entries(data || {}).map(updateTypes).map((item) => `    ${item}`).join('\n');
+    const dataStr = Object.entries(data || {}).map(updateTypes(name)).map((item) => `    ${item}`).join('\n');
     if (dataStr) {
       typesStr += `
 export type ${name} = {
@@ -399,7 +441,7 @@ export type ${name} = any;
 
     if (prms) {
       p = p.replace(/_(.)/g, (l) => l.replace('_', '').toUpperCase())
-        .replace(/:(.)/g, (l) => l.toUpperCase())
+        // .replace(/:(.)/g, (l) => l.toUpperCase())
         .replace(/^(\d)/g, 'n$1')
         .replace(/:([^/]+)/g, `\${params.$1}`);
     }
@@ -418,8 +460,9 @@ export type ${name} = any;
     const pQuoted = pQuery.match(/\$\{/) ? `\`${pQuery}\`` : `'${pQuery}'`;
     const pQuoted2 = p.match(/\$\{/) ? `\`${p}\`` : `'${p}'`;
     const endpoint = hasQuery ? `queryString ? ${pQuoted} : ${pQuoted2}` : pQuoted2;
+    const comment = summaries[`${name}`] ? `\n    /***\n     * ${summaries[`${name}`]}\n     */` : '';
 
-    methodsStr += `
+    methodsStr += `${comment}
     async ${name}(${params.join(', ')}): Promise<${resultType}> {
         ${queryProcess}return this.${m}<${resultType}>(${endpoint}${bodyParams});
     }
