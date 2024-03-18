@@ -1,4 +1,5 @@
-const template = `const getRandomInt = (max: number) => Math.floor(Math.random() * Math.floor(max));
+const template = `import fs from 'fs/promises';
+const getRandomInt = (max: number) => Math.floor(Math.random() * Math.floor(max));
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export class ApiClient {
@@ -80,6 +81,32 @@ export class ApiClient {
         return response?.json();
     }
 
+    async postFormdata<T>(endpoint: string, data?: any, fileFieldNames?: string[]): Promise<T> {
+      const formData = new FormData();
+      for (const [key, v] of Object.entries(data)) {
+          for (const val of [].concat(v as any)) {
+              if (fileFieldNames?.includes(key)) {
+                  if (typeof val === 'string') {
+                      const content = await fs.readFile(val);
+                      const blob = new Blob([new Uint8Array(content)]);
+                      formData.append(key, blob, val);
+                  } else {
+                      formData.append(key, val);
+                  }
+              } else {
+                  formData.append(key, val);
+              }
+          }
+      }
+
+      const response = await this.fetchWithToken(endpoint, {
+          method: 'POST',
+          body: formData,
+      });
+
+      return response?.json();
+    }
+
     async put<T>(endpoint: string, data?: any): Promise<T> {
         const response = await this.fetchWithToken(endpoint, {
             method: 'PUT',
@@ -89,6 +116,32 @@ export class ApiClient {
             },
         });
         return response?.json();
+    }
+
+    async putFormdata<T>(endpoint: string, data?: any, fileFieldNames?: string[]): Promise<T> {
+      const formData = new FormData();
+      for (const [key, v] of Object.entries(data)) {
+          for (const val of [].concat(v as any)) {
+              if (fileFieldNames?.includes(key)) {
+                  if (typeof val === 'string') {
+                      const content = await fs.readFile(val);
+                      const blob = new Blob([new Uint8Array(content)]);
+                      formData.append(key, blob, val);
+                  } else {
+                      formData.append(key, val);
+                  }
+              } else {
+                  formData.append(key, val);
+              }
+          }
+      }
+
+      const response = await this.fetchWithToken(endpoint, {
+          method: 'PUT',
+          body: formData,
+      });
+
+      return response?.json();
     }
 
     async patch<T>(endpoint: string, data? : any): Promise<T> {
@@ -203,10 +256,23 @@ export type UserLoginResultType = {
     login: string;
     statuses: string[];
     token: string;
-    firstName?: string;
-    secondName?: string;
+    fullName?: string;
     email: string;
     refresh: string;
+};
+
+export type ImagePostType = string | File | Blob;
+
+export type ImageGetType = {
+  id: string;
+  timeCreated: string;
+  timeUpdated: string;
+  name: string;
+  path: string;
+  type?: string;
+  group: string;
+  sizeName?: string;
+  userId?: number;
 };
 :types:
 export type StatusesBodyType = any;
@@ -263,7 +329,7 @@ module.exports = ({ flow }) => {
           schema = {},
           required,
           forbiddenFieldsToAdd = [],
-          // additionalFields,
+          additionalFields,
         } = params || {};
         const functionName = apiClientMethodNamesAll?.[`${method} ${path}`] || (methodNames[`${method}`] || method) + getName(method, path);
         // console.log(functionName, '<<', method, path);
@@ -271,6 +337,7 @@ module.exports = ({ flow }) => {
         summaries[`${functionName}`] = summary;
 
         const schemaShort = Object.keys(schema).reduce((acc, key) => { if (forbiddenFieldsToAdd.includes(key)) return acc; acc[`${key}`] = schema[`${key}`].data_type || schema[`${key}`]; return acc; }, {});
+
         // console.log({
         //   queryParameters, schemaShort, forbiddenFieldsToAdd, additionalFields,
         // });
@@ -282,6 +349,16 @@ module.exports = ({ flow }) => {
           // .map((str) => str.replace(/:+(.)/g, (l) => l.toUpperCase()));
 
         if (!methodTypes[`${functionName}`]) methodTypes[`${functionName}`] = { method, path };
+
+        if (additionalFields) {
+          for (const [afName, afValue] of Object.entries(additionalFields)) {
+            schemaShort[`${afName}`] = afValue === 'image' ? 'ImagePostType' : afValue;
+            if (['post', 'put', 'patch'].includes(method) && afValue?.match(/^(images?|files?)$/)) {
+              if (!methodTypes[`${functionName}`].fileFieldNames) methodTypes[`${functionName}`].fileFieldNames = [];
+              methodTypes[`${functionName}`].fileFieldNames.push(afName);
+            }
+          }
+        }
 
         if (a.length === 1) {
           types[`${a[0]}QueryType`] = queryParameters;
@@ -405,6 +482,8 @@ module.exports = ({ flow }) => {
       jsonb: 'object',
       'timestamp with time zone': 'string',
       ARRAY: '(string | number)[]',
+      ImagePostType: 'ImagePostType',
+      images: 'ImageGetType[]',
     };
     let type = typesMatch[`${typeOrigin}`];
     if (!type) type = typesMatch[`${typeOrigin?.type}`];
@@ -432,7 +511,7 @@ export type ${name} = any;
   let methodsStr = '';
   for (const [name, data] of Object.entries(methodTypes || {})) {
     const {
-      method: m, path: p2, params: prms, query: q, response: r, body: b,
+      method: m, path: p2, params: prms, query: q, response: r, body: b, fileFieldNames,
     } = data || {};
 
     if (!['get', 'post', 'put', 'patch', 'delete'].includes(m)) continue;
@@ -455,7 +534,8 @@ export type ${name} = any;
     if (b) params.push(`body: ${b}`);
 
     const queryProcess = !hasQuery ? '' : 'const queryString = this.handleQueryString(query);\n        ';
-    const bodyParams = ['post', 'put', 'patch'].includes(m) && b ? ', body' : '';
+    let bodyParams = ['post', 'put', 'patch'].includes(m) && b ? ', body' : '';
+    if (fileFieldNames) bodyParams += `, [${fileFieldNames.map((k) => `'${k}'`).join(', ')}]`;
     const pQuery = hasQuery ? `${p}?\${queryString}` : p;
     const pQuoted = pQuery.match(/\$\{/) ? `\`${pQuery}\`` : `'${pQuery}'`;
     const pQuoted2 = p.match(/\$\{/) ? `\`${p}\`` : `'${p}'`;
@@ -464,7 +544,7 @@ export type ${name} = any;
 
     methodsStr += `${comment}
     async ${name}(${params.join(', ')}): Promise<${resultType}> {
-        ${queryProcess}return this.${m}<${resultType}>(${endpoint}${bodyParams});
+        ${queryProcess}return this.${m}${fileFieldNames ? 'Formdata' : ''}<${resultType}>(${endpoint}${bodyParams});
     }
 `;
   }
