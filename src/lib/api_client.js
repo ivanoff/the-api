@@ -256,7 +256,8 @@ export type UserLoginResultType = {
     login: string;
     statuses: string[];
     token: string;
-    fullName?: string;
+    firstName?: string;
+    secondName?: string;
     email: string;
     refresh: string;
 };

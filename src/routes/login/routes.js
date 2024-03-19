@@ -10,7 +10,8 @@ module.exports = router
     schema: {
       login: 'string',
       password: 'string',
-      fullName: 'string',
+      firstName: 'string',
+      secondName: 'string',
       email: 'string',
     },
     required: ['password', 'email'],
@@ -83,7 +84,8 @@ module.exports = router
     tokenRequired: true,
     schema: {
       email: 'string',
-      fullName: 'string',
+      firstName: 'string',
+      secondName: 'string',
       password: 'string',
       newPassword: 'string',
     },

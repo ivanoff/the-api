@@ -6,7 +6,7 @@ const { checkAccess } = require('../../lib');
 
 const mail = new Mail();
 
-const tokenFields = ['id', 'login', 'statuses', 'fullName'];
+const tokenFields = ['id', 'login', 'statuses', 'firstName', 'secondName'];
 
 const sha256 = (data) => crypto.createHash('sha256').update(data, 'utf8').digest('hex');
 
@@ -29,7 +29,7 @@ async function loginTool({
   if (!user) return {};
 
   const {
-    id, login, password: passDb, salt, statuses, fullName, email, options,
+    id, login, password: passDb, salt, statuses, firstName, secondName, email, options,
   } = user;
   if (loginOrigin && passDb !== sha256(password + salt)) return {};
 
@@ -49,7 +49,7 @@ async function loginTool({
   if (!refresh) await db('users').update({ refresh: refreshNew }).where({ id });
 
   return {
-    id, login, statuses, token, fullName, email, options, refresh: refreshNew,
+    id, login, statuses, token, firstName, secondName, email, options, refresh: refreshNew,
   };
 }
 
@@ -75,7 +75,7 @@ async function deleteExternal(ctx) {
 }
 
 async function externalLogin({
-  ctx, service, profile, externalId, fullName, email: e,
+  ctx, service, profile, externalId, firstName, secondName, email: e,
 }) {
   const email = e?.toLowerCase();
   if (!service || !externalId) return ctx.throw('EXTERNALS_REQUIRED');
@@ -122,7 +122,8 @@ async function externalLogin({
       password: sha256(uuidv4() + salt),
       salt,
       email,
-      fullName,
+      firstName,
+      secondName,
       refresh,
       statuses: ['registered'],
       externalProfiles: JSON.stringify([{ ...profile, _id }]),
@@ -144,7 +145,8 @@ async function externalLogin({
     refresh: user.refresh,
     login: user.login,
     email: user.email,
-    fullName,
+    firstName,
+    secondName,
   };
 
   const dataToSign = tokenFields.reduce((acc, key) => { acc[`${key}`] = user[`${key}`]; return acc; }, {});
@@ -173,7 +175,7 @@ async function loginHandler(ctx) {
 
 async function register(ctx) {
   const {
-    login, password, email: e, fullName,
+    login, password, email: e, firstName, secondName,
   } = ctx.request.body;
   const email = e?.toLowerCase();
 
@@ -194,7 +196,7 @@ async function register(ctx) {
   const statuses = email && checkEmail ? ['unconfirmed'] : ['registered'];
 
   const [{ id: user_id }] = await db('users').insert({
-    login, password: sha256(password + salt), salt, email, fullName, refresh: '', statuses, options,
+    login, password: sha256(password + salt), salt, email, firstName, secondName, refresh: '', statuses, options,
   }).returning('*');
 
   ctx.body = await loginTool({ ctx, login, password });
@@ -206,7 +208,7 @@ async function register(ctx) {
     });
 
     await mail.register({
-      code, login, password, email, fullName,
+      code, login, password, email, firstName, secondName,
     });
   }
 }
@@ -238,7 +240,7 @@ async function resend(ctx) {
   const { db } = ctx.state;
 
   const {
-    id: user_id, login, statuses, fullName,
+    id: user_id, login, statuses, firstName, secondName,
   } = (await db('users').where({ email }).first()) || {};
 
   if (!statuses?.includes('unconfirmed')) return ctx.throw('RESEND_FOR_UNCONFIRMED_ONLY');
@@ -253,7 +255,7 @@ async function resend(ctx) {
   }
 
   await mail.register({
-    code, login, email, fullName,
+    code, login, email, firstName, secondName,
   });
 
   ctx.body = { ok: 1 };
@@ -331,7 +333,7 @@ async function setEmail(ctx) {
 async function updateUser(ctx) {
   const { token, db } = ctx.state;
   const {
-    email: e, fullName, password, newPassword,
+    email: e, firstName, password, newPassword,
   } = ctx.request.body;
   const email = e?.toLowerCase();
 
@@ -361,7 +363,7 @@ async function updateUser(ctx) {
     await mail.setEmail({ email, code, login });
   }
 
-  ctx.body = !fullName ? { ok: 1 } : await db('users').update({ fullName }).where({ id: token.id });
+  ctx.body = !firstName ? { ok: 1 } : await db('users').update({ firstName }).where({ id: token.id });
 }
 
 async function addStatus(ctx) {
