@@ -167,7 +167,7 @@ class KoaKnexHelper {
     }
   }
 
-  updateHiddenColumns() {
+  updateHiddenColumns(hiddenColumns) {
     const defaultStatus = 'default';
     let statusesInHidden;
     const { statuses } = this.token || {};
@@ -178,14 +178,14 @@ class KoaKnexHelper {
     const hideByStatus = statusesInHidden && statusesInHidden.reduce((acc, status) => [...acc, ...this.hiddenFieldsByStatus[`${status}`]], []);
     const hideForOwner = this.isOwner && this.hiddenFieldsByStatus.owner;
 
-    this.hiddenColumns = hideForOwner || hideByStatus || this.hiddenFieldsByStatus[`${defaultStatus}`] || [];
+    this.hiddenColumns = hiddenColumns || hideForOwner || hideByStatus || this.hiddenFieldsByStatus[`${defaultStatus}`] || [];
     this.hiddenColumns = this.hiddenColumns.concat(this.hiddenColumns.map((item) => `${this.table}.${item}`));
   }
 
   fields({
     ctx, _fields, _join, db, _sort,
   }) {
-    this.updateHiddenColumns();
+    this.updateHiddenColumns(ctx.state.hiddenColumns);
     const f = _fields && _fields.split(',');
 
     if (this.leftJoin.length) {

@@ -30,7 +30,7 @@ module.exports = {
 
   USER_ACCESS_DENIED: {
     code: 105,
-    status: 401,
+    status: 403,
     name: 'User access denied',
     description: 'User status was not found in user access table',
   },
