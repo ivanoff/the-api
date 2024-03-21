@@ -20,6 +20,7 @@ class KoaKnexHelper {
     searchFields,
     required,
     defaultWhere,
+    defaultWhereRaw,
     defaultSort,
     sortRaw,
     fieldsRaw,
@@ -34,6 +35,7 @@ class KoaKnexHelper {
     cache,
     userIdFieldName,
     additionalFields,
+    apiClientMethodNames,
   } = {}) {
     this.ctx = ctx;
     this.table = table;
@@ -49,6 +51,7 @@ class KoaKnexHelper {
     this.forbiddenFieldsToAdd = forbiddenFieldsToAdd || ['id', 'created_at', 'updated_at', 'deleted_at', 'deleted'];
     this.required = required || {};
     this.defaultWhere = defaultWhere || {};
+    this.defaultWhereRaw = defaultWhereRaw;
     this.defaultSort = defaultSort;
     this.sortRaw = sortRaw;
     this.fieldsRaw = fieldsRaw;
@@ -68,7 +71,8 @@ class KoaKnexHelper {
     this.coaliseWhereReplacements = {};
     this.cache = cache;
     this.userIdFieldName = userIdFieldName || 'user_id';
-    this.additionalFields = additionalFields;
+    this.additionalFields = additionalFields || {};
+    this.apiClientMethodNames = apiClientMethodNames || {};
   }
 
   getDbWithSchema(ctx) {
@@ -163,7 +167,7 @@ class KoaKnexHelper {
     }
   }
 
-  updateHiddenColumns() {
+  updateHiddenColumns(hiddenColumns) {
     const defaultStatus = 'default';
     let statusesInHidden;
     const { statuses } = this.token || {};
@@ -174,14 +178,14 @@ class KoaKnexHelper {
     const hideByStatus = statusesInHidden && statusesInHidden.reduce((acc, status) => [...acc, ...this.hiddenFieldsByStatus[`${status}`]], []);
     const hideForOwner = this.isOwner && this.hiddenFieldsByStatus.owner;
 
-    this.hiddenColumns = hideForOwner || hideByStatus || this.hiddenFieldsByStatus[`${defaultStatus}`] || [];
+    this.hiddenColumns = hiddenColumns || hideForOwner || hideByStatus || this.hiddenFieldsByStatus[`${defaultStatus}`] || [];
     this.hiddenColumns = this.hiddenColumns.concat(this.hiddenColumns.map((item) => `${this.table}.${item}`));
   }
 
   fields({
     ctx, _fields, _join, db, _sort,
   }) {
-    this.updateHiddenColumns();
+    this.updateHiddenColumns(ctx.state.hiddenColumns);
     const f = _fields && _fields.split(',');
 
     if (this.leftJoin.length) {
@@ -403,7 +407,11 @@ class KoaKnexHelper {
       rootRequired: this.rootRequired.get,
       joinFields: this.getJoinFields(),
       cache: this.cache,
+      joinOnDemand: this.joinOnDemand,
+      accessByStatuses: this.accessByStatuses.read,
+      additionalFields: this.additionalFields.get,
       queryParameters,
+      apiClientMethodNames: this.apiClientMethodNames,
     };
   }
 
@@ -442,6 +450,13 @@ class KoaKnexHelper {
     this.whereNotIn(_whereNotIn);
     this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => ({ ...acc, [`${cur}`]: val }), {}), db);
 
+    if (this.defaultWhereRaw) {
+      const whereStr = this.defaultWhereRaw;
+      this.res.andWhere(function () {
+        this.whereRaw(whereStr);
+      });
+    }
+
     if (_search && this.searchFields.length) {
       const whereStr = this.searchFields.map((name) => `"${name}" % :_search`).join(' OR ');
       this.res.andWhere(function () {
@@ -477,7 +492,11 @@ class KoaKnexHelper {
       ownerRequired: this.ownerRequired.get,
       rootRequired: this.rootRequired.get,
       joinFields: this.getJoinFields(),
+      joinOnDemand: this.joinOnDemand,
+      accessByStatuses: this.accessByStatuses.read,
+      additionalFields: this.additionalFields.get,
       cache: this.cache,
+      apiClientMethodNames: this.apiClientMethodNames,
     };
   }
 
@@ -568,6 +587,10 @@ class KoaKnexHelper {
         || this.accessByStatuses.create,
       ownerRequired: this.ownerRequired.add,
       rootRequired: this.rootRequired.add,
+      forbiddenFieldsToAdd: this.forbiddenFieldsToAdd,
+      required: Object.keys(this.required),
+      accessByStatuses: this.accessByStatuses.add,
+      apiClientMethodNames: this.apiClientMethodNames,
       schema,
     };
   }
@@ -607,6 +630,10 @@ class KoaKnexHelper {
         || this.accessByStatuses.update,
       ownerRequired: this.ownerRequired.update,
       rootRequired: this.rootRequired.update,
+      forbiddenFieldsToAdd: this.forbiddenFieldsToAdd,
+      accessByStatuses: this.accessByStatuses.update,
+      additionalFields: this.additionalFields.update,
+      apiClientMethodNames: this.apiClientMethodNames,
       schema,
     };
   }
@@ -633,11 +660,14 @@ class KoaKnexHelper {
       delete data[`${key}`];
     }
 
-    if (rows.timeUpdated) data.timeUpdated = db.fn.now();
-    // Depricated
-    if (rows.time_updated) data.time_updated = db.fn.now();
+    if (Object.keys(data).length) {
+      if (rows.timeUpdated) data.timeUpdated = db.fn.now();
+      // Depricated
+      if (rows.time_updated) data.time_updated = db.fn.now();
 
-    await this.getDbWithSchema(ctx).update(data).where(where);
+      await this.getDbWithSchema(ctx).update(data).where(where);
+    }
+
     return this.getById({ ctx });
   }
 
@@ -648,6 +678,8 @@ class KoaKnexHelper {
         || this.accessByStatuses.delete,
       ownerRequired: this.ownerRequired.delete,
       rootRequired: this.rootRequired.delete,
+      accessByStatuses: this.accessByStatuses.delete,
+      apiClientMethodNames: this.apiClientMethodNames,
     };
   }
 

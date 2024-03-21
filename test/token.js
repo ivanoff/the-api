@@ -60,7 +60,7 @@ describe('Token and Cron', () => {
     it('expires GET /check', async () => {
       await sleep(1800);
       res = await global.get('/check', { Authorization: `Bearer ${token}` });
-      expect(res.status).to.eql(403);
+      expect(res.status).to.eql(401);
     });
   });
 
@@ -80,7 +80,7 @@ describe('Token and Cron', () => {
   describe('GET /check with wrong token', () => {
     it('returns 401 status code', async () => {
       const res = await global.get('/check', { Authorization: 'Bearer aaa' });
-      expect(res.status).to.eql(403);
+      expect(res.status).to.eql(401);
     });
   });
 });

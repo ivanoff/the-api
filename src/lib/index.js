@@ -2,6 +2,7 @@ const checkAccess = require('./check_access');
 const crud = require('./crud');
 const getCode = require('./code');
 const getSwaggerData = require('./swagger');
+const getApiClientData = require('./api_client');
 const getTablesInfo = require('./tables_info');
 const KoaKnexHelper = require('./koa_knex_helper');
 const Mail = require('./mail');
@@ -22,6 +23,7 @@ module.exports = {
   crud,
   getCode,
   getSwaggerData,
+  getApiClientData,
   getTablesInfo,
   KoaKnexHelper,
   Mail,

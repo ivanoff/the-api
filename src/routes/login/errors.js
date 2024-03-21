@@ -9,7 +9,7 @@ module.exports = {
 
   EMAIL_NOT_CONFIRMED: {
     code: 1031,
-    status: 401,
+    status: 403,
     name: 'Email Not Confirmed',
     description: 'Email not confirmed. Please, check your incoming mail folder for confirm link',
   },
@@ -44,7 +44,7 @@ module.exports = {
 
   WRONG_PASSWORD: {
     code: 1036,
-    status: 401,
+    status: 409,
     name: 'Wrong password',
     description: 'Password is wrong. Please check it or restore your password',
   },
@@ -54,6 +54,13 @@ module.exports = {
     status: 409,
     name: 'Login required',
     description: 'Superadmin Login required',
+  },
+
+  RESEND_FOR_UNCONFIRMED_ONLY: {
+    code: 1038,
+    status: 409,
+    name: 'Re-send is only for unconfirmed users',
+    description: 'You can re-send e-mail with confirmtion code if you are unconfirmed',
   },
 
   OAUTH2_CLIENT_NOT_FOUND: {
