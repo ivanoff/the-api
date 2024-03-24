@@ -1,5 +1,4 @@
-const template = `import fs from 'fs/promises';
-const getRandomInt = (max: number) => Math.floor(Math.random() * Math.floor(max));
+const template = `const getRandomInt = (max: number) => Math.floor(Math.random() * Math.floor(max));
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export class ApiClient {
@@ -81,21 +80,11 @@ export class ApiClient {
         return response?.json();
     }
 
-    async postFormdata<T>(endpoint: string, data?: any, fileFieldNames?: string[]): Promise<T> {
+    async postFormdata<T>(endpoint: string, data?: any): Promise<T> {
       const formData = new FormData();
       for (const [key, v] of Object.entries(data)) {
           for (const val of [].concat(v as any)) {
-              if (fileFieldNames?.includes(key)) {
-                  if (typeof val === 'string') {
-                      const content = await fs.readFile(val);
-                      const blob = new Blob([new Uint8Array(content)]);
-                      formData.append(key, blob, val);
-                  } else {
-                      formData.append(key, val);
-                  }
-              } else {
-                  formData.append(key, val);
-              }
+              formData.append(key, val);
           }
       }
 
@@ -118,21 +107,11 @@ export class ApiClient {
         return response?.json();
     }
 
-    async putFormdata<T>(endpoint: string, data?: any, fileFieldNames?: string[]): Promise<T> {
+    async putFormdata<T>(endpoint: string, data?: any): Promise<T> {
       const formData = new FormData();
       for (const [key, v] of Object.entries(data)) {
           for (const val of [].concat(v as any)) {
-              if (fileFieldNames?.includes(key)) {
-                  if (typeof val === 'string') {
-                      const content = await fs.readFile(val);
-                      const blob = new Blob([new Uint8Array(content)]);
-                      formData.append(key, blob, val);
-                  } else {
-                      formData.append(key, val);
-                  }
-              } else {
-                  formData.append(key, val);
-              }
+              formData.append(key, val);
           }
       }
 
@@ -535,8 +514,9 @@ export type ${name} = any;
     if (b) params.push(`body: ${b}`);
 
     const queryProcess = !hasQuery ? '' : 'const queryString = this.handleQueryString(query);\n        ';
-    let bodyParams = ['post', 'put', 'patch'].includes(m) && b ? ', body' : '';
-    if (fileFieldNames) bodyParams += `, [${fileFieldNames.map((k) => `'${k}'`).join(', ')}]`;
+    const bodyParams = ['post', 'put', 'patch'].includes(m) && b ? ', body' : '';
+    // name of files
+    // if (fileFieldNames) bodyParams += `, [${fileFieldNames.map((k) => `'${k}'`).join(', ')}]`;
     const pQuery = hasQuery ? `${p}?\${queryString}` : p;
     const pQuoted = pQuery.match(/\$\{/) ? `\`${pQuery}\`` : `'${pQuery}'`;
     const pQuoted2 = p.match(/\$\{/) ? `\`${p}\`` : `'${p}'`;
