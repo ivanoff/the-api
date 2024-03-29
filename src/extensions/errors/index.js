@@ -1,14 +1,20 @@
 const Sentry = require('@sentry/node');
+const { WebClient } = require('@slack/web-api');
 const errors = require('./list');
 
 const url = 'https://server/api/errors';
 
-const { ERRORS_SENTRY_DSN } = process.env;
-const hasSentry = !!ERRORS_SENTRY_DSN;
+const {
+  ERRORS_SENTRY_DSN: dsn,
+  ERRORS_SLACK_TOKEN: slackToken,
+  ERRORS_SLACK_CHANNEL: slackChannel,
+} = process.env;
+
+const hasSentry = !!dsn;
 
 if (hasSentry) {
   Sentry.init({
-    dsn: ERRORS_SENTRY_DSN,
+    dsn,
     tracesSampleRate: 1.0,
   });
 }
@@ -52,6 +58,11 @@ module.exports = async (ctx, next) => {
     ctx.body.error = true;
 
     ctx.state.log(error);
+
+    if (slackToken && ctx.status === 500) {
+      const web = new WebClient(slackToken);
+      await web.chat.postMessage({ text: JSON.stringify(error, null, '  '), channel: slackChannel });
+    }
 
     if (hasSentry) Sentry.captureException(errorObj);
   } finally {

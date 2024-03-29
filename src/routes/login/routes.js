@@ -61,6 +61,7 @@ module.exports = router
     summary: 'Get token to restore password',
     schema: {
       login: 'string',
+      email: 'string',
     },
     required: ['login'],
   })

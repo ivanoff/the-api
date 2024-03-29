@@ -475,6 +475,12 @@ class KoaKnexHelper {
     });
     // if (_or) console.log(this.res.toSQL())
     const data = await this.res;
+
+    // const { sql, bindings } = this.res.toSQL();
+    // const { rows : r1 } = await db.raw(`EXPLAIN ${sql}`, bindings);
+    // const r2 = r1.map(line => Object.values(line)).join('\n');
+    // const hasSeqScan = r2.match(/(Seq Scan.*?\n.*)/);
+
     const limit = +_limit;
     return {
       total,
