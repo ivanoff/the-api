@@ -448,7 +448,13 @@ class KoaKnexHelper {
     });
 
     this.whereNotIn(_whereNotIn);
-    this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => ({ ...acc, [`${cur}`]: val }), {}), db);
+    this.where(Object.entries({ ...this.defaultWhere, ...where }).reduce((acc, [cur, val]) => {
+      const isInt = this.tableInfo?.[`${cur}`]?.data_type === 'integer';
+      const hasNaN = [].concat(val).find((item) => Number.isNaN(+item));
+      if (isInt && hasNaN) return ctx.throw('INTEGER_REQUIRED', { cur, val });
+      acc[`${cur}`] = val;
+      return acc;
+    }, {}), db);
 
     if (this.defaultWhereRaw) {
       const whereStr = this.defaultWhereRaw;
@@ -477,9 +483,13 @@ class KoaKnexHelper {
     const data = await this.res;
 
     // const { sql, bindings } = this.res.toSQL();
-    // const { rows : r1 } = await db.raw(`EXPLAIN ${sql}`, bindings);
-    // const r2 = r1.map(line => Object.values(line)).join('\n');
-    // const hasSeqScan = r2.match(/(Seq Scan.*?\n.*)/);
+    // const { rows : r } = await db.raw(`EXPLAIN ${sql}`, bindings);
+    // const rrr = r.map(rr => Object.values(rr)).join('\n');
+    // const r4 = rrr.match(/(Seq Scan.*?\n.*)/);
+    // if (
+    //   r4
+    //   && !r4[1].match(/Seq Scan on users[\s\S]*Filter: \(id = \d\)$/)
+    // ) console.log('CHECK SEQ SCAN\n', r4[1]);
 
     const limit = +_limit;
     return {
@@ -515,13 +525,17 @@ class KoaKnexHelper {
 
     const { db, token } = ctx.state;
     const { id } = ctx.params;
-
     const {
       _fields, _lang, _or, _join, ...whereWithParams
     } = ctx.request.query;
     const where = Object.keys(whereWithParams).reduce(
       (acc, key) => {
-        if (key[0] !== '_') acc[`${key}`] = whereWithParams[`${key}`];
+        if (key[0] !== '_') {
+          const isInt = this.tableInfo?.[`${key}`]?.data_type === 'integer';
+          const hasNaN = [].concat(whereWithParams[`${key}`]).find((item) => Number.isNaN(+item));
+          if (isInt && hasNaN) return ctx.throw('INTEGER_REQUIRED', { key });
+          acc[`${key}`] = whereWithParams[`${key}`];
+        }
         return acc;
       },
       {},
@@ -532,6 +546,8 @@ class KoaKnexHelper {
 
     this.rows = this.getTableRows(ctx);
     this.res = this.getDbWithSchema(ctx);
+
+    if (this.tableInfo?.id?.data_type === 'integer' && Number.isNaN(+id)) return ctx.throw('INTEGER_REQUIRED', { id });
 
     if (_or) this.res.where(function () { [].concat(_or).map((key) => this.orWhere(key)); });
     this.where({ ...where, [`${this.table}.id`]: id }, db);
@@ -548,6 +564,7 @@ class KoaKnexHelper {
     this.fields({
       ctx, _fields, _join, db,
     });
+
     return this.res.first();
   }
 
@@ -614,7 +631,13 @@ class KoaKnexHelper {
 
     const data = this.updateIncomingData(ctx, body);
 
-    Object.keys(data).map((key) => (data[`${key}`] = data[`${key}`] ?? null));
+    for (const key of Object.keys(data)) {
+      const isInt = this.tableInfo?.[`${key}`]?.data_type === 'integer';
+      const hasNaN = [].concat(data[`${key}`]).find((item) => item && Number.isNaN(+item));
+      if (isInt && hasNaN) return ctx.throw('INTEGER_REQUIRED', { key });
+
+      data[`${key}`] = data[`${key}`] ?? null;
+    }
 
     let result = await this.getDbWithSchema(ctx).insert(data).returning('*');
 
@@ -651,6 +674,8 @@ class KoaKnexHelper {
 
     const { db, token } = ctx.state;
     const where = { ...ctx.params };
+    if (this.tableInfo?.id?.data_type === 'integer' && Number.isNaN(+where.id)) return ctx.throw('INTEGER_REQUIRED', { where });
+
     const rows = this.getTableRows(ctx);
 
     let needToCheckUserId = rows.user_id && token.id !== -1;
@@ -696,6 +721,8 @@ class KoaKnexHelper {
 
     const { token } = ctx.state;
     const where = { ...ctx.params };
+    if (this.tableInfo?.id?.data_type === 'integer' && Number.isNaN(+where.id)) return ctx.throw('INTEGER_REQUIRED', { where });
+
     const rows = this.getTableRows(ctx);
 
     let needToCheckUserId = rows.user_id && token.id !== -1;
