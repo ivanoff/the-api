@@ -1,14 +1,20 @@
 const Sentry = require('@sentry/node');
+const { WebClient } = require('@slack/web-api');
 const errors = require('./list');
 
-const url = 'https://server/api/errors';
+const errorUrl = 'https://server/api/errors';
 
-const { ERRORS_SENTRY_DSN } = process.env;
-const hasSentry = !!ERRORS_SENTRY_DSN;
+const {
+  ERRORS_SENTRY_DSN: dsn,
+  ERRORS_SLACK_TOKEN: slackToken,
+  ERRORS_SLACK_CHANNEL: slackChannel,
+} = process.env;
+
+const hasSentry = !!dsn;
 
 if (hasSentry) {
   Sentry.init({
-    dsn: ERRORS_SENTRY_DSN,
+    dsn,
     tracesSampleRate: 1.0,
   });
 }
@@ -30,15 +36,17 @@ module.exports = async (ctx, next) => {
     if (ctx.status === 404 && !ctx.body) throw new Error('API_METHOD_NOT_FOUND');
   } catch (errorObj) {
     const { message: codeName, stack } = errorObj;
-    const { name, version, routeErrors } = ctx.state;
+    const {
+      name, version, id, method, url, routeErrors,
+    } = ctx.state;
 
     const errorListed = routeErrors[`${codeName}`] || errors[`${codeName}`];
     const error = errorListed || errors.DEFAULT_ERROR;
-    if (errorListed && !error.url) error.url = `${url}#${codeName}`;
+    if (errorListed && !error.url) error.url = `${errorUrl}#${codeName}`;
     if (ctx.state.additionalErrors?.length) error.addition = ctx.state.additionalErrors;
 
     error.developerMessage = {
-      name, version, codeName, stack,
+      name, version, id, method, url, codeName, stack,
     };
 
     const {
@@ -49,7 +57,15 @@ module.exports = async (ctx, next) => {
       code, name: errorName, description, addition,
     };
 
+    ctx.body.error = true;
+
     ctx.state.log(error);
+
+    if (slackToken && ctx.status === 500) {
+      const web = new WebClient(slackToken);
+      const text = JSON.stringify(error, null, '  ');
+      await web.chat.postMessage({ text: `\`\`\`${text}\`\`\``, channel: slackChannel });
+    }
 
     if (hasSentry) Sentry.captureException(errorObj);
   } finally {

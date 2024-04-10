@@ -1,6 +1,6 @@
 {
   "name": "the-api",
-  "version": "19.7.6",
+  "version": "20.6.1",
   "description": "The API - build your own API",
   "license": "MIT",
   "main": "src/index.js",
@@ -12,10 +12,8 @@
     "fix": "eslint src/ test/ --ignore-pattern .gitignore --fix",
     "migrate:make": "knex migrate:make --migrations-directory=migrations"
   },
-  "pre-commit": [
-    "lint"
-  ],
   "dependencies": {
+    "@hono/node-server": "^1.9.1",
     "@koa/router": "^12.0.0",
     "@sentry/node": "^7.42.0",
     "@sentry/tracing": "^7.42.0",
@@ -25,6 +23,7 @@
     "cron": "^2.1.0",
     "dotenv": "^16.0.1",
     "flattening": "^2.4.3",
+    "hono": "^4.2.3",
     "jsonwebtoken": "^8.5.1",
     "knex": "^2.2.0",
     "koa": "^2.13.4",

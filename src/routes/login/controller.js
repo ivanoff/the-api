@@ -6,7 +6,7 @@ const { checkAccess } = require('../../lib');
 
 const mail = new Mail();
 
-const tokenFields = ['id', 'login', 'statuses', 'firstName'];
+const tokenFields = ['id', 'login', 'statuses', 'firstName', 'secondName'];
 
 const sha256 = (data) => crypto.createHash('sha256').update(data, 'utf8').digest('hex');
 
@@ -200,7 +200,6 @@ async function register(ctx) {
   }).returning('*');
 
   ctx.body = await loginTool({ ctx, login, password });
-
   if (checkEmail) {
     const recover = uuidv4();
 
@@ -231,9 +230,35 @@ async function check(ctx) {
 
   const { user_id: id } = data;
   await db('users').update({ statuses: ['registered'] }).where({ id });
-  await db('code').del().where({ login, code });
+  await db('code').del().where({ login });
 
   ctx.body = await loginTool({ ctx, id });
+}
+
+async function resend(ctx) {
+  const { email } = ctx.request.body;
+  const { db } = ctx.state;
+
+  const {
+    id: user_id, login, statuses, firstName, secondName,
+  } = (await db('users').where({ email }).first()) || {};
+
+  if (!statuses?.includes('unconfirmed')) return ctx.throw('RESEND_FOR_UNCONFIRMED_ONLY');
+
+  let { code } = (await db('code').where({ user_id }).first()) || {};
+  if (!code) {
+    code = uuidv4();
+
+    await db('code').insert({
+      user_id, login, code, recover: uuidv4(), time: new Date(),
+    });
+  }
+
+  await mail.register({
+    code, login, email, firstName, secondName,
+  });
+
+  ctx.body = { ok: 1 };
 }
 
 async function restore(ctx) {
@@ -449,6 +474,7 @@ module.exports = {
   externalLogin,
   register,
   check,
+  resend,
   restore,
   setPassword,
   setEmail,

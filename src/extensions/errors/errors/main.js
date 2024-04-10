@@ -35,4 +35,10 @@ module.exports = {
     description: 'Your limit is exceeded. Please ask admins to incrase limits',
   },
 
+  INTEGER_REQUIRED: {
+    code: 131,
+    status: 400,
+    name: 'Integer required',
+    description: 'Variable you have sent is not an integer type',
+  },
 };

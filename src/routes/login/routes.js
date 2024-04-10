@@ -14,13 +14,23 @@ module.exports = router
       secondName: 'string',
       email: 'string',
     },
+    required: ['password', 'email'],
   })
   .post('/register/check', c.check, {
     summary: 'Check',
     schema: {
+      email: 'string',
       login: 'string',
       code: 'string',
     },
+    required: ['code'],
+  })
+  .post('/register/resend', c.resend, {
+    summary: 'Re-send e-mail with confirmation code',
+    schema: {
+      email: 'string',
+    },
+    required: ['email'],
   })
   .post('/login', c.loginHandler, {
     summary: 'Get jwt token',
@@ -28,6 +38,7 @@ module.exports = router
       login: 'string',
       password: 'string',
     },
+    required: ['password'],
     responses: ['USER_NOT_FOUND', 'EMAIL_NOT_CONFIRMED'],
   })
   .post('/login/refresh', c.loginHandler, {
@@ -35,13 +46,24 @@ module.exports = router
     schema: {
       refresh: 'string',
     },
+    required: ['refresh'],
+    responses: ['USER_NOT_FOUND', 'EMAIL_NOT_CONFIRMED'],
+  })
+  .get('/login/refresh', c.loginHandler, {
+    summary: 'Refresh jwt token',
+    schema: {
+      refresh: 'string',
+    },
+    required: ['refresh'],
     responses: ['USER_NOT_FOUND', 'EMAIL_NOT_CONFIRMED'],
   })
   .post('/login/forgot', c.restore, {
     summary: 'Get token to restore password',
     schema: {
       login: 'string',
+      email: 'string',
     },
+    required: ['login'],
   })
   .post('/login/restore', c.setPassword, {
     summary: 'Set new password by restore code',
@@ -49,12 +71,14 @@ module.exports = router
       code: 'string',
       password: 'string',
     },
+    required: ['code', 'password'],
   })
   .post('/login/email', c.setEmail, {
     summary: 'Set new email by restore code',
     schema: {
       code: 'string',
     },
+    required: ['code'],
   })
   .patch('/login', c.updateUser, {
     summary: 'Update user',
@@ -62,6 +86,7 @@ module.exports = router
     schema: {
       email: 'string',
       firstName: 'string',
+      secondName: 'string',
       password: 'string',
       newPassword: 'string',
     },

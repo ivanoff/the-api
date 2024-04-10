@@ -9,13 +9,25 @@ const { v4: uuidv4 } = require('uuid');
 const { CronJob } = require('cron');
 const { FsMigrations } = require('knex/lib/migrations/migrate/sources/fs-migrations');
 const {
-  Router, getSwaggerData, crud, getTablesInfo, KoaKnexHelper,
+  Router, getSwaggerData, crud, getTablesInfo, KoaKnexHelper, getApiClientData,
 } = require('./lib');
 const extensions = require('./extensions');
 const routes = require('./routes');
 const errorsList = require('./extensions/errors/list');
 
 require('dotenv').config();
+
+// ////////////////
+// console.log('!!!!!!!!!!!!!!!!!!!!!')
+// process.env = {
+//   ...process.env,
+//   DB_CLIENT: 'postgres',
+//   DB_HOST: 'localhost',
+//   DB_PORT: '6436',
+//   DB_USER: 'postgres',
+//   DB_PASSWORD: 'ro3dNi4=2dm___Ed',
+//   DB_DATABASE: 'postgres',
+// };
 
 const {
   PORT,
@@ -130,6 +142,8 @@ class TheAPI {
         await next();
       } catch (err) {
         const isExpired = err.toString().match(/jwt expired/);
+        ctx.set('Access-Control-Allow-Credentials', 'true');
+        ctx.set('Access-Control-Allow-Origin', '*');
         ctx.body = isExpired ? errorsList.TOKEN_EXPIRED : errorsList.TOKEN_INVALID;
         ctx.status = ctx.body.status;
       }
@@ -234,6 +248,16 @@ class TheAPI {
       this.app.use(swaggerRoute);
     }
 
+    const apiClient = `${process.env.GENERATE_API_CLIENT}` === 'true';
+    if (apiClient) {
+      const apiClientRoute = this.router().get('/client.ts', (ctx) => {
+        ctx.set('Access-Control-Allow-Origin', '*');
+        ctx.set('Access-Control-Allow-Methods', 'GET');
+        ctx.body = getApiClientData({ flow });
+      }).routes();
+      this.app.use(apiClientRoute);
+    }
+
     let userAccess = {};
     try {
       const accessRaw = await this.db('user_access').select();
@@ -260,6 +284,7 @@ class TheAPI {
         jwtSecret,
         tablesInfo: this.tablesInfo,
         userAccess,
+        apiClient,
       };
       ctx.throw = this.log;
       await next();
