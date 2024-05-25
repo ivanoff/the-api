@@ -95,7 +95,7 @@ describe('Status', () => {
   describe('By user', () => {
     it('Create new status', async () => {
       res = await global.post(`/users/${userId}/statuses/delayed`, {}, { Authorization: `Bearer ${token}` });
-      expect(res.status).to.eql(401);
+      expect(res.status).to.eql(403);
     });
 
     it('check user status by user', async () => {
@@ -106,7 +106,7 @@ describe('Status', () => {
 
     it('Delete status', async () => {
       res = await global.delete(`/users/${userId}/statuses/delayed`, { Authorization: `Bearer ${token}` });
-      expect(res.status).to.eql(401);
+      expect(res.status).to.eql(403);
     });
 
     it('check user deleted status', async () => {
@@ -117,7 +117,7 @@ describe('Status', () => {
 
     it('Delete the same status', async () => {
       res = await global.delete(`/users/${userId}/statuses/registered`, { Authorization: `Bearer ${token}` });
-      expect(res.status).to.eql(401);
+      expect(res.status).to.eql(403);
     });
 
     it('check user deleted status again', async () => {

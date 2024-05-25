@@ -54,7 +54,9 @@ async function loginTool({
 }
 
 async function getExternals(ctx) {
-  const { token: { id }, db } = ctx.state;
+  const { token: { id } = {}, db } = ctx.state;
+
+  if (!id) return ctx.throw('NO_TOKEN');
 
   const user = await db('users').select(['externalProfiles']).where({ id }).first();
 

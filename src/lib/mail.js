@@ -52,7 +52,7 @@ class Mail {
     email, subject, text, html, checkUnsubscribe = true,
   }) {
     if (checkUnsubscribe) {
-      const isUnsubscribed = await this.db('users').where({ email, isUnsubscribed: true }).first();
+      const [isUnsubscribed] = (await this.db('users').where({ email, isUnsubscribed: true })) || [];
       if (isUnsubscribed) return;
     }
     const message = {
