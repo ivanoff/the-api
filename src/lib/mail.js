@@ -22,7 +22,7 @@ class Mail {
     this.config = options || {
       auth, from, host, port, secure, tls,
     };
-    this.transport = nodemailer.createTransport(this.config);
+    this.transport = host && nodemailer.createTransport(this.config);
     this.message = {
       from: from || this.config.auth.user,
     };
@@ -51,6 +51,8 @@ class Mail {
   async send({
     email, subject, text, html, checkUnsubscribe = true,
   }) {
+    if (!this.transport) return;
+
     if (checkUnsubscribe) {
       const [isUnsubscribed] = (await this.db('users').where({ email, isUnsubscribed: true })) || [];
       if (isUnsubscribed) return;
