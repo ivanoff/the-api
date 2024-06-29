@@ -1,0 +1,15 @@
+services:
+
+  the_api_postgres_test:
+    container_name: the_api_postgres_test
+    image: postgres:latest
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=postgres_test
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DATABASE=postgres
+    ports:
+      - 6433:5432
+      - 6434:5432

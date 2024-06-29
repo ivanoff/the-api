@@ -1,80 +1,39 @@
 {
   "name": "the-api",
-  "version": "20.6.4",
-  "description": "The API - build your own API",
+  "version": "21.1.1",
   "license": "MIT",
-  "main": "src/index.js",
+  "author": "Dimitry Ivanov <2@ivanoff.org.ua> # curl -A cv ivanoff.org.ua",
+  "description": "The API - Create Your API in Seconds",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "start": "node example.js",
-    "test": "mocha test/first/*.js test/*.js src/routes/**/test/*.js test/standalone/*.js test/last/*.js",
-    "coverage": "nyc mocha -- test/first/*.js test/*.js src/routes/**/test/*.js test/standalone/*.js test/last/*.js",
-    "lint": "eslint src/ test/ --cache --ignore-pattern .gitignore",
-    "fix": "eslint src/ test/ --ignore-pattern .gitignore --fix",
-    "migrate:make": "knex migrate:make --migrations-directory=migrations"
+    "test": "bun test --preload ./test/init.ts",
+    "build": "bun build ./src/index.ts --outdir ./dist --target node --minify --external luxon --external knex --external pg --external jsonwebtoken --external hono --external flattening --external @types/node --external @types/bun && tsc"
   },
-  "pre-commit": [
-    "lint"
-  ],
   "dependencies": {
-    "@koa/router": "^12.0.0",
-    "@sentry/node": "^7.42.0",
-    "@sentry/tracing": "^7.42.0",
-    "@slack/web-api": "^6.8.1",
-    "amqplib": "^0.10.1",
-    "chai": "^4.3.6",
-    "cron": "^2.1.0",
-    "dotenv": "^16.0.1",
     "flattening": "^2.4.3",
-    "jsonwebtoken": "^8.5.1",
-    "knex": "^2.2.0",
-    "koa": "^2.13.4",
-    "koa-bodyparser": "^4.3.0",
-    "koa-passport": "^5.0.0",
-    "koa2-formidable": "^1.0.3",
-    "mocha": "^10.0.0",
-    "mssql": "^8.1.2",
-    "mysql": "^2.18.1",
-    "mysql2": "^2.3.3",
-    "nodemailer": "^6.7.7",
-    "passport-discord": "^0.1.4",
-    "passport-facebook": "^3.0.0",
-    "passport-github2": "^0.1.12",
-    "passport-gitlab2": "^5.0.0",
-    "passport-google-oauth20": "^2.0.0",
-    "passport-instagram": "^1.0.0",
-    "passport-linkedin-oauth2": "^2.0.0",
-    "passport-microsoft": "^1.0.0",
-    "passport-slack": "^0.0.7",
-    "passport-steam": "^1.0.17",
-    "passport-twitch-new": "^0.0.2",
-    "pg": "^8.7.3",
-    "sqlite3": "^5.0.11",
-    "the-log": "^3.0.1",
-    "twitter-api-v2": "^1.14.2",
-    "uuid": "^8.3.2"
+    "hono": "^4.4.6",
+    "jsonwebtoken": "^9.0.2",
+    "knex": "^3.1.0",
+    "luxon": "^3.4.4",
+    "pg": "^8.11.5",
+    "the-api-roles": "^0.1.1"
   },
   "devDependencies": {
-    "coveralls": "^3.1.1",
-    "eslint": "^8.20.0",
-    "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-plugin-import": "^2.26.0",
-    "eslint-plugin-security": "^1.5.0",
-    "node-fetch": "^3.2.10",
-    "nyc": "^15.1.0",
-    "pre-commit": "^1.2.2",
-    "sinon": "^14.0.0"
+    "@types/node": "^20.12.4",
+    "@types/bun": "latest"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/ivanoff/the-api.git"
   },
   "keywords": [
-    "THE",
+    "THE API",
     "API",
     "REST"
   ],
   "engines": {
-    "node": ">=10"
-  },
-  "author": "Dimitry Ivanov <2@ivanoff.org.ua> # curl -A cv ivanoff.org.ua"
+    "node": ">=18",
+    "bun": ">=1"
+  }
 }

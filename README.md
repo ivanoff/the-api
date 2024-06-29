@@ -1,286 +1,365 @@
-[![NPM version][npm-version-image]][npm-url]
-[![NPM downloads][npm-downloads-image]][npm-url]
-[![MIT License][license-image]][license-url]
-[![Build Status: Linux][travis-image]][travis-url]
-[![Build Status: Windows][appveyor-image]][appveyor-url]
-[![Coverage Status][coveralls-image]][coveralls-url]
-[![Requirements Status][requires.io-image]][requires.io-url]
-![Bundle Size][bundlesize-image]
-![Issues][issues-image]
-![Stars][stars-image]
-![Node version][node-image]
-![Contributors][contributors-image]
+# moduler
 
-# the-api
+To install dependencies:
 
-The API
-
-Create API asap. Includes the following:
-
-- log all actions to console with time, unique id, request path and time elapsed since the beginning of the request.
-
-- error handler with app name, version, error codeName, stack, error name and description for developers.
-
-- info endpoint: server currentTime, app name, version, uptime, requests count, endpoints
-
-- login route - register, login, make and refresh app token
-
-- check token, return unauthorized if token is invalid
-
-- handle white/black lists, count of requests
-
-- cache data in memory/redis
-
-- notes route - example of category/notes api
-
-## Install
-
-```npm i -S the-api```
-
-or
-
-```yarn add the-api```
-
-## Usage
-
-index.js
-```
-const TheAPI = require('the-api');
-const api = new TheAPI();
-
-const { logs, errors, info, token, access } = api.extensions;
-const { login, check, notes } = api.routes;
-
-info.endpointsToShow(login, check, notes);
-
-api.up([
-          // select any extension you want to use
-  logs,   // log all actions to console with time, unique id, request path and time elapsed since the beginning of the request
-  errors, // error handler with app name, version, error codeName, stack, error name and description for developers
-  info,   // GET /info endpoint: server currentTime, app name, version, uptime, requests count, endpoints
-  login,  // login route - register, login, make and refresh app token
-  check,  // check route - small example, just send {ok: 1}
-  token,  // check token, return unauthorized if token is invalid
-  access, // handle white/black list, count of requests
-  notes,  // notes route - example of category/notes api
-]);
+```bash
+bun install
 ```
 
-### Change e-mail templates
+To run:
 
-```
-...
-const { login } = api.routes;
-...
-login.setTemplates({
-  register: {
-    subject: 'Complete your registration',
-    text: 'Hello, use your code {{code}} to POST /register/check',
-    html: 'Hello, use your <b>code {{code}}</b> to POST <b>/register/check</b>',
-  },
-})
-...
-api.up([
-...
+```bash
+bun run index.ts
 ```
 
-### examples
 
-- Get info
+```typescript
+import { status } from '../extensions';
 
-```
-curl -vvv localhost:8877/info
-```
+const router = new Routings();
 
-- Create User
+router.post('/data/:id', async (c: Context) => {
+  const body = await c.req.json();
+  c.env.log('incoming data', body);
 
-```
-curl -vvv -X POST -d '{"login":"aaa", "password":"bbb"}' --header "Content-Type: application/json" localhost:8877/register
-```
+  c.set('result', {...c.req.param(), token: 'xxx', refresh: 'yyy'});
+});
 
-- Refresh Token
-
-```
-curl -vvv -X POST -d '{"refresh":"36ae43be-ae49-46b9-ba8a-027dbcf64fa0"}' --header "Content-Type: application/json" localhost:8877/login
-```
-
-- Get new Token
-
-```
-curl -vvv -X POST -d '{"login":"aaa", "password":"bbb"}' --header "Content-Type: application/json" localhost:8877/login
+const theAPI = new TheAPI({ routings: [logs, status, router] });
+export default theAPI.up();
 ```
 
 ## .env
 
-name | description | example | default value
------|-------------|---------|--------------
-PORT | port to listen | 8878 | 8877
-API_PREFIX | api prefix | /v1 |
-JWT_SECRET | JWT secret phrase | nruR3@_123dri!aS | <random uuid>
-JWT_EXPIRES_IN | expressed in seconds or a string describing a time span zeit/ms | 60, 2d, 10h | 1h
+PORT=3000 (default 7788)
 
-### Database
+## Response structure
 
-DB options for knex
-
-name | description | example | default value
------|-------------|---------|--------------
-DB_CLIENT | client | postgres, mysql, sqlite3 | sqlite3
-DB_HOST | DB host | db.server |
-DB_PORT | DB port |
-DB_USER | DB user | login |
-DB_PASSWORD | DB password | password |
-DB_NAME | database name | the_api_db
-DB_SCHEMA | database schema, optional | public
-DB_FILENAME | sqlite3 DB filename | ./sqlite.db
-
-DB write instance options for knex
-
-name | description | example | default value
------|-------------|---------|--------------
-DB_WRITE_CLIENT | client | postgres, mysql, sqlite3 | sqlite3
-DB_WRITE_HOST | DB host | db.server |
-DB_WRITE_PORT | DB port |
-DB_WRITE_USER | DB user | login |
-DB_WRITE_PASSWORD | DB password | password |
-DB_WRITE_NAME | database name | the_api_db
-DB_WRITE_SCHEMA | database schema, optional | public
-DB_WRITE_FILENAME | sqlite3 DB filename | ./sqlite.db
-
-### Login Module
-
-name | description | example | default value
------|-------------|---------|--------------
-LOGIN_CHECK_EMAIL | send code to check registration | true, false | false
-LOGIN_CHECK_EMAIL_DELAY | waiting for check registration code, minutes | 30 | 60
-LOGIN_UNCONFIRMED_FORBID | Don't send token for unconfirmed e-mail | true, false | false
-EMAIL_USER | nodemailer email user | login |
-EMAIL_PASSWORD | email password | password |
-EMAIL_HOST | email server | smtp.server |
-EMAIL_PORT | email port | 587 |
-EMAIL_SECURE | nodemailer secure option | true, false |
-EMAIL_TLS_REJECTUNAUTH | nodemailer rejectUnauthorized option | true, false |
-
-### Sentry DSN
-name | description | example | default value
------|-------------|---------|--------------
-ERRORS_SENTRY_DSN | dsn of Sentry | https://b94116e6a9e24065bd8353e42e8a885a@o4504812935243920.ingest.sentry.io/4504812938299040 |
-
-## Helpers
-
-### CRUD helper
-
-Create Create-Read-Update-Delete endpoint for table.
-
-Usage:
+example:
 
 ```javascript
-const TheAPI = require('the-api');
-
-const api = new TheAPI();
-const colors = api.crud({ table: 'colors' });
-api.up([colors]);
+{
+  result: {},
+  relations: {},
+  meta: {},
+  error: false,
+  requestTime: 2,
+  serverTime: "2024-05-18T10:39:49.795Z",
+  logId: "3n23rp20",
+}
 ```
 
-Generates the following endpoints with CRUD access to `colors` table:
+### Fields Description
 
-- GET /colors
-- POST /colors
-- PATCH /colors
-- DELETE /colors
+- `result`: API response result, set with `c.set('result', ...)`.
+- `relations`: Related objects associated with the main object.
+- `meta`: API response metadata (e.g., page number, total pages), set with `c.set('meta', ...)`.
+- `error`: Error flag (true/false) indicating if there was an error.
+- `requestTime`: Time spent on the server to process the request, in milliseconds.
+- `serverTime`: Current server time.
+- `logId`: Request's log ID (used in `logs` middleware).
 
-### KOA Knex helper
+## Routes
 
-Implement REST endpoinds for KOA and Knex. Main features:
+All like in [Hono Routing](https://hono.dev/api/routing), but you can set response result and response metadata the following way:
 
-- hidde fields by user category
-- required fields list
-- forbidden fields to add list
-- default where in each select request
-- join tables as json array
-- join tabbles aliases
-- limits in joined tabbles
-- define fileds to show in joined tabbles
-- support orderby of joined tabbles
-- .get return selected fields (GET /ship?_fields=id,name)
-- .get searching (GET /ship?name=Item%20name&category_id=3)
-- .get searching by from/to (GET /ship?_from_date=2001&_to_date=2011)
-- .get where not searching: /ships?_fields=title&title!=main
-- .get ilike searching (GET /ship?name~=%25Item%25)
-- .get searching by array (GET /ship?category_id[]=3&category_id[]=5)
-- .get null searching (GET /ship?category_id[]=null)
-- .get pagination (GET /ship?_page=2&_limit=10)
-- .get offset (GET /ship?_skip=100&_limit=10)
-- .get ASC/DESC multifields sorting (GET /ship?_sort=name,-date)
-- .get random sorting (GET /ship?_sort=random())
-- .get pays attention to `deleted` field in the table (get deleted=false by dafault)
-- .post/.path/.delete implementation
+c.set('result', ...)
 
-Usage:
+c.set('meta', ...)
+
+### Using Routings
+
+```typescript
+import { Routings, TheAPI } from 'the-api';
+
+const router = new Routings();
+
+// your routing rules here
+
+const theAPI = new TheAPI({ routings: [router] });
+export default theAPI.up();
+```
+
+### Get route
+
+```typescript
+const router = new Routings();
+
+router.get('data/:id', async (c: Context, n: Next) => {
+  await n();
+  c.set('result', {...c.var.result, e11: 'Hi11'});
+});
+
+router.get('data/:id', async (c: Context) => {
+  c.set('result', {e22: 'Hi22', ...c.req.param()});
+});
+
+const theAPI = new TheAPI({ routings: [router] });
+export default theAPI.up();
+```
+
+`GET /data/12`
 
 ```javascript
-//... KOA and Knex flow...
-const koaKnexHelper = require('the-api/koa-knex-helper')({ table: 'colors' });
-
-const apiHelper = new koaKnexHelper({
-  table: 'ships',
-  join: [
-    {
-      table: 'images', where: 'ships.id = images.ship_id', fields: ['id', 'name'], orderBy: 'is_main DESC, id ASC', limit: imageShowLimit || 1,
-    },
-    { table: 'categories', where: 'categories.id = ships.category_id' },
-    { table: 'lang', where: 'lang.key = ships.name', alias: 'name_lang' },
-    { table: 'users', where: 'users.id = ships.user_id', fields: ['company_country', 'company_id', 'company_name', 'first_name', 'second_name', 'id', 'position', 'product', 'status'] },
-  ],
-  hiddenFieldsByStatus: {
-    default: ['imo', 'user_id', 'title', 'message', 'external_company_name', 'external_id', 'external_url'],
-    registered: ['external_company_name', 'external_id', 'external_url'],
-    owner: ['external_company_name', 'external_id', 'external_url'],
-    admin: [],
-    root: [],
+{
+  result: {
+    e22: "Hi22",
+    id: "12",
+    e11: "Hi11",
   },
-  required: {
-    category_id: 'CATEGORY_ID_IS_REQUIRED',
-  },
-  forbiddenFieldsToAdd: ['id', 'user_id', 'timeCreated', 'timeUpdated', 'deleted', 'status', 'has_pdf', 'has_rtf'],
-  defaultWhere: { sold: false },
-});
-
-app.get('/ships', ctx => {
-  ctx.body = await apiHelper.get({ ctx });
-});
-
+  requestTime: 2,
+  serverTime: "2024-05-18T14:07:12.459Z",
+}
 ```
 
-## Changelog
+### Post route
 
-History of commits is [here](./CHANGELOG.md)
+router.post('/post', async (c: Context) => {
+  const body = await c.req.json();
+  c.set('result', body);
+});
 
-## Created by
+### Patch route
 
-  Dimitry Ivanov <2@ivanoff.org.ua> # curl -A cv ivanoff.org.ua
+router.patch('/patch/:id', async (c: Context) => {
+  const body = await c.req.json();
+  c.set('result', {...c.req.param(), ...body});
+});
 
-[license-image]: http://img.shields.io/badge/license-MIT-blue.svg?style=flat
-[license-url]: LICENSE
+### Put route
 
-[npm-url]: https://npmjs.org/package/the-api
-[npm-version-image]: http://img.shields.io/npm/v/the-api.svg?style=flat
-[npm-downloads-image]: http://img.shields.io/npm/dm/the-api.svg?style=flat
+router.put('/put/:id', async (c: Context) => {
+  const body = await c.req.json();
+  c.set('result', {...c.req.param(), ...body});
+});
 
-[travis-url]: https://travis-ci.org/ivanoff/the-api
-[travis-image]: https://travis-ci.org/ivanoff/the-api.svg?branch=master
+### Delete route
 
-[appveyor-url]: https://ci.appveyor.com/project/ivanoff/the-api/branch/master
-[appveyor-image]: https://ci.appveyor.com/api/projects/status/lp3nhnam1eyyqh33/branch/master?svg=true
+router.delete('/patch/:id', async (c: Context) => {
+  const body = await c.req.json();
+  c.set('result', body);
+});
 
-[coveralls-url]: https://coveralls.io/github/ivanoff/the-api?branch=master
-[coveralls-image]: https://coveralls.io/repos/github/ivanoff/the-api/badge.svg?branch=master
+## Logs middleware
 
-[requires.io-url]: https://requires.io/github/ivanoff/the-api/requirements/?branch=master
-[requires.io-image]: https://requires.io/github/ivanoff/the-api/requirements.svg?branch=master
+```typescript
+import { logs } from '../extensions';
 
-[bundlesize-image]: https://img.shields.io/bundlephobia/min/the-api
-[issues-image]: https://img.shields.io/github/issues/ivanoff/the-api
-[stars-image]: https://img.shields.io/packagist/stars/ivanoff/the-api
-[node-image]: https://img.shields.io/node/v/the-api
-[contributors-image]: https://img.shields.io/github/contributors/ivanoff/the-api
+const router = new Routings();
+
+router.post('/data/:id', async (c: Context) => {
+  const body = await c.req.json();
+  c.env.log('incoming data', body);
+
+  c.set('result', {...c.req.param(), token: 'xxx', refresh: 'yyy'});
+});
+
+const theAPI = new TheAPI({ routings: [logs, router] });
+export default theAPI.up();
+```
+
+```
+POST /data/12 {"password":"1"}
+```
+
+Log example:
+
+```
+[2024-05-18T12:30:33.837Z] [du69kxxq] [POST] [/data/12] [0] [begin]
+[2024-05-18T12:30:33.837Z] [du69kxxq] [POST] [/data/12] [0] {"headers":{"content-type":"application/json"},"query":{},"body":{"password":"<hidden>"},"ip":null,"method":"POST","path":"/data/12"}
+[2024-05-18T12:30:33.837Z] [du69kxxq] [POST] [/data/12] [0] incoming data
+[2024-05-18T12:30:33.837Z] [du69kxxq] [POST] [/data/12] [0] {"password":"<hidden>"}
+[2024-05-18T12:30:33.838Z] [du69kxxq] [POST] [/data/12] [1] {"id":"12","token":"<hidden>","refresh":"<hidden>"}
+[2024-05-18T12:30:33.838Z] [du69kxxq] [POST] [/data/12] [1] [end]
+```
+
+data and time, unique request id, method, path, time on server, log information
+
+each request starts with [begin] and ends with [end]
+
+after begin you can see information about request
+
+The following keys will mark as hidden: 'password', 'token', 'refresh', 'authorization'
+
+you can use `c.env.log()` to add any info to logs
+
+## Error middleware
+
+Every exception generates error response with `error` flag set to `true`
+
+Also, error response contains code of error, response status code, main message, additional description and comments and stack.
+
+```typescript
+import { errors } from '../extensions';
+
+const router = new Routings();
+
+router.get('/error', async (c: Context) => {
+  throw new Error('error message');
+});
+
+const theAPI = new TheAPI({ routings: [errors, router] });
+export default theAPI.up();
+```
+
+```javascript
+{
+  result: {
+    code: 11,
+    status: 500,
+    description: "An unexpected error occurred",
+    message: "error message",
+    additional: "",
+    stack: "...stack...",
+    error: true,
+  },
+  error: true,
+  requestTime: 1,
+  serverTime: "2024-05-18T08:17:56.929Z",
+  logId: "06zqxkyb",
+}
+```
+
+### 404 Not Found
+
+```javascript
+{
+  result: {
+    code: 21,
+    status: 404,
+    description: "Not found",
+    message: "NOT_FOUND",
+    additional: "",
+    error: true,
+  },
+  error: true,
+  requestTime: 0,
+  serverTime: "2024-05-18T16:56:21.501Z",
+}
+```
+
+### User-defined errors
+
+```typescript
+router.get('/user-defined-error', async (c: Context) => {
+  throw new Error('USER_DEFINED_ERROR');
+});
+
+router.errors({
+  USER_DEFINED_ERROR: {
+    code: 55,
+    status: 403,
+    description: 'user defined error',
+  },
+  ANOTHER_USER_DEFINED_ERROR: {
+    code: 57,
+    status: 404,
+  },
+});
+```
+
+```javascript
+{
+  result: {
+    code: 55,
+    status: 403,
+    description: "user defined error",
+    message: "USER_DEFINED_ERROR",
+    additional: "",
+    stack: "...stack...",
+    error: true,
+  },
+  error: true,
+  requestTime: 0,
+  serverTime: "2024-05-18T10:39:49.795Z",
+  logId: "06zqxkyb",
+}
+```
+
+### Error with additional information
+
+```typescript
+router.errors({
+  USER_DEFINED_ERROR: {
+    code: 55,
+    status: 403,
+    description: 'user defined error',
+  },
+});
+
+router.get('/user-defined-error-addition', async (c: any) => {
+  try {
+    c.some.path();
+  } catch (err) {
+    throw new Error('USER_DEFINED_ERROR: additional information');
+  }
+});
+```
+
+```javascript
+{
+  result: {
+    code: 55,
+    status: 403,
+    description: "user defined error",
+    message: "USER_DEFINED_ERROR",
+    additional: "additional information",
+    stack: "...",
+    error: true,
+  },
+  error: true,
+  requestTime: 1,
+  serverTime: "2024-05-18T11:09:04.163Z",
+}
+```
+
+
+### Error with meta information
+
+```typescript
+router.get('/user-defined-error-message-meta', async (c: any) => {
+  try {
+    c.some.path();
+  } catch {
+    c.set('meta', { x: 3 });
+    throw new Error('error message');
+  }
+});
+```
+
+```javascript
+{
+  result: {
+    code: 11,
+    status: 500,
+    description: "An unexpected error occurred",
+    message: "error message",
+    additional: "",
+    stack: "...stack...",
+    error: true,
+  },
+  meta: {
+    x: 3,
+  },
+  error: true,
+  requestTime: 1,
+  serverTime: "2024-05-18T08:17:56.929Z",
+  logId: "06zqxkyb",
+}
+```
+
+## Status middleware
+
+`GET /status`
+
+```javascript
+{
+  result: {
+    ok: 1,
+  },
+  error: false,
+  requestTime: 1,
+  serverTime: "2024-05-18T08:17:56.929Z",
+  logId: "06zqxkyb",
+}
+```
