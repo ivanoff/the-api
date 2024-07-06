@@ -1,11 +1,11 @@
-import { beforeAll, afterAll } from "bun:test";
-import { TestClient } from './lib';
-import { TheAPI } from '../src';
+import { beforeAll, afterAll, mock } from 'bun:test';
+import { getTestClient } from './lib';
 
-const theAPI = new TheAPI();
-await theAPI.init();
-const { app } = theAPI;
-const c = new TestClient({ app });
+const c = await getTestClient();
+
+mock.module('nodemailer', () => ({
+  createTransport: () => ({ sendMail: (data) => { c.storeValue('email', data) } }),
+}));
 
 beforeAll(async () => {
   await c.deleteTables();

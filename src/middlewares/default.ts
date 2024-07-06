@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { Routings } from '../Routings';
+import { Routings } from 'the-api-routings';
 
 const beginMiddleware = async (c: any, next: any) => {
     const dateBegin = new Date();

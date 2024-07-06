@@ -1,15 +1,16 @@
 import { Hono } from 'hono';
 import { RegExpRouter } from 'hono/router/reg-exp-router'
-import { Routings } from './Routings';
+import { resolve } from 'path';
+import { Routings } from 'the-api-routings';
 import { Db } from './Db';
-import { beginRoute, endRoute } from './routes/default';
-import { relationsRoute } from './routes/relations';
+import { beginRoute, endRoute } from './middlewares/default';
+import { relationsRoute } from './middlewares/relations';
 import type knex from 'knex';
-import type { Context, Next, Hono as HonoType } from 'hono';
+import type { Context, Next, Hono as HonoType, MiddlewareHandler } from 'hono';
 import type { Server } from 'bun';
 import type { Roles } from 'the-api-roles';
-import type { TheApiOptionsType } from './types';
-
+import type { Routings as RoutingsType } from 'the-api-routings';
+import type { TheApiOptionsType, EmailTemplatesType } from './types';
 const {
     PORT = 7788,
     DB_HOST: dbHost,
@@ -24,14 +25,16 @@ export class TheAPI {
     waitDb: (() => Promise<unknown>) | unknown;
     roles?: Roles;
     private errors: any;
-    private routings: Routings[];
+    private routings: RoutingsType[];
     private port: number;
-    private migrationDirs: string[] = ['./src/migrations'];
+    private migrationDirs: string[] = [resolve(`${import.meta.dir}/../src/migrations`)];
+    emailTemplates: Record<string, EmailTemplatesType>;
 
     constructor(options?: TheApiOptionsType) {
-        const { routings, roles, port, migrationDirs } = options || {};
-        this.app = new Hono({ router: new RegExpRouter() })
+        const { routings, roles, emailTemplates, port, migrationDirs } = options || {};
+        this.app = new Hono({ router: new RegExpRouter() });
         this.roles = roles;
+        this.emailTemplates = emailTemplates;
         this.routings = routings || [];
         this.port = port || +PORT;
         if (migrationDirs) this.migrationDirs = migrationDirs;
@@ -61,7 +64,7 @@ export class TheAPI {
         }
     }
 
-    async addRoutings(routings: Routings | Routings[]) {
+    async addRoutings(routings: RoutingsType | RoutingsType[]) {
         this.routings = this.routings.concat(routings);
     }
 
@@ -79,13 +82,15 @@ export class TheAPI {
     private _initErrorFlow() {
         this.app.onError((err, c: Context) => c.env.error(err));
 
-        for(const { routesErrors } of [beginRoute, relationsRoute, ...this.routings, endRoute]) {
+        for(const { routesErrors, routesEmailTemplates } of [beginRoute, relationsRoute, ...this.routings, endRoute]) {
             this.errors = { ...this.errors, ...routesErrors };
+            this.emailTemplates = { ...this.emailTemplates, ...routesEmailTemplates };
         }
 
         this.app.all('*', async (c: Context, n: Next) => {
             if (!c.env) c.env = {};
             c.env.getErrorByMessage = (message: any) => this.errors[`${message}`];
+            c.env.getTempplateByName = (name: string) => this.emailTemplates[`${name}`] || {};
             c.env.roles = this.roles;
 
             await n();
@@ -109,7 +114,7 @@ export class TheAPI {
 
             routes.map((route) => route.method ? 
                 this.app[`${route.method.toLowerCase()}`](route.path, ...route.handlers)
-                : this.app.all(route.path, ...route.handlers))
+                : this.app.all(route.path, ...route.handlers as unknown as MiddlewareHandler[]))
         }
     }
 }

@@ -2,74 +2,48 @@ import type { Context, MiddlewareHandler, Handler } from 'hono';
 import type { H } from 'hono/types';
 import type { Routings } from 'the-api-routings';
 import type { Roles } from 'the-api-roles';
-
 export type { MiddlewareHandler, Handler };
-
 export type MethodsType = ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'][number];
-
 export type MethodPathType = {
     method?: MethodsType;
     path: string;
 };
-
 export type RoutesType = MethodPathType & {
     handlers: (Handler | MiddlewareHandler)[];
 };
-
 export type PushToRoutesParamsType = MethodPathType & {
     fnArr: H<any, any, {}, any>[];
 };
-
 export type RoutesErrorsType = {
     [key: string]: {
-        code: number,
-        status: number,
-        description?: string,
-    }    
+        code: number;
+        status: number;
+        description?: string;
+    };
 };
-
-export type EmailTemplatesType = {
-    subject?: string;
-    text?: string;
-    html?: string;
-};
-
-export type EmailParamsType = EmailTemplatesType & {
-    to: string;
-    template?: string;
-    data?: Record<string, any>;
-};
-
 export type TheApiOptionsType = {
     routings: Routings[];
     roles?: Roles;
-    emailTemplates?: Record<string, EmailTemplatesType>;
     port?: number;
     migrationDirs?: string[];
 };
-
 export type DbOptionsType = {
     migrationDirs?: string[];
 };
-
 export type RoutingsOptionsType = {
     migrationDirs?: string[];
 };
-
 export type DbTablesType = {
     data_type: string;
     is_nullable: string;
     [key: string]: any;
 };
-
 export type stringRecordType = Record<string, string>;
-
 export type fieldRecordType = Record<string, fieldType>;
-
-export type whereParamsType = stringRecordType & { isDeleted?: boolean };
-
+export type whereParamsType = stringRecordType & {
+    isDeleted?: boolean;
+};
 export type fieldType = string | number | boolean;
-
 export type CrudBuilderJoinType = {
     table: string;
     schema?: string;
@@ -86,16 +60,14 @@ export type CrudBuilderJoinType = {
     byIndex?: number;
     permission?: string;
 };
-
 export type CrudBuilderPermissionsType = {
     protectedMethods?: (MethodsType | '*')[];
-    owner?:  string[];
+    owner?: string[];
     fields?: {
         viewable?: Record<string, string[]>;
         editable?: Record<string, string[]>;
     };
 };
-
 export type CrudBuilderOptionsType = {
     c?: Context;
     table: string;
@@ -114,7 +86,6 @@ export type CrudBuilderOptionsType = {
     readOnlyFields?: string[];
     showFieldsByPermission?: Record<string, string[]>;
     permissions?: CrudBuilderPermissionsType;
-
     defaultWhere?: fieldRecordType;
     defaultWhereRaw?: string;
     defaultSort?: string;
@@ -124,7 +95,6 @@ export type CrudBuilderOptionsType = {
     deletedReplacements?: fieldRecordType;
     relations?: Record<string, CrudBuilderOptionsType>;
     relationIdName?: string;
-
     tokenRequired?: any;
     ownerRequired?: any;
     rootRequired?: any;
@@ -136,7 +106,6 @@ export type CrudBuilderOptionsType = {
     additionalFields?: any;
     apiClientMethodNames?: any;
 };
-
 export type metaType = {
     total: number;
     limit?: number;
@@ -149,18 +118,10 @@ export type metaType = {
     isFirstPage?: boolean;
     isLastPage?: boolean;
 };
-
 export type getResultType = {
     result: any[];
     meta: metaType;
     relations?: Record<string, any[]>;
     error?: boolean;
-}
-
-export type EnvType = {
-    email: (params: EmailParamsType) => void;
-}
-
-export type contextType = {
-    env: EnvType;
-}
+};
+//# sourceMappingURL=types.d.ts.map

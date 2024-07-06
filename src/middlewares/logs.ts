@@ -1,4 +1,4 @@
-import { Routings } from "../Routings";
+import { Routings } from 'the-api-routings';
 
 const hideObjectValues = (obj: any) => {
   if (!obj) return;

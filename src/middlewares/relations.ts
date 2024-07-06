@@ -1,7 +1,7 @@
 import flattening from 'flattening';
-import CrudBuilder from '../CrudBuilder';
-import { Routings } from '../Routings';
-import type { CrudBuilderOptionsType, stringRecordType } from '../types';
+import { Routings, CrudBuilder } from 'the-api-routings';
+import type { CrudBuilderOptionsType, stringRecordType } from 'the-api-routings';
+// import type { CrudBuilderOptionsType, stringRecordType } from '../types';
 
 const relationsMiddleware = async (c: any, next: any) => {
     await next();

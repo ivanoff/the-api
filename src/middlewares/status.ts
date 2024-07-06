@@ -1,4 +1,4 @@
-import { Routings } from "../Routings";
+import { Routings } from 'the-api-routings';
 
 const status = new Routings();
 

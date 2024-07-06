@@ -12,6 +12,7 @@ const { db } = new Db();
 export class TestClient {
     private app: Hono | undefined;
     private headers?: IncomingHttpHeaders;
+    private vars: Record<string, any> = {};
     db: knex.Knex<any, unknown[]> | unknown;
     tokens: Partial<Record<string, string>> = {};
     users: Partial<Record<string, {id: number, roles?: string[], token?: string}>> = {
@@ -98,6 +99,14 @@ export class TestClient {
 
     generateGWT(params: any, expiresIn: string = process.env.JWT_EXPIRES_IN || '1h'): string {
         return jwt.sign(params, process.env.JWT_SECRET || '', { expiresIn });
+    }
+
+    storeValue(key: string, value: any) {
+        this.vars = { ...this.vars, [`${key}`]: value };
+    }
+
+    getValue(key) {
+        return this.vars[`${key}`];
     }
 }
 

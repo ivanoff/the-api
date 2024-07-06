@@ -1,6 +1,6 @@
 {
   "name": "the-api",
-  "version": "21.1.1",
+  "version": "21.1.5",
   "license": "MIT",
   "author": "Dimitry Ivanov <2@ivanoff.org.ua> # curl -A cv ivanoff.org.ua",
   "description": "The API - Create Your API in Seconds",
@@ -12,16 +12,21 @@
   },
   "dependencies": {
     "flattening": "^2.4.3",
+    "handlebars": "^4.7.8",
     "hono": "^4.4.6",
     "jsonwebtoken": "^9.0.2",
     "knex": "^3.1.0",
     "luxon": "^3.4.4",
-    "pg": "^8.11.5",
-    "the-api-roles": "^0.1.1"
+    "nodemailer": "^6.9.14",
+    "pg": "^8.11.5"
   },
   "devDependencies": {
+    "@types/bun": "latest",
     "@types/node": "^20.12.4",
-    "@types/bun": "latest"
+    "@types/nodemailer": "^6.4.15",
+    "the-api-langs": "^0.1.1",
+    "the-api-roles": "^0.1.1",
+    "the-api-routings": "^0.2.1"
   },
   "repository": {
     "type": "git",
