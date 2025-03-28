@@ -1,0 +1,22 @@
+{
+    "all": true,
+    "report-dir": "./coverage",
+    "temp-dir": "./coverage/.nyc_output",
+    "extension": [
+      ".js"
+    ],
+    "exclude": [
+      "coverage",
+      "test",
+      "example.js",
+      "config.js",
+      ".eslintrc.js",
+      "**/migrations"
+    ],
+    "reporter": [
+      "html",
+      "text",
+      "text-summary",
+      "cobertura"
+    ]
+}

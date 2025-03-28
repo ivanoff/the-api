@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+
+  the_api_server:
+    container_name: the_api_server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - 8877:8877
+    environment:
+      - NODE_ENV=production
+      - PORT=8877
+      - DB_CLIENT=sqlite3
+      - DB_FILENAME=/app/db/sqlite.db
+    working_dir: /app
+    volumes:
+      - ./src:/app/src
+      - ./db:/app/db
+    tty: true
+    command: node example.js
