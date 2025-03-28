@@ -32,7 +32,7 @@ const relationsMiddleware = async (c: any, next: any) => {
       }
     };
 
-    await Promise.all(Object.entries(relationsData as Record<string, CrudBuilderOptionsType>).map(findRelations));
+    for (const item of Object.entries(relationsData as Record<string, CrudBuilderOptionsType>)) await findRelations(item);
 
     c.set('relations', relations);
 };
