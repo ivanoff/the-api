@@ -564,6 +564,101 @@ example:
 - `serverTime`: Current server time.
 - `logId`: Request's log ID (used in `logs` middleware).
 
+## Relations
+
+`relations` move repeated foreign-key records out of each row and into a
+top-level lookup map. Configure them in the CRUD definition with the same key
+as the foreign-key field in the main result:
+
+```typescript
+router.crud({
+  table: 'ships',
+  relations: {
+    categoryId: {
+      table: 'categories',
+      fields: ['id', 'name'],
+    },
+    userId: {
+      table: 'users',
+      fields: ['id', 'email', 'companyName'],
+      fieldRules: {
+        hidden: ['email'],
+      },
+    },
+  },
+});
+```
+
+For `GET /ships?_fields=id,name,categoryId,userId`, the result keeps ids and
+each unique relation is returned once:
+
+```json
+{
+  "result": [
+    { "id": 1, "name": "Aurora", "categoryId": 1, "userId": 1 },
+    { "id": 2, "name": "Baltic Star", "categoryId": 2, "userId": 1 }
+  ],
+  "relations": {
+    "categoryId": {
+      "1": { "id": 1, "name": "Cargo" },
+      "2": { "id": 2, "name": "Tanker" }
+    },
+    "userId": {
+      "1": { "id": 1, "companyName": "Blue Ocean Ltd" }
+    }
+  },
+  "error": false
+}
+```
+
+Resolve records by id on the client rather than expecting `categories` or
+`users` arrays inside each ship:
+
+```typescript
+const response = await api.get('/ships?_fields=id,name,categoryId,userId');
+
+for (const ship of response.result) {
+  const category = response.relations.categoryId?.[ship.categoryId];
+  const user = response.relations.userId?.[ship.userId];
+  console.log(ship.name, category?.name, user?.companyName);
+}
+```
+
+The middleware finds ids in `result`, so retain relation fields such as
+`categoryId` in `_fields`. A `null`, missing, or unmatched id is omitted from
+the map. The default related-record key is `id`; set `relationIdName` if the
+foreign key references another unique field:
+
+```typescript
+relations: {
+  categorySlug: {
+    table: 'categories',
+    relationIdName: 'slug',
+    fields: ['slug', 'name'],
+  },
+}
+
+// relations.categorySlug['cargo'] => { slug: 'cargo', name: 'Cargo' }
+```
+
+Use `relations` for ordinary shared references in list responses. Use `join`
+when every row must embed related JSON, or when the relationship requires a
+custom SQL condition, ordering, aggregation, or derived field. Each relation
+definition has its own `fields`, `fieldRules`, and CRUD visibility rules, so
+define a minimal safe payload for API clients.
+
+For a custom handler, set `relationsData` after setting `result`; the built-in
+relations middleware will use the same contract:
+
+```typescript
+router.get('/featured-ships', async (c) => {
+  c.set('result', [{ id: 1, name: 'Aurora', categoryId: 1 }]);
+  c.set('relationsData', {
+    categoryId: { table: 'categories', fields: ['id', 'name'] },
+  });
+});
+```
+
 ## Middlewares
 
 ### common

@@ -649,6 +649,35 @@ const theAPI = new TheAPI({
             Use `join` when related data should be embedded in each result. Use
             `relations` when clients benefit from normalized, deduplicated data.
           </p>
+          <p>
+            Keep <code>categoryId</code> and <code>userId</code> in
+            <code>_fields</code>: the middleware loads relations from ids in
+            <code>result</code>. A null, missing, or unmatched id has no map
+            entry. Resolve related data by id instead of expecting an embedded
+            <code>categories</code> or <code>users</code> array:
+          </p>
+          <pre><code class="language-ts">for (const ship of response.result) {
+  const category = response.relations.categoryId?.[ship.categoryId];
+  const user = response.relations.userId?.[ship.userId];
+  renderShip(ship, category?.name, user?.companyName);
+}</code></pre>
+          <p>
+            The target key defaults to <code>id</code>. For a foreign key such
+            as <code>categorySlug</code>, use
+            <code>relationIdName: 'slug'</code>; the map will then be available
+            as <code>relations.categorySlug['cargo']</code>. Each relation can
+            declare <code>fields</code> and <code>fieldRules</code>, so return
+            only safe data. Use <code>join</code> when every row must embed
+            related JSON or needs a custom SQL condition, aggregation, order, or
+            limit. Use <code>relations</code> for shared id references that
+            clients can resolve from normalized, deduplicated maps.
+          </p>
+          <pre><code class="language-ts">router.get('/featured-ships', async (c) =&gt; {
+  c.set('result', [{ id: 1, name: 'Aurora', categoryId: 1 }]);
+  c.set('relationsData', {
+    categoryId: { table: 'categories', fields: ['id', 'name'] },
+  });
+});</code></pre>
         </section>
 
         <section id="context" class="doc-section" data-section>

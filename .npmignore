@@ -3,6 +3,9 @@
 
 !dist/
 !dist/**
+!src/
+!src/migrations/
+!src/migrations/**
 !README.md
 !package.json
 !LICENSE*
